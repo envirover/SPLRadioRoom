@@ -11,9 +11,9 @@ before_install:
 install:
   - wget https://github.com/envirover/IridiumSBD/archive/master.tar.gz -O /tmp/IridiumSBD.tar.gz
   - tar -xvf /tmp/IridiumSBD.tar.gz
-  - mv /tmp/IridiumSBD-master /tmp/IridiumSBD
-  - ln -s /tmp/SPLRadioRoom /usr/local/share/arduino/libraries/IridiumSBD
-  - ls /tmp
+  - mv IridiumSBD-master IridiumSBD
+  - ln -s $PWD/IridiumSBD /usr/local/share/arduino/libraries/IridiumSBD
+  - ls $PWD
 script:
   - arduino --verify --board Intel:arc32:arduino_101 $PWD/SPLRadioRoom/SPLRadioRoom.ino
 notifications:
