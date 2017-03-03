@@ -3,9 +3,9 @@
 
 # SPLRadioRoom
 
-SPLRadioRoom is an Arduino sketch for a companion computer of ArduPilot-based rovers that enables communication over [RockBLOCK](http://www.rock7mobile.com/products-rockblock) Iridium Short Burst Data satellite communication system (ISBD). Together with [SPLGroundControl](https://github.com/envirover/SPLGroundControl) MAVLink proxy server it provides a two way communication channel between rovers and MAVLink ground control stations such as MAVProxy, Mission Planer, or QGroundControl.
+SPLRadioRoom is an Arduino sketch for a companion computer of ArduPilot-based rovers that enables communication over [RockBLOCK](http://www.rock7mobile.com/products-rockblock) Iridium Short Burst Data satellite communication system (ISBD). Together with [SPLGroundControl](https://github.com/envirover/SPLGroundControl) MAVLink proxy server it provides a two way communication channel between rovers and ground control stations such as MAVProxy, Mission Planer, or QGroundControl.
 
-SPLRadioRoom reads MAVLink messages from the ArduPilot's telemetry serial port. It integrates high-frequency messages (SYS\_STATUS, GPS\_RAW\_INT, ATTITUDE, GLOBAL\_POSITION\_INT, MISSION\_CURRENT, NAV\_CONTROLLER\_OUTPUT, and VFR\_HUD) into HIGH\_LATENCY message and periodically sends the HIGH\_LATENCY message to the ISBD. All other messages are encoded and directly forwarded to the ISBD.
+SPLRadioRoom reads MAVLink messages from the ArduPilot's telemetry serial port. It integrates high-frequency messages (SYS\_STATUS, GPS\_RAW\_INT, ATTITUDE, GLOBAL\_POSITION\_INT, MISSION\_CURRENT, NAV\_CONTROLLER\_OUTPUT, and VFR\_HUD) into HIGH\_LATENCY message and periodically sends the HIGH\_LATENCY messages to the ISBD. All other messages are encoded and directly forwarded to the ISBD.
 
 Mobile-terminated messages received from the ISBD are decoded and sent directly to the ArduPilot's telemetry serial port.
 
