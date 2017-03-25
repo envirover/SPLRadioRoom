@@ -9,13 +9,9 @@ before_install:
   - sudo ln -s /usr/local/share/arduino/arduino /usr/local/bin/arduino
   - arduino --install-boards Intel:arc32
 install:
-  - wget https://github.com/envirover/IridiumSBD/archive/master.tar.gz -O /tmp/IridiumSBD.tar.gz
-  - tar -xvf /tmp/IridiumSBD.tar.gz
-  - mv IridiumSBD-master IridiumSBD
-  - ln -s $PWD/IridiumSBD /usr/local/share/arduino/libraries/IridiumSBD
-  - ls $PWD
 script:
   - arduino --verify --board Intel:arc32:arduino_101 $PWD/SPLRadioRoom/SPLRadioRoom.ino
+  - arduino --verify --board Intel:arc32:arduino_101 $PWD/RockBLOCKChat/RockBLOCKChat.ino
 notifications:
   email:
     on_success: change
