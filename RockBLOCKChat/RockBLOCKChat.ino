@@ -9,7 +9,7 @@
  AT&K0\r
  AT+SBDWT=Hello World\r
  AT+SBDIX\r
-*/
+ */
 
 #include "SoftwareSerial.h"
 
@@ -23,21 +23,21 @@ SoftwareSerial nss(ROCKBLOCK_RX, ROCKBLOCK_TX);
 
 void setup() {
   pinMode(ROCKBLOCK_ONOFF, OUTPUT);
-  digitalWrite(ROCKBLOCK_ONOFF, HIGH);  
-  
+  digitalWrite(ROCKBLOCK_ONOFF, HIGH);
+
   Serial.begin(SERIAL_BAUD);
   nss.begin(19200);
 }
 
 void loop() {
   char c = nss.read();
-  
+
   if (c != -1) {
     Serial.write(c);
   }
 
   c = Serial.read();
-  
+
   if (c != -1) {
     nss.write(c);
   }
