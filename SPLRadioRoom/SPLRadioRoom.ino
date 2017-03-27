@@ -52,7 +52,7 @@
 #define ISBD_BAUD_RATE     19200
 
 // Default HIGH_LATENCY message reporting period in milliseconds
-#define HL_MSG_REPORT_PERIOD 10000L
+#define HL_MSG_REPORT_PERIOD 300000L
 
 #define BLE_SERVICE_NAME   "MAVRadioRoom"
 
@@ -62,16 +62,21 @@ SoftwareSerial nss(ISBD_RX_PIN, ISBD_TX_PIN);
 IridiumSBD isbd(nss, ISBD_SLEEP_PIN);
 
 mavlink_message_t mavlink_message;
-mavlink_status_t mavlink_status;
+//mavlink_status_t mavlink_status;
 mavlink_high_latency_t high_latency_msg;
 unsigned long last_report_time;
 uint8_t high_latency_seq = 0;
+uint8_t statustext_seq = 0;
 
 // Bluetooth service 
 BLEPeripheral ble_peripheral;
 BLEService ble_service("861c0e0a-ded3-11e6-bf01-fe55135034f3");
 BLEUnsignedLongCharacteristic ble_high_latency_period(
     "a4cf3be2-ded3-11e6-bf01-fe55135034f3", BLERead | BLEWrite);
+
+inline int16_t radToCentidegrees(float rad) {
+  return rad / M_PI * 18000;
+}
 
 void setup() {
   Serial.begin(57600);
@@ -121,29 +126,21 @@ void setup() {
 void loop() {
   ble_peripheral.poll();
 
-  // Send the message (.write sends as bytes) 
-  //ardupliot.write(buf, len);
-
-  comm_receive();
+  commReceive();
 
   unsigned long current_time = millis();
 
   if (current_time - last_report_time > ble_high_latency_period.value()) {
-    print_high_latency_msg(high_latency_msg);
+    printHighLatencyMsg(high_latency_msg);
 
     mavlink_message_t mavlink_msg;
-    mavlink_msg_high_latency_encode(SYSTEM_ID, COMPONENT_ID, &mavlink_msg,
-        &high_latency_msg);
+    mavlink_msg_high_latency_encode(SYSTEM_ID, COMPONENT_ID, &mavlink_msg, &high_latency_msg);
     mavlink_msg.seq = high_latency_seq++;
 
-    isbd_session(mavlink_msg);
+    isbdSession(mavlink_msg);
 
     last_report_time = current_time;
   }
-}
-
-inline int16_t rad_to_centidegrees(float rad) {
-  return rad / M_PI * 18000;
 }
 
 /*
@@ -153,7 +150,7 @@ inline int16_t rad_to_centidegrees(float rad) {
  * @param msg message received from Ardupilot
  * @return true if the message was integrated or should be just swallowed
  */
-bool update_high_latency_msg(mavlink_high_latency_t& high_latency,
+bool updateHighLatencyMsg(mavlink_high_latency_t& high_latency,
     const mavlink_message_t msg) {
   switch (msg.msgid) {
   case MAVLINK_MSG_ID_HEARTBEAT:  	//0
@@ -164,20 +161,16 @@ bool update_high_latency_msg(mavlink_high_latency_t& high_latency,
     high_latency_msg.battery_remaining =
         mavlink_msg_sys_status_get_battery_remaining(&msg);
     return true;
-  case MAVLINK_MSG_ID_SYSTEM_TIME:  	//2
-    return true;
   case MAVLINK_MSG_ID_GPS_RAW_INT:  	//24
     high_latency.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
     high_latency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(
         &msg);
     return true;
-  case MAVLINK_MSG_ID_RAW_IMU:  	//27
-    return true;
   case MAVLINK_MSG_ID_ATTITUDE:  	//30
-    high_latency.roll = rad_to_centidegrees(
-        mavlink_msg_attitude_get_roll(&msg));
-    high_latency.pitch = rad_to_centidegrees(
-        mavlink_msg_attitude_get_pitch(&msg));
+    high_latency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
+    high_latency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
+    return true;
+  case MAVLINK_MSG_ID_LOCAL_POSITION_NED:
     return true;
   case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:  	//33
     high_latency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
@@ -185,10 +178,6 @@ bool update_high_latency_msg(mavlink_high_latency_t& high_latency,
     high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg);
     high_latency.altitude_sp = mavlink_msg_global_position_int_get_relative_alt(
         &msg);
-    return true;
-  case MAVLINK_MSG_ID_RC_CHANNELS_RAW:  	//35
-    return true;
-  case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:  	//36
     return true;
   case MAVLINK_MSG_ID_MISSION_CURRENT:  	//42
     high_latency.wp_num = mavlink_msg_mission_current_get_seq(&msg);
@@ -206,120 +195,141 @@ bool update_high_latency_msg(mavlink_high_latency_t& high_latency,
     high_latency.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
     high_latency.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
     return true;
-  case MAVLINK_MSG_ID_SCALED_IMU2:  	//116
-    return true;
-  case MAVLINK_MSG_ID_POWER_STATUS:  	//125
-    return true;
-  case MAVLINK_MSG_ID_VIBRATION:  	//241
-    return true;
   }
 
   return false;
 }
 
 // Debug print of HIGH_LATENCY message
-void print_high_latency_msg(const mavlink_high_latency_t& high_latency_msg) {
+void printHighLatencyMsg(const mavlink_high_latency_t& msg) {
   Serial.println("**");
-  Serial.print("custom_mode = ");
-  Serial.println(high_latency_msg.custom_mode);
-  Serial.print("latitude = ");
-  Serial.println(high_latency_msg.latitude);
-  Serial.print("longitude = ");
-  Serial.println(high_latency_msg.longitude);
-  Serial.print("roll = ");
-  Serial.println(high_latency_msg.roll);
-  Serial.print("pitch = ");
-  Serial.println(high_latency_msg.pitch);
-  Serial.print("heading = ");
-  Serial.println(high_latency_msg.heading);
-  Serial.print("heading_sp = ");
-  Serial.println(high_latency_msg.heading_sp);
-  Serial.print("altitude_amsl = ");
-  Serial.println(high_latency_msg.altitude_amsl);
-  Serial.print("altitude_sp = ");
-  Serial.println(high_latency_msg.altitude_sp);
-  Serial.print("wp_distance = ");
-  Serial.println(high_latency_msg.wp_distance);
-  Serial.print("base_mode = ");
-  Serial.println(high_latency_msg.base_mode);
-  Serial.print("landed_state = ");
-  Serial.println(high_latency_msg.landed_state);
-  Serial.print("throttle = ");
-  Serial.println(high_latency_msg.throttle);
-  Serial.print("airspeed = ");
-  Serial.println(high_latency_msg.airspeed);
-  Serial.print("airspeed_sp = ");
-  Serial.println(high_latency_msg.airspeed_sp);
-  Serial.print("groundspeed = ");
-  Serial.println(high_latency_msg.groundspeed);
-  Serial.print("climb_rate = ");
-  Serial.println(high_latency_msg.climb_rate);
-  Serial.print("gps_nsat = ");
-  Serial.println(high_latency_msg.gps_nsat);
-  Serial.print("gps_fix_type = ");
-  Serial.println(high_latency_msg.gps_fix_type);
-  Serial.print("battery_remaining = ");
-  Serial.println(high_latency_msg.battery_remaining);
-  Serial.print("temperature = ");
-  Serial.println(high_latency_msg.temperature);
-  Serial.print("temperature_air = ");
-  Serial.println(high_latency_msg.temperature_air);
-  Serial.print("failsafe = ");
-  Serial.println(high_latency_msg.failsafe);
-  Serial.print("wp_num = ");
-  Serial.println(high_latency_msg.wp_num);
+  Serial.print("custom_mode = "); Serial.println(msg.custom_mode);
+  Serial.print("latitude = "); Serial.println(msg.latitude);
+  Serial.print("longitude = "); Serial.println(msg.longitude);
+  Serial.print("roll = "); Serial.println(msg.roll);
+  Serial.print("pitch = "); Serial.println(msg.pitch);
+  Serial.print("heading = "); Serial.println(msg.heading);
+  Serial.print("heading_sp = "); Serial.println(msg.heading_sp);
+  Serial.print("altitude_amsl = "); Serial.println(msg.altitude_amsl);
+  Serial.print("altitude_sp = "); Serial.println(msg.altitude_sp);
+  Serial.print("wp_distance = "); Serial.println(msg.wp_distance);
+  Serial.print("base_mode = "); Serial.println(msg.base_mode);
+  Serial.print("landed_state = "); Serial.println(msg.landed_state);
+  Serial.print("throttle = "); Serial.println(msg.throttle);
+  Serial.print("airspeed = "); Serial.println(msg.airspeed);
+  Serial.print("airspeed_sp = "); Serial.println(msg.airspeed_sp);
+  Serial.print("groundspeed = "); Serial.println(msg.groundspeed);
+  Serial.print("climb_rate = "); Serial.println(msg.climb_rate);
+  Serial.print("gps_nsat = "); Serial.println(msg.gps_nsat);
+  Serial.print("gps_fix_type = "); Serial.println(msg.gps_fix_type);
+  Serial.print("battery_remaining = "); Serial.println(msg.battery_remaining);
+  Serial.print("temperature = "); Serial.println(msg.temperature);
+  Serial.print("temperature_air = "); Serial.println(msg.temperature_air);
+  Serial.print("failsafe = "); Serial.println(msg.failsafe);
+  Serial.print("wp_num = "); Serial.println(msg.wp_num);
 }
 
 /*
  * Debug print of mavlink_message_t message
  */
-void print_mavlink_msg(const mavlink_message_t& msg) {
+void printMavlinkMsg(const mavlink_message_t& msg) {
   Serial.println("**");
-  Serial.print("msgid = ");
-  Serial.println(msg.msgid);
-  Serial.print("compid = ");
-  Serial.println(msg.compid);
+  Serial.print("msgid = "); Serial.println(msg.msgid);
+  Serial.print("compid = "); Serial.println(msg.compid);
+}
+
+/**
+ * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
+ * Returns true if the ISBD session succeeded.
+ */
+boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t& mtMsg, boolean& received) {
+  received = false;
+  
+  uint8_t buf[ISBD_MAX_MT_MGS_SIZE];
+  size_t buf_size = sizeof(buf);
+
+  //Copy the message to send buffer 
+  uint16_t len = mavlink_msg_to_send_buffer(buf, &moMsg);
+
+  nss.listen();
+  
+  if (isbd.sendReceiveSBDBinary(buf, len, buf, buf_size) != ISBD_SUCCESS) 
+    return false;  
+
+  if (buf_size > 0) {
+    mavlink_status_t mavlink_status;
+    for (size_t i = 0; i < buf_size; i++) {
+      if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mtMsg, &mavlink_status)) {
+        received = true;
+      }
+    }
+  }
+
+  return true;
 }
 
 /*
  * Send the message to ISBD, recieve all the messages in the 
  * inbound message queue, if any, and pass them to ardupilot.
  */
-void isbd_session(const mavlink_message_t& msg) {
-  uint8_t buf[ISBD_MAX_MT_MGS_SIZE];
-  size_t buf_size = sizeof(buf);
-
-  //Copy the message to send buffer 
-  uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
-
+void isbdSession(mavlink_message_t& msg) {
+  boolean received;
+  uint8_t buf[263];
+  
   do {
-    nss.listen();
-    if (isbd.sendReceiveSBDBinary(buf, len, buf, buf_size) == ISBD_SUCCESS) {
-      len = 0;
-      if (buf_size > 0) {
+    if (isbdSendReceiveMessage(msg, msg, received)) {
+      if (received) {
+        //Copy the received MT message to send buffer 
+        uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+        //Send the recieved MT message to ArduPilot
         ardupilot.listen();
-        ardupilot.write(buf, buf_size);
+        ardupilot.write(buf, len);
 
         delay(100);
 
+        //Read a message from ArduPilot if any.
+        mavlink_status_t mavlink_status;
+        boolean ack_received = false;
         while (ardupilot.available() > 0) {
           uint8_t c = ardupilot.read();
 
           // Try to get a new message 
-          if (mavlink_parse_char(MAVLINK_COMM_0, c, &mavlink_message,
-              &mavlink_status)) {
-            len = mavlink_msg_to_send_buffer(buf, &msg);
+          if (mavlink_parse_char(MAVLINK_COMM_0, c, &mavlink_message, &mavlink_status)) {
+            //len = mavlink_msg_to_send_buffer(buf, &mavlink_message);
+            ack_received = true;
+            break;
           }
         }
+
+        mavlink_statustext_t statustext_msg;
+        statustext_msg.severity = 0;
+        if (ack_received) {
+          strcpy(statustext_msg.text, "SPL: ACK MSG ");
+          char str[50];
+          strcat(statustext_msg.text, itoa(mavlink_message.msgid, str, 10));
+        } else {
+          strcpy(statustext_msg.text, "SPL: ACK MSG NOT RECEIVED");
+        }
+
+        mavlink_msg_statustext_encode(mavlink_message.sysid, mavlink_message.compid, &msg, &statustext_msg);
+        msg.seq = statustext_seq++;
       }
     }
-  } while (isbd.getWaitingMessageCount() > 0 || len > 0);
+  } while (isbd.getWaitingMessageCount() > 0);
+}
+
+boolean filterMessage(const mavlink_message_t& mavlink_message) {
+  //TODO: Add all relevant messages 
+  return false;
 }
 
 /*
  * Reads and processes MavLink messages from ArduPilot.
  */
-void comm_receive() {
+void commReceive() {
+  mavlink_status_t mavlink_status;
+  
   // Receive data from Ardupilot
   ardupilot.listen();
 
@@ -329,13 +339,14 @@ void comm_receive() {
     uint8_t c = ardupilot.read();
 
     // Try to get a new message 
-    if (mavlink_parse_char(MAVLINK_COMM_0, c, &mavlink_message,
-        &mavlink_status)) {
+    if (mavlink_parse_char(MAVLINK_COMM_0, c, &mavlink_message, &mavlink_status)) {
       // Handle message
-      if (!update_high_latency_msg(high_latency_msg, mavlink_message)) {
-        print_mavlink_msg(mavlink_message);
+      updateHighLatencyMsg(high_latency_msg, mavlink_message);
+      
+      if (filterMessage(mavlink_message)) {
+        printMavlinkMsg(mavlink_message);
 
-        isbd_session(mavlink_message);
+        isbdSession(mavlink_message);
       }
     }
   }
