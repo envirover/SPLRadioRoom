@@ -240,8 +240,13 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
    if (this->asleep)
       return ISBD_IS_ASLEEP;
 
-   // Binary transmission?
-   if (txData && txDataSize)
+   if (!txTxtMessage && !txDataSize) //Just receive, clear MO message buffer
+   {
+      send(F("AT+SBDD0\r"));
+      if (!waitForATResponse(NULL, 0, NULL, "\r"))
+         return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+   } 
+   else if (txData && txDataSize)    // Binary transmission?
    {
       send(F("AT+SBDWB="), true, false);
       send(txDataSize);
@@ -270,7 +275,6 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
       if (!waitForATResponse(NULL, 0, NULL, "0\r\n\r\nOK\r\n"))
          return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
    }
-
    else // Text transmission
    {
       send(F("AT+SBDWT="), true, false);
