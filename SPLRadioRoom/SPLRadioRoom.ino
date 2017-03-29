@@ -39,7 +39,7 @@
 #define AP_TELEM_RX_PIN    2  //connect to Pixhawk TELEM1 pin 2 
 #define AP_TELEM_TX_PIN    3  //connect to Pixhawk TELEM1 pin 3 
 
-//iridium SBD transciever interface
+// Iridium SBD transceiver interface
 #define ISBD_RX_PIN        8  //connect to ISBD TX pin
 #define ISBD_TX_PIN        9  //connect to ISBD RX pin
 #define ISBD_SLEEP_PIN     10 //connect to ISBD sleep pin
@@ -61,7 +61,6 @@ BLEConfig config;
 HighLatencyMsg highLatencyMsg;
 
 unsigned long lastReportTime = 0;
-uint8_t statustext_seq = 0;
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
@@ -170,7 +169,7 @@ void isbdSession(mavlink_message_t& moMsg) {
 }
 
 /**
- * Filters out MO messages from ardupilot. 
+ * Filters out MO messages from ArduPilot. 
  */
 boolean filterMessage(const mavlink_message_t& msg) {
   //TODO: Add all relevant messages 
@@ -178,7 +177,7 @@ boolean filterMessage(const mavlink_message_t& msg) {
 }
 
 /*
- * Reads and processes MavLink messages from ArduPilot.
+ * Reads and processes MAVLink messages from ArduPilot.
  */
 void commReceive() {
   mavlink_message_t msg;
