@@ -39,7 +39,7 @@
 #define AP_TELEM_RX_PIN    2  //connect to Pixhawk TELEM1 pin 2 
 #define AP_TELEM_TX_PIN    3  //connect to Pixhawk TELEM1 pin 3 
 
-//iridium SBD transciever interface
+// Iridium SBD transceiver interface
 #define ISBD_RX_PIN        8  //connect to ISBD TX pin
 #define ISBD_TX_PIN        9  //connect to ISBD RX pin
 #define ISBD_SLEEP_PIN     10 //connect to ISBD sleep pin
@@ -58,10 +58,9 @@ IridiumSBD isbd(nss, ISBD_SLEEP_PIN);
 
 BLEConfig config;
 
-HighLatencyMsg highLatencyMsg;
+HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
 unsigned long lastReportTime = 0;
-uint8_t statustext_seq = 0;
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
@@ -155,22 +154,30 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
  */
 void isbdSession(mavlink_message_t& moMsg) {
   boolean received;
-
   mavlink_message_t mtMsg;
+  boolean ackReceived = false;
 
   do {
+    ackReceived = false;
+    
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
         ardupilot.sendMessage(mtMsg);
 
-        moMsg.len = moMsg.msgid = 0;
+        ackReceived = ardupilot.receiveAck(mtMsg, moMsg);
+
+        if (!ackReceived) 
+          ackReceived = ardupilot.composeUnconfirmedAck(mtMsg, moMsg);
+
+        if (!ackReceived) 
+          moMsg.len = moMsg.msgid = 0;
       }
     }
-  } while (isbd.getWaitingMessageCount() > 0);
+  } while (isbd.getWaitingMessageCount() > 0 || ackReceived);
 }
 
 /**
- * Filters out MO messages from ardupilot. 
+ * Filters out MO messages from ArduPilot. 
  */
 boolean filterMessage(const mavlink_message_t& msg) {
   //TODO: Add all relevant messages 
@@ -178,7 +185,7 @@ boolean filterMessage(const mavlink_message_t& msg) {
 }
 
 /*
- * Reads and processes MavLink messages from ArduPilot.
+ * Reads and processes MAVLink messages from ArduPilot.
  */
 void commReceive() {
   mavlink_message_t msg;
@@ -210,6 +217,8 @@ bool ISBDCallback() {
     updateHighLatencyMsg(high_latency_msg, msg);
   }
 
+  nss.listen();
+  
   return true;
 }
 */
