@@ -23,9 +23,6 @@
 #undef F
 #include "mavlink/include/standard/mavlink.h"        
 
-#define SYSTEM_ID    1
-#define COMPONENT_ID MAV_COMP_ID_UART_BRIDGE
-
 /**
  * Wrapper for mavlink_high_latency_t class.
  */
@@ -33,9 +30,11 @@ class HighLatencyMsg
 {
   mavlink_high_latency_t highLatency;
   uint8_t seq;
+  uint8_t sysid;
+  uint8_t compid;
   
 public:
-  HighLatencyMsg();
+  HighLatencyMsg(uint8_t sysid, uint8_t compid);
   
  /*
   * Integrates high frequency message into HIGH_LATENCY type message.

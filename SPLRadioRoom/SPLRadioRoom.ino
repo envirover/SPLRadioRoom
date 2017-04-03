@@ -58,7 +58,7 @@ IridiumSBD isbd(nss, ISBD_SLEEP_PIN);
 
 BLEConfig config;
 
-HighLatencyMsg highLatencyMsg;
+HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
 unsigned long lastReportTime = 0;
 
@@ -154,18 +154,26 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
  */
 void isbdSession(mavlink_message_t& moMsg) {
   boolean received;
-
   mavlink_message_t mtMsg;
+  boolean ackReceived = false;
 
   do {
+    ackReceived = false;
+    
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
         ardupilot.sendMessage(mtMsg);
 
-        moMsg.len = moMsg.msgid = 0;
+        ackReceived = ardupilot.receiveAck(mtMsg, moMsg);
+
+        if (!ackReceived) 
+          ackReceived = ardupilot.composeUnconfirmedAck(mtMsg, moMsg);
+
+        if (!ackReceived) 
+          moMsg.len = moMsg.msgid = 0;
       }
     }
-  } while (isbd.getWaitingMessageCount() > 0);
+  } while (isbd.getWaitingMessageCount() > 0 || ackReceived);
 }
 
 /**
@@ -209,6 +217,8 @@ bool ISBDCallback() {
     updateHighLatencyMsg(high_latency_msg, msg);
   }
 
+  nss.listen();
+  
   return true;
 }
 */

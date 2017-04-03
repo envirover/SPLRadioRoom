@@ -23,15 +23,49 @@
 #include <SoftwareSerial.h>
 
 #undef F
-#include "mavlink/include/standard/mavlink.h"        
+#include "mavlink/include/standard/mavlink.h"      
 
+#define ARDUPILOT_SYSTEM_ID     1
+#define ARDUPILOT_COMPONENT_ID  1
+
+
+/**
+ * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
+ */
 class MAVLinkSerial 
 {
-  SoftwareSerial serial;
+  SoftwareSerial& serial;
+  uint8_t seq = 0;
+  
 public:
+
+  /**
+   * Constructs MAVLinkSerial instance using the specified serial interface.
+   */
   MAVLinkSerial(SoftwareSerial& serial);
 
+  /**
+   * Send MAVLink message to Ardupilot.
+   */
   bool sendMessage(const mavlink_message_t& msg);
+  
+  /**
+   * Receive MAVLink message from ArduPilot.
+   */
   bool receiveMessage(mavlink_message_t& msg);
+
+  /**
+   * Receive messages from serial several times until received
+   * COMMAND_ACK for COMMAND_LONG and COMMAND_INT or 
+   * MISSION_ACK for MISSION_ITEM message.
+   */
+  bool receiveAck(const mavlink_message_t& msg, mavlink_message_t& ack);
+
+  /**
+   * Compose an unconfermid COMMAND_ACK or MISSION_ACK message.
+   * Unconfirmed ACK messages are sent to GCS if ACK message was not 
+   * received from ArduPilot.
+   */
+  bool composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack);
 };
 

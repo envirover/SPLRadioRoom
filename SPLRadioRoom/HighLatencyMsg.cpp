@@ -31,7 +31,8 @@ inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
 }
 
-HighLatencyMsg::HighLatencyMsg() : seq(0)
+HighLatencyMsg::HighLatencyMsg(uint8_t sysid, uint8_t compid) : 
+                               seq(0), sysid(sysid), compid(compid)
 {
   memset(&highLatency, 0, sizeof(highLatency));
   highLatency.gps_nsat = 255;
@@ -49,9 +50,11 @@ bool HighLatencyMsg::update(const mavlink_message_t& msg)
     highLatency.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
     return true;
   case MAVLINK_MSG_ID_GPS_RAW_INT:    //24
+    highLatency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
+    highLatency.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
+    highLatency.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
     highLatency.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
-    highLatency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(
-        &msg);
+    highLatency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
     return true;
   case MAVLINK_MSG_ID_ATTITUDE:   //30
     highLatency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
@@ -60,9 +63,9 @@ bool HighLatencyMsg::update(const mavlink_message_t& msg)
   case MAVLINK_MSG_ID_LOCAL_POSITION_NED:
     return true;
   case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:    //33
-    highLatency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
-    highLatency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-    highLatency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg);
+    //highLatency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
+    //highLatency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
+    //highLatency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg);
     highLatency.altitude_sp = mavlink_msg_global_position_int_get_relative_alt(&msg);
     return true;
   case MAVLINK_MSG_ID_MISSION_CURRENT:    //42
@@ -115,7 +118,7 @@ void HighLatencyMsg::print()
 
 void HighLatencyMsg::encode(mavlink_message_t& msg) 
 {
-  mavlink_msg_high_latency_encode(SYSTEM_ID, COMPONENT_ID, &msg, &highLatency);
+  mavlink_msg_high_latency_encode(sysid, compid, &msg, &highLatency);
   msg.seq = seq++;
 }
 
