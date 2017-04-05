@@ -147,7 +147,7 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
       if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mtMsg, &mavlink_status)) {
         received = true;
 
-        Serial.pintln("MT message received.");
+        Serial.println("MT message received.");
         printMavlinkMsg(mtMsg);
 
         break;
