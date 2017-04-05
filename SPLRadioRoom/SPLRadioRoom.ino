@@ -126,8 +126,12 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
   size_t buf_size = sizeof(buf);
   uint16_t len = 0;
 
-  if (moMsg.len != 0 && moMsg.msgid != 0)
+  if (moMsg.len != 0 && moMsg.msgid != 0) {
+    Serial.println("Sending MO message.");
+    printMavlinkMsg(moMsg);
+
     len = mavlink_msg_to_send_buffer(buf, &moMsg);
+  }
 
   received = false;
   
@@ -138,9 +142,15 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
 
   if (buf_size > 0) {
     mavlink_status_t mavlink_status;
+
     for (size_t i = 0; i < buf_size; i++) {
       if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mtMsg, &mavlink_status)) {
         received = true;
+
+        Serial.pintln("MT message received.");
+        printMavlinkMsg(mtMsg);
+
+        break;
       }
     }
   }
@@ -150,7 +160,8 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
 
 /*
  * Send the message to ISBD, recieve all the messages in the 
- * inbound message queue, if any, and pass them to ardupilot.
+ * inbound message queue, if any, pass them to ArduPilot, 
+ * sends ACKs back to ISBD.
  */
 void isbdSession(mavlink_message_t& moMsg) {
   boolean received;
@@ -164,10 +175,8 @@ void isbdSession(mavlink_message_t& moMsg) {
       if (received) {
         ardupilot.sendMessage(mtMsg);
 
-        ackReceived = ardupilot.receiveAck(mtMsg, moMsg);
-
-        if (!ackReceived) 
-          ackReceived = ardupilot.composeUnconfirmedAck(mtMsg, moMsg);
+        ackReceived = ardupilot.receiveAck(mtMsg, moMsg) ||
+                      ardupilot.composeUnconfirmedAck(mtMsg, moMsg);
 
         if (!ackReceived) 
           moMsg.len = moMsg.msgid = 0;
