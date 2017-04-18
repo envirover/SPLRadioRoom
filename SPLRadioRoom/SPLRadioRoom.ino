@@ -178,8 +178,12 @@ void isbdSession(mavlink_message_t& moMsg) {
         ackReceived = ardupilot.receiveAck(mtMsg, moMsg) ||
                       ardupilot.composeUnconfirmedAck(mtMsg, moMsg);
 
-        if (!ackReceived) 
+        if (ackReceived) {
+          Serial.println("ACK received form ArduPilot."); 
+          printMavlinkMsg(moMsg);
+        } else {
           moMsg.len = moMsg.msgid = 0;
+        }
       }
     }
   } while (isbd.getWaitingMessageCount() > 0 || ackReceived);

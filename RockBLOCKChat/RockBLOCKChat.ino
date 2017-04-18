@@ -27,6 +27,19 @@ void setup() {
 
   Serial.begin(SERIAL_BAUD);
   nss.begin(19200);
+
+  for (int i = 10; i > 0; i--) {
+    delay(1000);
+    Serial.println(i);
+  }  
+  
+  Serial.print("Hi. I'm "); 
+  nss.write("AT+CGMM\r"); 
+  Serial.print(nss.readString());
+  nss.write("AT+CGSN\r");
+  Serial.print(nss.readString());
+
+  Serial.println("Let's talk...");
 }
 
 void loop() {
