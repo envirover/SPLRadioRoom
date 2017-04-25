@@ -67,6 +67,11 @@ bool MAVLinkSerial::sendReceiveMessage(const mavlink_message_t& msg, mavlink_mes
 {
   for (int i = 0; i < SEND_RETRIES; i++) {
     if (sendMessage(msg)) {
+      if (msg.msgid != MAVLINK_MSG_ID_COMMAND_LONG &&
+          msg.msgid != MAVLINK_MSG_ID_COMMAND_INT &&
+          msg.msgid != MAVLINK_MSG_ID_MISSION_ITEM)
+        return false;
+          
       if (receiveAck(msg, ack)) 
         return true;
     }
