@@ -23,16 +23,7 @@
 #include "Arduino.h"
 #include "MAVLinkSerial.h"
 
-#define RECEIVE_RETRIES         10
-#define RECEIVE_RETRY_DELAY     5   //ms
-
-// COMMAND_ACK message was not received from Ardupilot
-#define MAV_RESULT_UNCONFIRMED  5  
-
-// MISSION_ACK message was not received from Ardupilot
-#define MAV_MISSION_UNCONFIRMED 15
-
-MAVLinkSerial::MAVLinkSerial(SoftwareSerial& serial) : serial(serial)
+MAVLinkSerial::MAVLinkSerial(SoftwareSerial& serial) : serial(serial), timeout(1000), startMillis(0), seq(0)
 {
 }
 
@@ -59,16 +50,34 @@ bool MAVLinkSerial::receiveMessage(mavlink_message_t& msg)
   // Receive data from stream
   serial.listen();
 
-  while (serial.available() > 0) {
-    int c = serial.read();
-    
-    if (c >= 0) {
-      if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) 
+  int c = timedRead();
+
+  while (c >= 0)
+  {
+    if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) 
+        return true;
+
+    c = timedRead();
+  }
+
+  return false;
+}
+
+bool MAVLinkSerial::sendReceiveMessage(const mavlink_message_t& msg, mavlink_message_t& ack) 
+{
+  for (int i = 0; i < SEND_RETRIES; i++) {
+    if (sendMessage(msg)) {
+      if (msg.msgid != MAVLINK_MSG_ID_COMMAND_LONG &&
+          msg.msgid != MAVLINK_MSG_ID_COMMAND_INT &&
+          msg.msgid != MAVLINK_MSG_ID_MISSION_ITEM)
+        return false;
+          
+      if (receiveAck(msg, ack)) 
         return true;
     }
   }
   
-  return false;
+  return composeUnconfirmedAck(msg, ack);
 }
 
 bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& ack)
@@ -130,7 +139,25 @@ bool MAVLinkSerial::composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_
     ack.seq = seq++;
     return true;
   } 
+
+  ack.len = ack.msgid = 0;
   
   return false;
+}
+
+// private method to read stream with timeout
+int MAVLinkSerial::timedRead()
+{
+  int c;
+  
+  startMillis = millis();
+  
+  do {
+    c = serial.read();
+  
+    if (c >= 0) return c;
+  } while(millis() - startMillis < timeout);
+
+  return -1;     // -1 indicates timeout
 }
 
