@@ -66,6 +66,7 @@ public:
    int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize);
    int sendReceiveSBDBinary(const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t &rxBufferSize);
    int getSignalQuality(int &quality);
+   int queryRingIndicationStatus(int &sri);
 
    int getWaitingMessageCount();
    int sleep();
@@ -163,6 +164,7 @@ private:
 
    int  internalBegin();
    int  internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t *prxBufferSize);
+   int  internalQueryRingIndicationStatus(int &sri);
    int  internalGetSignalQuality(int &quality);
    int  internalMSSTMWorkaround(bool &okToProceed);
    int  internalSleep();

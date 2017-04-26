@@ -94,9 +94,12 @@ void setup() {
 void loop() {
   commReceive();
 
+  int sri = 0;
+  isbd.queryRingIndicationStatus(sri);
+  
   unsigned long currentTime = millis();
 
-  if (currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
+  if (sri || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
     mavlink_message_t msg;
