@@ -102,6 +102,19 @@ int IridiumSBD::getSignalQuality(int &quality)
    return ret;
 }
 
+// Query ring indication status
+int IridiumSBD::queryRingIndicationStatus(int &sri)
+{
+   if (this->reentrant)
+      return ISBD_REENTRANT;
+
+   this->reentrant = true;
+   int ret = internalQueryRingIndicationStatus(sri);
+   this->reentrant = false;
+
+   return ret;
+}
+
 // Gracefully put device to lower power mode (if sleep pin provided)
 int IridiumSBD::sleep()
 {
@@ -357,6 +370,28 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
 
    diag.print(F("SBDIX timeout!\r\n"));
    return ISBD_SENDRECEIVE_TIMEOUT;
+}
+
+
+int IridiumSBD::internalQueryRingIndicationStatus(int &sri)
+{
+   if (this->asleep)
+      return ISBD_IS_ASLEEP;
+
+   send(F("AT+CRIS\r"));
+
+   char crisResponseBuf[8];
+   
+   if (!waitForATResponse(crisResponseBuf, sizeof(crisResponseBuf), "+CRIS:"))
+      return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+
+   if (strlen(crisResponseBuf) == 7) 
+   {
+      sri = atoi(crisResponseBuf + 4);
+      return ISBD_SUCCESS;
+   }
+
+   return ISBD_PROTOCOL_ERROR;
 }
 
 int IridiumSBD::internalGetSignalQuality(int &quality)
