@@ -32,6 +32,7 @@
 
 // Default HIGH_LATENCY message reporting period in milliseconds
 #define HL_MSG_REPORT_PERIOD 300000L
+#define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
 #define ISBD_MAX_MT_MGS_SIZE 270
 
@@ -95,7 +96,15 @@ void loop() {
   commReceive();
 
   int sri = 0;
-  isbd.queryRingIndicationStatus(sri);
+  nss.listen();
+  int err = isbd.queryRingIndicationStatus(sri);
+  if (err != 0) {
+    Serial.print("QueryRingIndicationStatus failed: error ");
+    Serial.println(err);
+  } else {
+    Serial.print("RingIndicationStatus: ");
+    Serial.println(sri);
+  }
   
   unsigned long currentTime = millis();
 
@@ -174,7 +183,10 @@ void isbdSession(mavlink_message_t& moMsg) {
   do {
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
+        handleParamSet(mtMsg);
+        
         ackReceived = ardupilot.sendReceiveMessage(mtMsg, moMsg);
+        
         if (ackReceived) {
           Serial.println("ACK received form ArduPilot."); 
           printMavlinkMsg(moMsg);
@@ -186,6 +198,8 @@ void isbdSession(mavlink_message_t& moMsg) {
 
 /**
  * Filters out MO messages from ArduPilot. 
+ * 
+ * Returns true if the message is allowed to pass though the filter.
  */
 boolean filterMessage(const mavlink_message_t& msg) {
   //TODO: Add all relevant messages 
@@ -209,6 +223,21 @@ void commReceive() {
       printMavlinkMsg(msg);
 
       isbdSession(msg);
+    }
+  }
+}
+
+/*
+ * Updates HIGH_LATENCY message period if HL_PERIOD parameter value is set by 
+ * PARAM_SET MT message.
+ */
+void handleParamSet(const mavlink_message_t& msg) {
+  if (msg.msgid == MAVLINK_MSG_ID_PARAM_SET) {
+    char param_id[17];
+    mavlink_msg_param_set_get_param_id(&msg, param_id);
+    if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
+      float value = mavlink_msg_param_set_get_param_value(&msg);
+      config.setHighLatencyMsgPeriod(value * 1000);
     }
   }
 }
