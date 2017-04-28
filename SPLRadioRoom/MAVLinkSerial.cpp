@@ -23,7 +23,8 @@
 #include "Arduino.h"
 #include "MAVLinkSerial.h"
 
-MAVLinkSerial::MAVLinkSerial(SoftwareSerial& serial) : serial(serial), timeout(1000), startMillis(0), seq(0)
+MAVLinkSerial::MAVLinkSerial(SoftwareSerial& serial) : 
+  serial(serial), timeout(1000), startMillis(0), seq(0)
 {
 }
 
@@ -69,7 +70,8 @@ bool MAVLinkSerial::sendReceiveMessage(const mavlink_message_t& msg, mavlink_mes
     if (sendMessage(msg)) {
       if (msg.msgid != MAVLINK_MSG_ID_COMMAND_LONG &&
           msg.msgid != MAVLINK_MSG_ID_COMMAND_INT &&
-          msg.msgid != MAVLINK_MSG_ID_MISSION_ITEM)
+          msg.msgid != MAVLINK_MSG_ID_MISSION_ITEM &&
+          msg.msgid != MAVLINK_MSG_ID_PARAM_SET)
         return false;
           
       if (receiveAck(msg, ack)) 
@@ -77,35 +79,47 @@ bool MAVLinkSerial::sendReceiveMessage(const mavlink_message_t& msg, mavlink_mes
     }
   }
   
-  return composeUnconfirmedAck(msg, ack);
+  return false;//composeUnconfirmedAck(msg, ack);
 }
 
 bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
   for (int i = 0; i < RECEIVE_RETRIES; i++) {
-    if (msg.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
-      if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
-        uint16_t msg_command = mavlink_msg_command_long_get_command(&msg);
-        uint16_t ack_command = mavlink_msg_command_ack_get_command(&ack);
-        if (msg_command == ack_command) 
+    switch (msg.msgid) {
+      case MAVLINK_MSG_ID_COMMAND_LONG: 
+        if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
+          uint16_t msg_command = mavlink_msg_command_long_get_command(&msg);
+          uint16_t ack_command = mavlink_msg_command_ack_get_command(&ack);
+          if (msg_command == ack_command) {
+            ack.seq = seq++;
+            return true;
+          }
+        }
+        break;
+      case MAVLINK_MSG_ID_COMMAND_INT: 
+        if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
+          uint16_t msg_command = mavlink_msg_command_int_get_command(&msg);
+          uint16_t ack_command = mavlink_msg_command_ack_get_command(&ack);
+          if (msg_command == ack_command) {
+            ack.seq = seq++;
+            return true;
+          }
+        }
+        break;
+      case MAVLINK_MSG_ID_MISSION_ITEM:
+        if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
           ack.seq = seq++;
           return true;
-      }
-    } else if (msg.msgid == MAVLINK_MSG_ID_COMMAND_INT) {
-      if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
-        uint16_t msg_command = mavlink_msg_command_int_get_command(&msg);
-        uint16_t ack_command = mavlink_msg_command_ack_get_command(&ack);
-        if (msg_command == ack_command) 
+        }
+        break;
+      case MAVLINK_MSG_ID_PARAM_SET:
+        if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_PARAM_VALUE) {
           ack.seq = seq++;
           return true;
-      }
-    } else if (msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-      if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
-        ack.seq = seq++;
-        return true;
-      }
-    } else {
-      return false;
+        }
+        break;
+      default:
+        return false;
     }
 
     delay(RECEIVE_RETRY_DELAY);
@@ -113,37 +127,44 @@ bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& 
 
   return false;
 }
-
+/*
 bool MAVLinkSerial::composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
-  if (msg.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
-    mavlink_command_ack_t command_ack;
-    command_ack.command = mavlink_msg_command_long_get_command(&msg);
-    command_ack.result  = MAV_RESULT_UNCONFIRMED;
-    mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-    ack.seq = seq++;
-    return true;
-  } else if (msg.msgid == MAVLINK_MSG_ID_COMMAND_INT) {
-    mavlink_command_ack_t command_ack;
-    command_ack.command = mavlink_msg_command_int_get_command(&msg);
-    command_ack.result  = MAV_RESULT_UNCONFIRMED;
-    mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-    ack.seq = seq++;
-    return true;
-  } else if (msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-    mavlink_mission_ack_t mission_ack;
-    mission_ack.target_system = msg.sysid;
-    mission_ack.target_component = msg.compid;
-    mission_ack.type = MAV_MISSION_UNCONFIRMED;
-    mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-    ack.seq = seq++;
-    return true;
+  switch (msg.msgid) {
+    case MAVLINK_MSG_ID_COMMAND_LONG:
+      mavlink_command_ack_t command_ack;
+      command_ack.command = mavlink_msg_command_long_get_command(&msg);
+      command_ack.result  = MAV_RESULT_UNCONFIRMED;
+      mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
+      ack.seq = seq++;
+      return true;
+    case MAVLINK_MSG_ID_COMMAND_INT:
+      command_ack.command = mavlink_msg_command_int_get_command(&msg);
+      command_ack.result  = MAV_RESULT_UNCONFIRMED;
+      mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
+      ack.seq = seq++;
+      return true;
+    case MAVLINK_MSG_ID_MISSION_ITEM:
+      mavlink_mission_ack_t mission_ack;
+      mission_ack.target_system = msg.sysid;
+      mission_ack.target_component = msg.compid;
+      mission_ack.type = MAV_MISSION_UNCONFIRMED;
+      mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+      ack.seq = seq++;
+      return true;
+    case MAVLINK_MSG_ID_PARAM_SET:
+      mavlink_param_value_t param_value;
+      param_value.param_count = mavlink_msg_param_value_get_param_count(&msg);
+      param_value.param_index = mavlink_msg_param_value_get_param_index(&msg);
+      mavlink_msg_param_value_get_param_id(&msg, param_value.param_id);
+      param_value.param_value = mavlink_msg_param_value_get_param_value(&msg);
+      return true;
+    default:
+      ack.len = ack.msgid = 0;
+      return false;
   } 
-
-  ack.len = ack.msgid = 0;
-  
-  return false;
 }
+*/
 
 // private method to read stream with timeout
 int MAVLinkSerial::timedRead()

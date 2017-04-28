@@ -17,7 +17,7 @@
 #define ROCKBLOCK_TX    9
 #define ROCKBLOCK_ONOFF 10
 
-#define SERIAL_BAUD     115200
+#define SERIAL_BAUD     57600
 
 SoftwareSerial nss(ROCKBLOCK_RX, ROCKBLOCK_TX);
 

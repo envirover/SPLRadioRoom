@@ -33,10 +33,10 @@
 #define RECEIVE_RETRY_DELAY     5   //ms
 
 // COMMAND_ACK message was not received from Ardupilot
-#define MAV_RESULT_UNCONFIRMED  5  
+//#define MAV_RESULT_UNCONFIRMED  5  
 
 // MISSION_ACK message was not received from Ardupilot
-#define MAV_MISSION_UNCONFIRMED 15
+//#define MAV_MISSION_UNCONFIRMED 15
 
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
@@ -87,7 +87,7 @@ private:
    * Unconfirmed ACK messages are sent to GCS if ACK message was not 
    * received from ArduPilot.
    */
-  bool composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack);
+  //bool composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack);
 
 };
 
