@@ -181,6 +181,8 @@ void isbdSession(mavlink_message_t& moMsg) {
   boolean ackReceived = false;
 
   do {
+    ackReceived = false;
+    
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
         handleParamSet(mtMsg);
