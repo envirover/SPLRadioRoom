@@ -108,7 +108,7 @@ void loop() {
   
   unsigned long currentTime = millis();
 
-  if (sri || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
+  if (currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
     mavlink_message_t msg;
@@ -181,8 +181,6 @@ void isbdSession(mavlink_message_t& moMsg) {
   boolean ackReceived = false;
 
   do {
-    ackReceived = false;
-    
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
         handleParamSet(mtMsg);
