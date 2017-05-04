@@ -108,7 +108,7 @@ void loop() {
   
   unsigned long currentTime = millis();
 
-  if (sri || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
+  if (currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
     mavlink_message_t msg;
