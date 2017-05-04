@@ -57,6 +57,7 @@ bool HighLatencyMsg::update(const mavlink_message_t& msg)
     highLatency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
     return true;
   case MAVLINK_MSG_ID_ATTITUDE:   //30
+    highLatency.heading = radToCentidegrees(mavlink_msg_attitude_get_yaw(&msg));
     highLatency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
     highLatency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
     return true;
@@ -78,7 +79,7 @@ bool HighLatencyMsg::update(const mavlink_message_t& msg)
   case MAVLINK_MSG_ID_VFR_HUD:    //74
     highLatency.airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
     highLatency.groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
-    highLatency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
+    //highLatency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
     highLatency.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
     highLatency.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
     return true;
