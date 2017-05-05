@@ -68,6 +68,10 @@ public:
    int getSignalQuality(int &quality);
    int queryRingIndicationStatus(int &sri);
 
+   //This command returns current state of the mobile originated and mobile terminated buffers, 
+   //and the SBD ring alert status.
+   int getStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uint16_t &mtFlag, uint16_t &mtMSN, uint16_t &raFlag, uint16_t &msgWaiting);
+
    int getWaitingMessageCount();
    int sleep();
    bool isAsleep();
@@ -165,6 +169,7 @@ private:
    int  internalBegin();
    int  internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t *prxBufferSize);
    int  internalQueryRingIndicationStatus(int &sri);
+   int  internalGetStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uint16_t &mtFlag, uint16_t &mtMSN, uint16_t &raFlag, uint16_t &msgWaiting);
    int  internalGetSignalQuality(int &quality);
    int  internalMSSTMWorkaround(bool &okToProceed);
    int  internalSleep();

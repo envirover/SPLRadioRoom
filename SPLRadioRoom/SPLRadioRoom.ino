@@ -95,20 +95,23 @@ void setup() {
 void loop() {
   commReceive();
 
-  int sri = 0;
   nss.listen();
-  int err = isbd.queryRingIndicationStatus(sri);
+
+  uint16_t moFlag = 0, moMSN = 0, mtFlag = 0, mtMSN = 0, raFlag = 0, msgWaiting = 0;
+  
+  int err = isbd.getStatusExtended(moFlag, moMSN, mtFlag, mtMSN, raFlag, msgWaiting);
+  
   if (err != 0) {
-    Serial.print("QueryRingIndicationStatus failed: error ");
+    Serial.print("SBDSX failed: error ");
     Serial.println(err);
   } else {
-    Serial.print("RingIndicationStatus: ");
-    Serial.println(sri);
+    Serial.print("Ring Alert flag: ");
+    Serial.println(raFlag);
   }
   
   unsigned long currentTime = millis();
 
-  if (currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
+  if (raFlag || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
     mavlink_message_t msg;
@@ -181,6 +184,8 @@ void isbdSession(mavlink_message_t& moMsg) {
   boolean ackReceived = false;
 
   do {
+    ackReceived = false;
+    
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
       if (received) {
         handleParamSet(mtMsg);
