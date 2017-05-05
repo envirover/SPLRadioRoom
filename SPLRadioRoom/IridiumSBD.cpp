@@ -115,6 +115,18 @@ int IridiumSBD::queryRingIndicationStatus(int &sri)
    return ret;
 }
 
+int IridiumSBD::getStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uint16_t &mtFlag, uint16_t &mtMSN, uint16_t &raFlag, uint16_t &msgWaiting)
+{
+   if (this->reentrant)
+      return ISBD_REENTRANT;
+
+   this->reentrant = true;
+   int ret = internalGetStatusExtended(moFlag, moMSN, mtFlag, mtMSN, raFlag, msgWaiting);
+   this->reentrant = false;
+
+   return ret;
+}
+
 // Gracefully put device to lower power mode (if sleep pin provided)
 int IridiumSBD::sleep()
 {
@@ -392,6 +404,31 @@ int IridiumSBD::internalQueryRingIndicationStatus(int &sri)
    }
 
    return ISBD_PROTOCOL_ERROR;
+}
+
+int IridiumSBD::internalGetStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uint16_t &mtFlag, uint16_t &mtMSN, uint16_t &raFlag, uint16_t &msgWaiting)
+{
+   if (this->asleep)
+      return ISBD_IS_ASLEEP;
+
+   send(F("AT+SBDSX\r"));
+
+   char sbdsxResponseBuf[32];
+   
+   if (!waitForATResponse(sbdsxResponseBuf, sizeof(sbdsxResponseBuf), "+SBDSX:"))
+      return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+
+   uint16_t *values[6] = { &moFlag, &moMSN, &mtFlag, &mtMSN, &raFlag, &msgWaiting };
+
+   for (int i=0; i<6; ++i)
+   {
+      char *p = strtok(i == 0 ? sbdsxResponseBuf : NULL, ", ");
+      if (p == NULL)
+         return ISBD_PROTOCOL_ERROR;
+      *values[i] = atol(p);
+   }
+
+   return ISBD_SUCCESS;
 }
 
 int IridiumSBD::internalGetSignalQuality(int &quality)
