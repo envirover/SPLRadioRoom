@@ -57,7 +57,7 @@ bool HighLatencyMsg::update(const mavlink_message_t& msg)
     highLatency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
     return true;
   case MAVLINK_MSG_ID_ATTITUDE:   //30
-    highLatency.heading = radToCentidegrees(mavlink_msg_attitude_get_yaw(&msg));
+    highLatency.heading = (radToCentidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 360) % 360;
     highLatency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
     highLatency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
     return true;
