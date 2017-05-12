@@ -134,6 +134,7 @@ void printMavlinkMsg(const mavlink_message_t& msg) {
 
 /**
  * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
+ * 
  * Returns true if the ISBD session succeeded.
  */
 boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t& mtMsg, boolean& received) {
@@ -174,27 +175,30 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
 }
 
 /*
- * Send the message to ISBD, recieve all the messages in the 
+ * Sends the message to ISBD, recieve all the messages in the 
  * inbound message queue, if any, pass them to ArduPilot, 
  * sends ACKs back to ISBD.
  */
 void isbdSession(mavlink_message_t& moMsg) {
   boolean received;
-  mavlink_message_t mtMsg;
   boolean ackReceived = false;
+  mavlink_message_t mtMsg;
 
   do {
     ackReceived = false;
     
     if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
+      moMsg.len = moMsg.msgid = 0;
       if (received) {
-        handleParamSet(mtMsg);
+        ackReceived = handleParamSet(mtMsg, moMsg);
         
-        ackReceived = ardupilot.sendReceiveMessage(mtMsg, moMsg);
-        
-        if (ackReceived) {
-          Serial.println("ACK received form ArduPilot."); 
-          printMavlinkMsg(moMsg);
+        if (!ackReceived) {
+          ackReceived = ardupilot.sendReceiveMessage(mtMsg, moMsg);
+          
+          if (ackReceived) {
+            Serial.println("ACK received form ArduPilot."); 
+            printMavlinkMsg(moMsg);
+          }
         }
       }
     }
@@ -233,18 +237,33 @@ void commReceive() {
 }
 
 /*
- * Updates HIGH_LATENCY message period if HL_PERIOD parameter value is set by 
+ * Updates HIGH_LATENCY message reporting period if HL_REPORT_PERIOD parameter value is set by 
  * PARAM_SET MT message.
+ * 
+ * Returns true if the message was handled.
  */
-void handleParamSet(const mavlink_message_t& msg) {
+boolean handleParamSet(const mavlink_message_t& msg, mavlink_message_t& ack) {
   if (msg.msgid == MAVLINK_MSG_ID_PARAM_SET) {
     char param_id[17];
     mavlink_msg_param_set_get_param_id(&msg, param_id);
     if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
       float value = mavlink_msg_param_set_get_param_value(&msg);
       config.setHighLatencyMsgPeriod(value * 1000);
+
+      mavlink_param_value_t paramValue;
+      paramValue.param_value = value;
+      paramValue.param_count = 0;
+      paramValue.param_index = 0;
+      mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
+      paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
+
+      mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
+
+      return true;
     }
   }
+
+  return false;
 }
 
 /*
