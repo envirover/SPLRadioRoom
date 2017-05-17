@@ -107,7 +107,7 @@ bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& 
         }
         break;
       case MAVLINK_MSG_ID_MISSION_ITEM:
-        if (receiveMessage(ack) && ack.msgid == MAVLINK_MSG_ID_MISSION_ACK) {
+        if (receiveMessage(ack) && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK || ack.msgid == MAVLINK_MSG_ID_MISSION_REQUEST)) {
           ack.seq = seq++;
           return true;
         }

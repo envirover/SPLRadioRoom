@@ -111,6 +111,7 @@ void loop() {
   
   unsigned long currentTime = millis();
 
+  // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
   if (raFlag || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
@@ -191,12 +192,17 @@ void isbdSession(mavlink_message_t& moMsg) {
       moMsg.len = moMsg.msgid = 0;
       if (received) {
         ackReceived = handleParamSet(mtMsg, moMsg);
+
+        if (!ackReceived) { 
+           ackReceived = handleMissionWrite(mtMsg, moMsg);
+           Serial.println("MISSION_ACK received."); 
+        }
         
         if (!ackReceived) {
           ackReceived = ardupilot.sendReceiveMessage(mtMsg, moMsg);
           
           if (ackReceived) {
-            Serial.println("ACK received form ArduPilot."); 
+            Serial.println("ACK received from ArduPilot."); 
             printMavlinkMsg(moMsg);
           }
         }
@@ -261,6 +267,81 @@ boolean handleParamSet(const mavlink_message_t& msg, mavlink_message_t& ack) {
 
       return true;
     }
+  }
+
+  return false;
+}
+
+/*
+ * Handles writing waypoints list as described  in 
+ * http://qgroundcontrol.org/mavlink/waypoint_protocol
+ * 
+ * returns true if waypoints list was updated in ardupilot 
+ */
+boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack) {
+  if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
+    Serial.println("MISSION_COUNT MT message received.");
+    
+    uint16_t count = mavlink_msg_mission_count_get_count(&msg);
+
+    mavlink_message_t * missions = new mavlink_message_t[count];
+    
+    mavlink_message_t mtMsg, moMsg;
+    moMsg.len = moMsg.msgid = 0;
+
+    // Receive all the mission items from ISBD into a buffer.
+    
+    uint16_t idx = 0;
+    for (uint16_t i = 0; i < count * 5 && idx < count; i++) {
+      boolean received = false;   
+      
+      if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
+        if (received && mtMsg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
+          Serial.println("MISSION_ITEM MT message received.");
+          memcpy(missions + idx, &mtMsg, sizeof(mavlink_message_t));
+          idx++;
+        }
+      } else {
+        delay(5000);
+      }
+    }
+
+    if (idx != count) {
+      Serial.println("Mission write incomplete.");
+      delete[] missions;
+      return false;
+    }
+      
+    // Send the mission items to ArduPilot    
+    
+    for (int i = 0; i < 5; i++) {
+      if (ardupilot.sendMessage(msg)) {
+        break;
+      }
+
+      delay(10);
+    }
+
+    boolean ackReceived = false;
+    
+    for (int i = 0; i < count; i++) {
+      ackReceived = ardupilot.sendReceiveMessage(missions[i], ack);
+      delay(10);
+    }
+
+    ackReceived = ackReceived && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK);
+    
+    if (ackReceived) {
+      // Send MISSION_ACK to ISBD.
+      mavlink_mission_ack_t missionAck;
+      missionAck.target_system = mavlink_msg_mission_ack_get_target_system(&ack);
+      missionAck.target_component = mavlink_msg_mission_ack_get_target_component(&ack);
+      missionAck.type = mavlink_msg_mission_ack_get_type(&ack);
+      mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &missionAck);
+    }
+
+    delete[] missions;
+    return ackReceived;
   }
 
   return false;
