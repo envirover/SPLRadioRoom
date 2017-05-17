@@ -289,7 +289,7 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
     mavlink_message_t mtMsg, moMsg;
     moMsg.len = moMsg.msgid = 0;
 
-    // Receive all the mission items from ISBD into a buffer.
+    Serial.println("Receiving mission items from ISBD.");
     
     uint16_t idx = 0;
     for (uint16_t i = 0; i < count * 5 && idx < count; i++) {
@@ -312,7 +312,7 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       return false;
     }
       
-    // Send the mission items to ArduPilot    
+    Serial.println("Sending mission items to ArduPilot.");
     
     for (int i = 0; i < 5; i++) {
       if (ardupilot.sendMessage(msg)) {
@@ -329,6 +329,8 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       delay(10);
     }
 
+    delete[] missions;
+    
     ackReceived = ackReceived && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK);
     
     if (ackReceived) {
@@ -338,9 +340,11 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       missionAck.target_component = mavlink_msg_mission_ack_get_target_component(&ack);
       missionAck.type = mavlink_msg_mission_ack_get_type(&ack);
       mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &missionAck);
+      Serial.println("MISSION_ACK received from ArduPilot.");
+    } else {
+      Serial.println("Mission write failed.");
     }
 
-    delete[] missions;
     return ackReceived;
   }
 
