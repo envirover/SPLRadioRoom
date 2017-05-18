@@ -79,7 +79,7 @@ bool MAVLinkSerial::sendReceiveMessage(const mavlink_message_t& msg, mavlink_mes
     }
   }
   
-  return false;//composeUnconfirmedAck(msg, ack);
+  return composeFailedAck(msg, ack);
 }
 
 bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& ack)
@@ -127,20 +127,21 @@ bool MAVLinkSerial::receiveAck(const mavlink_message_t& msg, mavlink_message_t& 
 
   return false;
 }
-/*
-bool MAVLinkSerial::composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack)
+
+
+bool MAVLinkSerial::composeFailedAck(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
   switch (msg.msgid) {
     case MAVLINK_MSG_ID_COMMAND_LONG:
       mavlink_command_ack_t command_ack;
       command_ack.command = mavlink_msg_command_long_get_command(&msg);
-      command_ack.result  = MAV_RESULT_UNCONFIRMED;
+      command_ack.result  =   MAV_RESULT_FAILED;
       mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
       ack.seq = seq++;
       return true;
     case MAVLINK_MSG_ID_COMMAND_INT:
       command_ack.command = mavlink_msg_command_int_get_command(&msg);
-      command_ack.result  = MAV_RESULT_UNCONFIRMED;
+      command_ack.result  =   MAV_RESULT_FAILED;
       mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
       ack.seq = seq++;
       return true;
@@ -148,7 +149,7 @@ bool MAVLinkSerial::composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_
       mavlink_mission_ack_t mission_ack;
       mission_ack.target_system = msg.sysid;
       mission_ack.target_component = msg.compid;
-      mission_ack.type = MAV_MISSION_UNCONFIRMED;
+      mission_ack.type = MAV_MISSION_ERROR;
       mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
       ack.seq = seq++;
       return true;
@@ -164,7 +165,7 @@ bool MAVLinkSerial::composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_
       return false;
   } 
 }
-*/
+
 
 // private method to read stream with timeout
 int MAVLinkSerial::timedRead()

@@ -87,7 +87,7 @@ private:
    * Unconfirmed ACK messages are sent to GCS if ACK message was not 
    * received from ArduPilot.
    */
-  //bool composeUnconfirmedAck(const mavlink_message_t& msg, mavlink_message_t& ack);
+  bool composeFailedAck(const mavlink_message_t& msg, mavlink_message_t& ack);
 
 };
 
