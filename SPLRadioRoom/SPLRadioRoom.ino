@@ -51,6 +51,8 @@
 #define ISBD_BAUD_RATE     19200
 #define SERIAL_BAUD_RATE   57600
 
+#define MAX_SEND_RETRIES   5
+
 SoftwareSerial telem(AP_TELEM_RX_PIN, AP_TELEM_TX_PIN);
 MAVLinkSerial  ardupilot(telem);
 
@@ -111,6 +113,7 @@ void loop() {
   
   unsigned long currentTime = millis();
 
+  // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
   if (raFlag || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
     highLatencyMsg.print();
 
@@ -191,12 +194,17 @@ void isbdSession(mavlink_message_t& moMsg) {
       moMsg.len = moMsg.msgid = 0;
       if (received) {
         ackReceived = handleParamSet(mtMsg, moMsg);
+
+        if (!ackReceived) { 
+           ackReceived = handleMissionWrite(mtMsg, moMsg);
+           Serial.println("MISSION_ACK received."); 
+        }
         
         if (!ackReceived) {
           ackReceived = ardupilot.sendReceiveMessage(mtMsg, moMsg);
           
           if (ackReceived) {
-            Serial.println("ACK received form ArduPilot."); 
+            Serial.println("ACK received from ArduPilot."); 
             printMavlinkMsg(moMsg);
           }
         }
@@ -261,6 +269,111 @@ boolean handleParamSet(const mavlink_message_t& msg, mavlink_message_t& ack) {
 
       return true;
     }
+  }
+
+  return false;
+}
+
+/*
+ * Handles writing waypoints list as described  in 
+ * http://qgroundcontrol.org/mavlink/waypoint_protocol
+ * 
+ * returns true if waypoints list was updated in ardupilot 
+ */
+boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack) {
+  if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
+    Serial.println("MISSION_COUNT MT message received.");
+    
+    uint16_t count = mavlink_msg_mission_count_get_count(&msg);
+
+    mavlink_message_t * missions = new mavlink_message_t[count];
+
+    if (missions == NULL) {
+      Serial.println("Not enough memory for storing missions.");
+      
+      mavlink_mission_ack_t mission_ack;
+      mission_ack.target_system = msg.sysid;
+      mission_ack.target_component = msg.compid;
+      mission_ack.type = MAV_MISSION_NO_SPACE;
+      mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+      ack.seq = 0; //TODO: use global counter for message sequence numbers.
+
+      return true;
+    }
+    
+    mavlink_message_t mtMsg, moMsg;
+    moMsg.len = moMsg.msgid = 0;
+
+    Serial.println("Receiving mission items from ISBD.");
+    
+    uint16_t idx = 0;
+    for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
+      boolean received = false;   
+      
+      if (isbdSendReceiveMessage(moMsg, mtMsg, received)) {
+        if (received && mtMsg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
+          Serial.println("MISSION_ITEM MT message received.");
+          memcpy(missions + idx, &mtMsg, sizeof(mavlink_message_t));
+          idx++;
+        }
+      } else {
+        delay(5000);
+      }
+    }
+
+    if (idx != count) {
+      Serial.println("Not all mission items received.");
+      delete[] missions;
+
+      mavlink_mission_ack_t mission_ack;
+      mission_ack.target_system = msg.sysid;
+      mission_ack.target_component = msg.compid;
+      mission_ack.type = MAV_MISSION_ERROR;
+      mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+      ack.seq = 0; //TODO: use global counter for message sequence numbers.
+
+      return true;
+    }
+      
+    Serial.println("Sending mission items to ArduPilot...");
+    
+    for (int i = 0; i < MAX_SEND_RETRIES; i++) {
+      if (ardupilot.sendMessage(msg)) {
+        break;
+      }
+
+      delay(10);
+    }
+
+    boolean ackReceived = false;
+    
+    for (int i = 0; i < count; i++) {
+      ackReceived = ardupilot.sendReceiveMessage(missions[i], ack);
+      
+      Serial.println("Mission item sent to ArduPilot.");
+      
+      delay(10);
+    }
+
+    delete[] missions;
+    
+    ackReceived = ackReceived && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK);
+
+    //Compose MISSION_ACK message for the transaction.
+    mavlink_mission_ack_t missionAck;
+    missionAck.target_system = msg.sysid;
+    missionAck.target_component = msg.compid;
+    missionAck.type = ackReceived ? mavlink_msg_mission_ack_get_type(&ack) : MAV_MISSION_ERROR;
+    mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &missionAck);
+
+    if (missionAck.type == MAV_MISSION_ACCEPTED) {
+      Serial.println("Mission accepted by ArduPilot.");
+    } else {
+      Serial.print("Mission not accepted by ArduPilot: ");
+      Serial.println(missionAck.type);
+    }
+
+    return true;
   }
 
   return false;
