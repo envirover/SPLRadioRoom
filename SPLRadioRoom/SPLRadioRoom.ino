@@ -357,20 +357,11 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       delay(10);
     }
 
-    ackReceived = ackReceived && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK);
-
-    //Compose MISSION_ACK message for the transaction.
-    mavlink_mission_ack_t missionAck;
-    missionAck.target_system = msg.sysid;
-    missionAck.target_component = msg.compid;
-    missionAck.type = ackReceived ? mavlink_msg_mission_ack_get_type(&ack) : MAV_MISSION_ERROR;
-    mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &missionAck);
-
-    if (missionAck.type == MAV_MISSION_ACCEPTED) {
+    if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
       Serial.println("Mission accepted by ArduPilot.");
     } else {
       Serial.print("Mission not accepted by ArduPilot: ");
-      Serial.println(missionAck.type);
+      Serial.println(mavlink_msg_mission_ack_get_type(&ack));
     }
 
     return true;
