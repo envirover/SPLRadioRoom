@@ -413,7 +413,7 @@ int IridiumSBD::internalGetStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uin
 
    send(F("AT+SBDSX\r"));
 
-   char sbdsxResponseBuf[32];
+   char sbdsxResponseBuf[34];
    
    if (!waitForATResponse(sbdsxResponseBuf, sizeof(sbdsxResponseBuf), "+SBDSX:"))
       return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;

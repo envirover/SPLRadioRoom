@@ -53,6 +53,8 @@
 
 #define MAX_SEND_RETRIES   5
 
+#define MAX_MISSION_COUNT  10
+
 SoftwareSerial telem(AP_TELEM_RX_PIN, AP_TELEM_TX_PIN);
 MAVLinkSerial  ardupilot(telem);
 
@@ -62,6 +64,8 @@ IridiumSBD isbd(nss, ISBD_SLEEP_PIN);
 BLEConfig config;
 
 HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
+
+mavlink_message_t missions[MAX_MISSION_COUNT];
 
 unsigned long lastReportTime = 0;
 
@@ -82,7 +86,7 @@ void setup() {
   isbd.attachDiags(Serial);
   isbd.setPowerProfile(1);
   isbd.begin();
-
+  
   int signalQuality = -1;
   int err = isbd.getSignalQuality(signalQuality);
   if (err != 0) {
@@ -286,9 +290,7 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
     
     uint16_t count = mavlink_msg_mission_count_get_count(&msg);
 
-    mavlink_message_t * missions = new mavlink_message_t[count];
-
-    if (missions == NULL) {
+    if (count > MAX_MISSION_COUNT) {
       Serial.println("Not enough memory for storing missions.");
       
       mavlink_mission_ack_t mission_ack;
@@ -307,6 +309,7 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
     Serial.println("Receiving mission items from ISBD.");
     
     uint16_t idx = 0;
+    
     for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
       boolean received = false;   
       
@@ -323,7 +326,6 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
 
     if (idx != count) {
       Serial.println("Not all mission items received.");
-      delete[] missions;
 
       mavlink_mission_ack_t mission_ack;
       mission_ack.target_system = msg.sysid;
@@ -355,8 +357,6 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       delay(10);
     }
 
-    delete[] missions;
-    
     ackReceived = ackReceived && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK);
 
     //Compose MISSION_ACK message for the transaction.
