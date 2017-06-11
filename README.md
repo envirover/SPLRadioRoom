@@ -5,7 +5,7 @@
 
 SPLRadioRoom is an Arduino sketch for a companion computer of ArduPilot-based rovers that enables communication over [RockBLOCK](http://www.rock7mobile.com/products-rockblock) Iridium Short Burst Data satellite communication system (ISBD). Together with [SPLGroundControl](https://github.com/envirover/SPLGroundControl) MAVLink proxy server it provides a two way communication channel between rovers and ground control stations such as MAVProxy, Mission Planer, or QGroundControl.
 
-![SPL System Architecture](https://s3-us-west-2.amazonaws.com/envirover/images/spl.jpg)
+![SPL System Architecture](https://s3-us-west-2.amazonaws.com/envirover/images/Satellite+Proxy+Link+(SPL).jpg)
 
 SPLRadioRoom reads MAVLink messages from the ArduPilot's telemetry serial port. It integrates high-frequency messages (SYS\_STATUS, GPS\_RAW\_INT, ATTITUDE, GLOBAL\_POSITION\_INT, MISSION\_CURRENT, NAV\_CONTROLLER\_OUTPUT, and VFR\_HUD) into HIGH\_LATENCY message and periodically sends the HIGH\_LATENCY messages to the ISBD. All other messages are encoded and directly forwarded to the ISBD.
 
@@ -26,13 +26,39 @@ The sketch includes IridiumSBD library code derived from the original [IridiumSB
 
 |  Arduino  | RockBLOCK | AP TELEM1 |
 |-----------|-----------|-----------|
-| +5V       | +5V       | 1 +5V     |
+| +5V       | 8 +5V     | 1 +5V     |
 | 2         |           | 2         |
 | 3         |           | 3         |
-| 8         | TX pin    |           |
-| 9         | RX pin    |           |
-| 10        | Sleep pin |           |
-| Gnd       | Gnd       | 6 Gnd     |
+| 8         | 3 TX      |           |
+| 9         | 2 RX      |           |
+| +3.3v     | 12 Sleep  |           |
+| Gnd       | 7 Gnd     | 6 Gnd     |
 
 In this wiring diagram both Arduino and RockBLOCK are powered by ArduPilot's TELEM1 power line.
 
+## Issues
+
+Find a bug or want to request a new feature?  Please let us know by submitting an [issue](https://github.com/envirover/SPLRadioRoom/issues).
+
+## Contributing
+
+Envirover welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/envirover/SPLRadioRoom/blob/master/CONTRIBUTING.md).
+
+Licensing
+---------
+```
+Copyright (C) 2017 Envirover
+
+SPLGroundControl is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SPLGroundControl is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SPLRadioRoom. If not, see <http://www.gnu.org/licenses/>.
+```
