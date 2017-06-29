@@ -24,14 +24,13 @@
 
 #include "IridiumSBD.h"
 #include "MAVLinkSerial.h"
-#include "BLEConfig.h"
+#include "SPLConfig.h"
 #include "HighLatencyMsg.h"
 
 #undef F
 #include "mavlink/include/standard/mavlink.h"        // Mavlink interface
 
 // Default HIGH_LATENCY message reporting period in milliseconds
-#define HL_MSG_REPORT_PERIOD 300000L
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
 #define ISBD_MAX_MT_MGS_SIZE 270
@@ -61,7 +60,7 @@ MAVLinkSerial  ardupilot(telem);
 SoftwareSerial nss(ISBD_RX_PIN, ISBD_TX_PIN);
 IridiumSBD isbd(nss, ISBD_SLEEP_PIN);
 
-BLEConfig config;
+SPLConfig config;
 
 HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
@@ -77,7 +76,6 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   
   config.init();
-  config.setHighLatencyMsgPeriod(HL_MSG_REPORT_PERIOD);
 
   // Init SBD
   nss.begin(ISBD_BAUD_RATE);
@@ -118,7 +116,7 @@ void loop() {
   unsigned long currentTime = millis();
 
   // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
-  if (raFlag || currentTime - lastReportTime > config.getHighLatencyMsgPeriod()) {
+  if (raFlag || currentTime - lastReportTime > config.getReportPeriod()) {
     highLatencyMsg.print();
 
     mavlink_message_t msg;
@@ -260,7 +258,7 @@ boolean handleParamSet(const mavlink_message_t& msg, mavlink_message_t& ack) {
     mavlink_msg_param_set_get_param_id(&msg, param_id);
     if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
       float value = mavlink_msg_param_set_get_param_value(&msg);
-      config.setHighLatencyMsgPeriod(value * 1000);
+      config.setReportPeriod(value * 1000);
 
       mavlink_param_value_t paramValue;
       paramValue.param_value = value;
