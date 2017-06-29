@@ -52,7 +52,7 @@
 
 #define MAX_SEND_RETRIES   5
 
-#define MAX_MISSION_COUNT  10
+#define MAX_MISSION_COUNT  7
 
 SoftwareSerial telem(AP_TELEM_RX_PIN, AP_TELEM_TX_PIN);
 MAVLinkSerial  ardupilot(telem);
@@ -219,12 +219,12 @@ void isbdSession(mavlink_message_t& moMsg) {
  * Filters out MO messages from ArduPilot. 
  * 
  * Returns true if the message is allowed to pass though the filter.
- */
 boolean filterMessage(const mavlink_message_t& msg) {
   //TODO: Add all relevant messages 
   return false;
 }
-
+*/
+ 
 /*
  * Reads and processes MAVLink messages from ArduPilot.
  */
@@ -237,12 +237,14 @@ void commReceive() {
     digitalWrite(LED_PIN, HIGH);
     
     highLatencyMsg.update(msg);
-    
+
+    /*
     if (filterMessage(msg)) {
       printMavlinkMsg(msg);
 
       isbdSession(msg);
     }
+    */
   }
 }
 
@@ -345,10 +347,8 @@ boolean handleMissionWrite(const mavlink_message_t& msg, mavlink_message_t& ack)
       delay(10);
     }
 
-    boolean ackReceived = false;
-    
-    for (int i = 0; i < count; i++) {
-      ackReceived = ardupilot.sendReceiveMessage(missions[i], ack);
+    for (uint16_t i = 0; i < count; i++) {
+      ardupilot.sendReceiveMessage(missions[i], ack);
       
       Serial.println("Mission item sent to ArduPilot.");
       
