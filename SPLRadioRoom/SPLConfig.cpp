@@ -1,5 +1,5 @@
 /*
- BLEConfig.h
+ SPLConfig.cpp
 
  Iridium SBD telemetry for ArduPilot.
  
@@ -20,25 +20,29 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <CurieBLE.h>
+#include <EEPROM.h>
+#include "SPLConfig.h"
 
-#define BLE_SERVICE_NAME     "SPLRadioRoom"
-
-/**
- * BLE Bluetooth configuration service.
- */
-class BLEConfig
+SPLConfig::SPLConfig()  
 {
-  BLEPeripheral ble_peripheral;
-  BLEService ble_service;
-  BLEUnsignedLongCharacteristic ble_high_latency_period;
+}
 
- public:
-   BLEConfig();
+void SPLConfig::init()
+{
+  EEPROM.get(EEPROM_HL_PERIOD_ADDRESS, reportPeriod);
+  
+  if (reportPeriod == 0)
+    reportPeriod = DEFAULT_REPORT_PERIOD;
+}
 
-   void init();
+unsigned long SPLConfig::getReportPeriod()
+{
+  return reportPeriod;
+}
 
-   unsigned long getHighLatencyMsgPeriod();
-   void setHighLatencyMsgPeriod(unsigned long period);
- };
+void SPLConfig::setReportPeriod(unsigned long period)
+{
+  reportPeriod = period;
+  EEPROM.put(EEPROM_HL_PERIOD_ADDRESS, period);
+}
 
