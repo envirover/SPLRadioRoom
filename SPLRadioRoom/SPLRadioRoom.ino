@@ -97,7 +97,9 @@ void setup() {
 }
 
 void loop() {
-  commReceive();
+  for (int i = 0; i < 10; i++) {
+    commReceive();
+  }
 
   nss.listen();
 
@@ -377,7 +379,7 @@ bool ISBDCallback() {
   if (ardupilot.receiveMessage(msg)) {
     digitalWrite(LED_PIN, HIGH);
    
-    updateHighLatencyMsg(high_latency_msg, msg);
+    highLatencyMsg.update(msg);
   }
 
   nss.listen();
