@@ -97,8 +97,21 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i < 10; i++) {
+  // Request data streams
+  uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2, MAV_DATA_STREAM_EXTENDED_STATUS, 
+                              MAV_DATA_STREAM_POSITION, MAV_DATA_STREAM_RAW_CONTROLLER};
+  uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
+
+  for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
+    mavlink_message_t msg;
+    mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
+    ardupilot.sendMessage(msg);
+    delay(10);
+  }
+
+  for (int i = 0; i < 100; i++) {
     commReceive();
+    delay(10);
   }
 
   nss.listen();
