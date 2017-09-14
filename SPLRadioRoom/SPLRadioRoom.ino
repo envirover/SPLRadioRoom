@@ -76,6 +76,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   
   config.init();
+  config.setReportPeriod(DEFAULT_REPORT_PERIOD);
 
   // Init SBD
   nss.begin(ISBD_BAUD_RATE);
@@ -114,6 +115,8 @@ void loop() {
     delay(10);
   }
 
+  highLatencyMsg.print();
+  
   nss.listen();
 
   uint16_t moFlag = 0, moMSN = 0, mtFlag = 0, mtMSN = 0, raFlag = 0, msgWaiting = 0;
@@ -130,9 +133,17 @@ void loop() {
   
   unsigned long currentTime = millis();
 
+  unsigned long elapsedTime = currentTime - lastReportTime;
+
+  Serial.print("Elapsed time: ");
+  Serial.println(elapsedTime);
+
+   Serial.print("Report period: ");
+  Serial.println(config.getReportPeriod());
+
   // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
-  if (raFlag || currentTime - lastReportTime > config.getReportPeriod()) {
-    highLatencyMsg.print();
+  if (raFlag || elapsedTime > config.getReportPeriod()) {
+    //highLatencyMsg.print();
 
     mavlink_message_t msg;
     highLatencyMsg.encode(msg);
@@ -200,6 +211,9 @@ boolean isbdSendReceiveMessage(const mavlink_message_t& moMsg, mavlink_message_t
  * sends ACKs back to ISBD.
  */
 void isbdSession(mavlink_message_t& moMsg) {
+  
+  Serial.println("ISBD session started.");
+  
   boolean received;
   boolean ackReceived = false;
   mavlink_message_t mtMsg;
@@ -228,6 +242,8 @@ void isbdSession(mavlink_message_t& moMsg) {
       }
     }
   } while (isbd.getWaitingMessageCount() > 0 || ackReceived);
+
+  Serial.println("ISBD session ended.");
 }
 
 /**

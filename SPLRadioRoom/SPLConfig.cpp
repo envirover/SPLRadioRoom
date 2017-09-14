@@ -20,7 +20,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <EEPROM.h>
+//#include <EEPROM.h>
 #include "SPLConfig.h"
 
 SPLConfig::SPLConfig()  
@@ -29,9 +29,9 @@ SPLConfig::SPLConfig()
 
 void SPLConfig::init()
 {
-  EEPROM.get(EEPROM_HL_PERIOD_ADDRESS, reportPeriod);
+//  EEPROM.get(EEPROM_HL_PERIOD_ADDRESS, reportPeriod);
   
-  if (reportPeriod == 0)
+//  if (reportPeriod == 0)
     reportPeriod = DEFAULT_REPORT_PERIOD;
 }
 
@@ -43,6 +43,6 @@ unsigned long SPLConfig::getReportPeriod()
 void SPLConfig::setReportPeriod(unsigned long period)
 {
   reportPeriod = period;
-  EEPROM.put(EEPROM_HL_PERIOD_ADDRESS, period);
+//  EEPROM.put(EEPROM_HL_PERIOD_ADDRESS, period);
 }
 

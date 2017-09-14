@@ -52,7 +52,6 @@ void setup() {
   telem.begin(AP_TELEM_BAUD_RATE);
   
   pinMode(LED_PIN, OUTPUT);
-
 }
 
 void loop() {
