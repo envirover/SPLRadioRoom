@@ -1,7 +1,10 @@
  /*
  MAVLinkTest.ino
 
- MAVLink communication test for SPLRadioRoom.
+ Arduino sketch for testing MAVLink communication between ArduPilot and SPLRadioRoom.
+
+ The test reads MAVLink messages from the connected ArduPilot, integrates the messages 
+ into HIGH_LATENCY messages and prints the HIGH_LATENCY messages.   
  
  (C) Copyright 2017 Envirover.
  
@@ -23,6 +26,7 @@
 #include <SoftwareSerial.h>
 
 #include "MAVLinkSerial.h"
+#include "HighLatencyMsg.h"
 
 #undef F
 #include "mavlink/include/standard/mavlink.h"        // Mavlink interface
@@ -40,6 +44,7 @@
 SoftwareSerial telem(AP_TELEM_RX_PIN, AP_TELEM_TX_PIN);
 MAVLinkSerial  ardupilot(telem);
 
+HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
 void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
@@ -50,7 +55,26 @@ void setup() {
 }
 
 void loop() {
-  commReceive();
+
+  uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2, MAV_DATA_STREAM_EXTENDED_STATUS, 
+                              MAV_DATA_STREAM_POSITION, MAV_DATA_STREAM_RAW_CONTROLLER};
+  uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
+
+  for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
+    mavlink_message_t msg;
+    mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
+    ardupilot.sendMessage(msg);
+    delay(10);
+  }
+  
+  for (int i = 0; i < 100; i++) {
+    commReceive();
+
+    delay(10);
+  }
+
+  Serial.println("*** HIGH_LATENCY ***");
+  highLatencyMsg.print();
 }
 
 /*
@@ -73,6 +97,8 @@ void commReceive() {
   if (ardupilot.receiveMessage(msg)) {
     digitalWrite(LED_PIN, HIGH);
 
+    highLatencyMsg.update(msg);
+    
     printMavlinkMsg(msg);
   }
 }

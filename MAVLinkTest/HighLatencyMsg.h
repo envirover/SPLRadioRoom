@@ -1,5 +1,5 @@
 /*
- SPLConfig.cpp
+ HighLatencyMsg.h
 
  Iridium SBD telemetry for ArduPilot.
  
@@ -20,29 +20,34 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-//#include <EEPROM.h>
-#include "SPLConfig.h"
+#undef F
+#include "mavlink/include/standard/mavlink.h"        
 
-SPLConfig::SPLConfig()  
+/**
+ * Wrapper for mavlink_high_latency_t class.
+ */
+class HighLatencyMsg
 {
-}
-
-void SPLConfig::init()
-{
-//  EEPROM.get(EEPROM_HL_PERIOD_ADDRESS, reportPeriod);
+  mavlink_high_latency_t highLatency;
+  uint8_t seq;
+  uint8_t sysid;
+  uint8_t compid;
   
-//  if (reportPeriod == 0)
-    reportPeriod = DEFAULT_REPORT_PERIOD;
-}
+public:
+  HighLatencyMsg(uint8_t sysid, uint8_t compid);
+  
+ /*
+  * Integrates high frequency message into HIGH_LATENCY type message.
+  * 
+  * @param msg message received from Ardupilot
+  * @return true if the message was integrated or should be just swallowed
+  */
+  bool update(const mavlink_message_t& msg);
 
-unsigned long SPLConfig::getReportPeriod()
-{
-  return reportPeriod;
-}
+  // Debug print of HIGH_LATENCY message
+  void print();
 
-void SPLConfig::setReportPeriod(unsigned long period)
-{
-  reportPeriod = period;
-//  EEPROM.put(EEPROM_HL_PERIOD_ADDRESS, period);
-}
+  //Encodes HIGH_LATENCY message
+  void encode(mavlink_message_t& msg);
+};
 

@@ -55,6 +55,8 @@ bool MAVLinkSerial::receiveMessage(mavlink_message_t& msg)
 
   while (c >= 0)
   {
+    //Serial.println(c);
+    
     if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) 
         return true;
 
