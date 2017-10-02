@@ -10,8 +10,8 @@ before_install:
   - arduino --install-boards Intel:arc32
 install:
 script:
-  - arduino --verify --board Intel:arc32:arduino_101 $PWD/SPLRadioRoom/SPLRadioRoom.ino
-  - arduino --verify --board Intel:arc32:arduino_101 $PWD/RockBLOCKChat/RockBLOCKChat.ino
+  - arduino --verify --board Intel:arc32:arduino_101 $PWD/sketches/SPLRadioRoom/SPLRadioRoom.ino
+  - arduino --verify --board Intel:arc32:arduino_101 $PWD/sketches/RockBLOCKChat/RockBLOCKChat.ino
 notifications:
   email:
     on_success: change

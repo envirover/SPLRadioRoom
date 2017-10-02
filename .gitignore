@@ -27,3 +27,8 @@
 *.exe
 *.out
 *.app
+/.metadata/
+/.settings/
+/RadioRoom/bin/*
+/Default/
+/RemoteSystemsTempFiles/
