@@ -20,16 +20,18 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef HIGHLATENCYMSG_H_
+#define HIGHLATENCYMSG_H_
+
 #undef F
 #include "mavlink/include/standard/mavlink.h"
-#include <mavlink/include/common/mavlink.h>
 
 /**
  * Wrapper for mavlink_high_latency_t class.
  */
 class HighLatencyMsg
 {
-  mavlink_high_latency_t highLatency;
+  mavlink_high_latency_t high_latency;
   uint8_t seq;
   uint8_t sysid;
   uint8_t compid;
@@ -52,3 +54,4 @@ public:
   void encode(mavlink_message_t& msg);
 };
 
+#endif // HIGHLATENCYMSG_H_

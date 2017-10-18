@@ -30,20 +30,26 @@
 #include <termios.h>
 #include <iostream>
 #include <fstream>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
 
 #include "Serial.h"
 
-Serial::Serial() : tty_fd(0) {
+Serial::Serial() : tty_fd(0)
+{
 }
 
-Serial::~Serial() {
+Serial::~Serial()
+{
 }
 
-int Serial::open(const char * path, speed_t speed) {
-    tty_fd = ::open(path, O_RDWR | O_NONBLOCK);
+int Serial::open(const char * path, speed_t speed)
+{
+    tty_fd = ::open(path, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-    if (tty_fd <= 0)
+    if (tty_fd <= 0) {
         return -1;
+    }
 
     struct termios tio;
 
@@ -63,25 +69,43 @@ int Serial::open(const char * path, speed_t speed) {
     return 0;
 }
 
-int Serial::close() {
+int Serial::close()
+{
     return ::close(tty_fd);
 }
 
-int Serial::read() {
+int Serial::read()
+{
     unsigned char c;
 
-    ssize_t ret = ::read(tty_fd, &c, 1);
+    int ret = read(&c, 1);
 
-    if (ret <= 0)
+    if (ret <= 0) {
         return -1;
+    }
 
     return c;
 }
 
-int Serial::read(void* buffer, size_t size) {
+int Serial::read(void* buffer, size_t size)
+{
     return ::read(tty_fd, buffer, size);
 }
 
-int Serial::write(const void* buffer, size_t n) {
-     return ::write(tty_fd, buffer, n);
+int Serial::write(int c)
+{
+    return write(&c, 1);
+}
+
+int Serial::write(const void* buffer, size_t n)
+{
+    int ret = ::write(tty_fd, buffer, n);
+
+    if (ret < 0)
+        return ret;
+
+    if (::tcflush(tty_fd, TCIOFLUSH) < 0)
+        return -1;
+
+    return ret;
 }

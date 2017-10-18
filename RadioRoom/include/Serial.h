@@ -31,13 +31,14 @@
 /**
  * Provides access to serial devices.
  */
-class Serial {
-
+class Serial
+{
     int tty_fd;
 
 public:
+
     /**
-     * Constructs an instance of Serial class.
+     * Default constructor.
      */
     Serial();
 
@@ -71,6 +72,13 @@ public:
      * Returns the number of bytes read or -1 in case of error.
      */
     int read(void* buffer, size_t size);
+
+    /**
+     * Writes single character to the serial device.
+     *
+     * Returns 1 in case of success or -1 in case of error.
+     */
+    int write(int c);
 
     /**
      * Writes the specified number of bytes from the specified buffer to the serial device.

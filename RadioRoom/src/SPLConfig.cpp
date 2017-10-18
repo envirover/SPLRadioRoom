@@ -1,7 +1,7 @@
 /*
- radioroom.cpp
+ SPLConfig.cpp
 
- This file is a part of SPLRadioRoom project.
+ Iridium SBD telemetry for ArduPilot.
 
  (C) Copyright 2017 Envirover.
 
@@ -20,17 +20,24 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "SPLRadioRoom.h"
+//#include <EEPROM.h>
+#include "SPLConfig.h"
 
-SPLRadioRoom radioroom;
-
-int main(int argc, char** argv) {
-    radioroom.setup();
-
-    while(1) {
-        radioroom.loop();
-    }
-
-    return 0;
-
+SPLConfig::SPLConfig() : report_period(DEFAULT_REPORT_PERIOD)
+{
 }
+
+void SPLConfig::init()
+{
+}
+
+unsigned long SPLConfig::get_report_period()
+{
+    return report_period;
+}
+
+void SPLConfig::set_report_period(unsigned long period)
+{
+    report_period = period;
+}
+
