@@ -24,35 +24,31 @@
  */
 #include <stdio.h>
 #include <unistd.h>
+#include <vector>
+#include <istream>
 #include "SPLRadioRoom.h"
+
+using namespace std;
 
 SPLRadioRoom::SPLRadioRoom() :
     high_latency_msg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID),
-    ardupilot(telem), isbd(nss), last_report_time(0)
+    ardupilot(telem),
+    isbd(nss),
+    last_report_time(0)
 
 {
-    // TODO Auto-generated constructor stub
-
 }
 
 SPLRadioRoom::~SPLRadioRoom()
 {
-    // TODO Auto-generated destructor stub
 }
 
-/*
- * Debug print of mavlink_message_t message
- */
-void SPLRadioRoom::print_mavlink_msg(const mavlink_message_t& msg)
+
+void SPLRadioRoom::print_mavlink_msg(const mavlink_message_t& msg) const
 {
     printf("** \nmsgid = %d\ncompid = %d\n", msg.msgid, msg.compid);
 }
 
-/**
- * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
- *
- * Returns true if the ISBD session succeeded.
- */
 bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
 {
     uint8_t buf[ISBD_MAX_MT_MGS_SIZE];
@@ -90,13 +86,6 @@ bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, ma
     return true;
 }
 
-
-/*
- * Updates HIGH_LATENCY message reporting period if HL_REPORT_PERIOD parameter value is set by
- * PARAM_SET MT message.
- *
- * Returns true if the message was handled.
- */
 bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
     if (msg.msgid == MAVLINK_MSG_ID_PARAM_SET) {
@@ -122,14 +111,10 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
     return false;
 }
 
-/*
- * Handles writing waypoints list as described  in
- * http://qgroundcontrol.org/mavlink/waypoint_protocol
- *
- * returns true if waypoints list was updated in ardupilot
- */
 bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
+    mavlink_message_t missions[MAX_MISSION_COUNT];
+
     if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
         printf("MISSION_COUNT MT message received.\n");
 
@@ -212,11 +197,6 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
     return false;
 }
 
-/*
- * Sends the message to ISBD, recieve all the messages in the
- * inbound message queue, if any, pass them to ArduPilot,
- * sends ACKs back to ISBD.
- */
 void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 {
 
@@ -264,9 +244,6 @@ boolean filterMessage(const mavlink_message_t& msg) {
 }
 */
 
-/*
- * Reads and processes MAVLink messages from ArduPilot.
- */
 void SPLRadioRoom::comm_receive()
 {
     mavlink_message_t msg;
@@ -307,31 +284,146 @@ bool ISBDCallback() {
 }
 */
 
-
-void SPLRadioRoom::setup()
+bool detect_autopilot(MAVLinkSerial& ardupilot, const char* device)
 {
-    telem.open("/dev/ttyUSB0", AP_TELEM_BAUD_RATE);
+    mavlink_autopilot_version_t autopilot_version;
+    uint8_t autopilot, mav_type, sys_id;
 
-    config.init();
-    config.set_report_period(DEFAULT_REPORT_PERIOD);
+    if (!ardupilot.request_autopilot_version(autopilot, mav_type, sys_id, autopilot_version)) {
+        printf("Autopilot not detected at serial device '%s'.\n", device);
+        return false;
+    }
 
-    // Init SBD
-    nss.open("/dev/ttyUSB1", ISBD_BAUD_RATE);
+    char buff[64];
+    ardupilot.get_firmware_version(autopilot_version, buff, sizeof(buff));
 
-    //isbd.attachConsole(std::stdout);
-    //isbd.attachDiags(std::stdout);
-    isbd.setPowerProfile(1);
-    isbd.begin();
+    printf("Autopilot detected at serial device '%s'.\n", device);
+    printf("Autopilot: %d, MAV type: %d, system id: %d, firmware version: %s\n", autopilot, mav_type, sys_id, buff);
 
-    int signalQuality = -1;
-    int err = isbd.getSignalQuality(signalQuality);
-    if (err != 0) {
-        printf("SignalQuality failed: error %d\n", err);
+    return true;
+}
+
+bool detect_isbd(IridiumSBD& isbd, const char* device) {
+    int ret = isbd.begin();
+
+    if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
+        char model[256], imea[256];
+        imea[0] = model[0] = 0;
+        ret = isbd.getTransceiverModel(model, sizeof(model));
+        if (ret == ISBD_SUCCESS) {
+            ret = isbd.getTransceiverSerialNumber(imea, sizeof(imea));
+            if (ret == ISBD_SUCCESS) {
+                printf("%s (IMEA %s) detected at serial device '%s'.\n", model, imea, device);
+                return true;
+            }
+        }
+    }
+
+    printf("ISBD transceiver not detected at serial device '%s'. Error code = %d.\n", device, ret);
+    return false;
+}
+
+bool SPLRadioRoom::init()
+{
+    // Detecting autopilot's and ISBD transceiver's serial devices.
+
+    std::string s(config.get_serials());
+
+    size_t pos = 0;
+    string token;
+    vector<string> devices;
+
+    while ((pos = s.find(",")) != string::npos) {
+        token = s.substr(0, pos);
+        devices.push_back(token);
+        s.erase(0, pos + 1);
+    }
+
+    devices.push_back(s);
+
+    bool autopilot_connected = false;
+
+    if (telem.open(config.get_mavlink_serial(), config.get_mavlink_serial_speed()) == 0) {
+        if (detect_autopilot(ardupilot, config.get_mavlink_serial())) {
+            autopilot_connected = true;
+        } else {
+            telem.close();
+        }
     } else {
-        printf("SignalQuality: %d\n", signalQuality);
+        printf("Failed to open serial device '%s'.\n", config.get_mavlink_serial());
+    }
+
+    if (!autopilot_connected && config.get_auto_detect_serials()) {
+        printf("WARN: Autopilot was not detected on the specified serial device. Trying to detect autopilot on other devices.\n");
+        for (int i = 0; i < devices.size(); i++) {
+            if (devices[i] == config.get_mavlink_serial())
+                continue;
+
+            if (telem.open(devices[i].data(), config.get_mavlink_serial_speed()) == 0) {
+                if (detect_autopilot(ardupilot, devices[i].data())) {
+                    autopilot_connected = true;
+                    config.set_mavlink_serial(devices[i].data());
+                    break;
+                }
+
+                telem.close();
+            } else {
+               printf("DEBUG: Failed to open serial device '%s'.\n", devices[i].data());
+            }
+        }
+    }
+
+    if (!autopilot_connected) {
+        telem.open(config.get_mavlink_serial(), config.get_mavlink_serial_speed());
+        printf("SEVERE: Autopilot was not detected on any specified serial devices (%s).\n",
+               config.get_serials());
+    }
+
+    bool isbd_connected = false;
+
+    isbd.setPowerProfile(1);
+
+    if (strcmp(config.get_mavlink_serial(), config.get_isbd_serial()) != 0) {
+        if (nss.open(config.get_isbd_serial(), config.get_isbd_serial_speed()) == 0) {
+            if (detect_isbd(isbd, config.get_isbd_serial())) {
+                isbd_connected = true;
+            } else {
+                nss.close();
+            }
+        } else {
+            printf("Failed to open serial device '%s'.\n", config.get_isbd_serial());
+        }
+    }
+
+    if (!isbd_connected && config.get_auto_detect_serials()) {
+        printf("WARN: ISBD transceiver was not detected on the specified serial device. Trying to detect transceiver on other devices.\n");
+        for (int i = 0; i < devices.size(); i++) {
+            if (devices[i] == config.get_mavlink_serial() || devices[i] == config.get_isbd_serial())
+                continue;
+
+            if (nss.open(devices[i].data(), config.get_isbd_serial_speed()) == 0) {
+                if (detect_isbd(isbd, devices[i].data())) {
+                    isbd_connected = true;
+                    config.set_isbd_serial(devices[i].data());
+                    break;
+                } else {
+                    nss.close();
+                }
+            } else {
+                printf("DEBUG: Failed to open serial device '%s'.\n", devices[i].data());
+            }
+        }
+    }
+
+    if (!isbd_connected) {
+        nss.open(config.get_isbd_serial(), config.get_isbd_serial_speed());
+        printf("SEVERE: ISBD transceiver was not detected on any of the specified serial devices (%s).\n",
+               config.get_serials());
     }
 
     last_report_time = clock();
+
+    return autopilot_connected && isbd_connected;
 }
 
 void SPLRadioRoom::loop()

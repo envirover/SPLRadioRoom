@@ -53,6 +53,32 @@ int IridiumSBD::begin()
     return ret;
 }
 
+int IridiumSBD::getTransceiverModel(char *buffer, size_t bufferSize)
+{
+    if (this->reentrant) {
+        return ISBD_REENTRANT;
+    }
+
+    this->reentrant = true;
+    int ret = internalGetTransceiverModel(buffer, bufferSize);
+    this->reentrant = false;
+
+    return ret;
+}
+
+int IridiumSBD::getTransceiverSerialNumber(char *buffer, size_t bufferSize)
+{
+    if (this->reentrant) {
+        return ISBD_REENTRANT;
+    }
+
+    this->reentrant = true;
+    int ret = internalGetTransceiverSerialNumber(buffer, bufferSize);
+    this->reentrant = false;
+
+    return ret;
+}
+
 // Transmit a binary message
 int IridiumSBD::sendSBDBinary(const uint8_t *txData, size_t txDataSize)
 {
@@ -273,6 +299,36 @@ int IridiumSBD::internalBegin()
     }
 
     diag << "InternalBegin: success!\n";
+    return ISBD_SUCCESS;
+}
+
+int IridiumSBD::internalGetTransceiverModel(char *buffer, size_t bufferSize)
+{
+    if (this->asleep) {
+        return ISBD_IS_ASLEEP;
+    }
+
+    send("AT+CGMM\r");
+
+    if (!waitForATResponse(buffer, bufferSize, "AT+CGMM\r\r\n", "OK")) {
+        return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+    }
+
+    return ISBD_SUCCESS;
+}
+
+int IridiumSBD::internalGetTransceiverSerialNumber(char *buffer, size_t bufferSize)
+{
+    if (this->asleep) {
+        return ISBD_IS_ASLEEP;
+    }
+
+    send("AT+CGSN\r");
+
+    if (!waitForATResponse(buffer, bufferSize, "AT+CGSN\r\r\n", "OK")) {
+        return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
+    }
+
     return ISBD_SUCCESS;
 }
 
@@ -595,6 +651,7 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
 
     return false;
 }
+
 
 bool IridiumSBD::cancelled()
 {

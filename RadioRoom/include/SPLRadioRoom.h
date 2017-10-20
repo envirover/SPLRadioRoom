@@ -35,38 +35,85 @@
 
 #define MAX_SEND_RETRIES   5
 
-#define AP_TELEM_BAUD_RATE B57600
-#define ISBD_BAUD_RATE     B19200
-
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
+/**
+ * SPL RadioRoom companion computer.
+ */
 class SPLRadioRoom {
+
     Serial telem;
     MAVLinkSerial  ardupilot;
 
     Serial nss;
     IridiumSBD isbd;
 
-    SPLConfig config;
     HighLatencyMsg high_latency_msg;
-
-    mavlink_message_t missions[MAX_MISSION_COUNT];
 
     unsigned long last_report_time;
 
 public:
+
+    /**
+     *
+     */
     SPLRadioRoom();
+
+    /**
+     *
+     */
     virtual ~SPLRadioRoom();
 
-    void setup();
+    /**
+     *
+     */
+    bool init();
+
+    /**
+     *
+     */
     void loop();
 
 private:
-    void print_mavlink_msg(const mavlink_message_t& msg);
+
+    /**
+     * Debug print of mavlink_message_t message
+     */
+    void print_mavlink_msg(const mavlink_message_t& msg) const;
+
+    /**
+     * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
+     *
+     * Returns true if the ISBD session succeeded.
+     */
     bool isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received);
+
+    /**
+     * Updates HIGH_LATENCY message reporting period if HL_REPORT_PERIOD parameter value is set by
+     * PARAM_SET MT message.
+     *
+     * Returns true if the message was handled.
+     */
     bool handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack);
+
+    /**
+     * Handles writing waypoints list as described  in
+     * http://qgroundcontrol.org/mavlink/waypoint_protocol
+     *
+     * returns true if waypoints list was updated in ardupilot
+     */
     bool handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack);
+
+    /**
+     * Sends the message to ISBD, recieve all the messages in the
+     * inbound message queue, if any, pass them to ArduPilot,
+     * sends ACKs back to ISBD.
+     */
     void isbd_session(mavlink_message_t& mo_msg);
+
+    /**
+     * Reads and processes MAVLink messages from ArduPilot.
+     */
     void comm_receive();
 };
 

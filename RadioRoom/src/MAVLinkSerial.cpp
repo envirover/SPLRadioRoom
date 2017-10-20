@@ -22,6 +22,7 @@
 
 #include <ctime>
 #include <unistd.h>
+#include <stdio.h>
 #include "MAVLinkSerial.h"
 
 
@@ -30,9 +31,81 @@ MAVLinkSerial::MAVLinkSerial(Serial& serial) :
 {
 }
 
+bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version)
+{
+    mavlink_message_t msg, msg_command_long;
+    autopilot = mav_type = sys_id = 0;
+    memset(&autopilot_version, 0, sizeof(autopilot_version));
+
+    for (clock_t clk = clock(); (clock() - clk) / CLOCKS_PER_SEC < 1; ) {
+        if (receive_message(msg)) {
+             if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
+                mav_type = mavlink_msg_heartbeat_get_type(&msg);
+                sys_id = msg.sysid;
+
+                if (autopilot != MAV_AUTOPILOT_INVALID) //Filter out heartbeat messages forwarded from GCS
+                    break;
+            }
+        }
+
+        usleep(RECEIVE_RETRY_DELAY * 1000);
+    }
+
+    //Return false if heartbeat message was not received
+    if (sys_id == 0) {
+        printf("Heartbeat not received.\n");
+        return false;
+    }
+
+    for (int i = 0; i < SEND_RETRIES; i++) {
+        mavlink_msg_command_long_pack(SYSTEM_ID, COMPONENT_ID, &msg_command_long,
+                                      ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID,
+                                      MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES,
+                                      i, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        if (send_message(msg_command_long)) {
+            for (int j = 0; j < RECEIVE_RETRIES; j++) {
+                if (receive_message(msg)) {
+                    //printf("**** msg.msgid = %d\n", msg.msgid);
+                    if (msg.msgid == MAVLINK_MSG_ID_AUTOPILOT_VERSION) {
+                        mavlink_msg_autopilot_version_decode(&msg, &autopilot_version);
+                        sys_id = msg.sysid;
+                        return true;
+                    }
+                }
+            }
+        } else {
+            printf("Failed to send message to autopilot.\n");
+        }
+
+        usleep(RECEIVE_RETRY_DELAY * 1000);
+    }
+
+    return true;
+}
+
+char* MAVLinkSerial::get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size) const
+{
+    strncpy(buff, "unknown", buff_size);
+
+    if (autopilot_version.flight_sw_version != 0) {
+        int majorVersion, minorVersion, patchVersion;
+        FIRMWARE_VERSION_TYPE versionType;
+
+        majorVersion = (autopilot_version.flight_sw_version >> (8*3)) & 0xFF;
+        minorVersion = (autopilot_version.flight_sw_version >> (8*2)) & 0xFF;
+        patchVersion = (autopilot_version.flight_sw_version >> (8*1)) & 0xFF;
+        versionType = (FIRMWARE_VERSION_TYPE)((autopilot_version.flight_sw_version >> (8*0)) & 0xFF);
+
+        snprintf(buff, buff_size, "%d.%d.%d/%d ", majorVersion, minorVersion, patchVersion, versionType);
+    }
+
+    return buff;
+}
+
 bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
 {
-    uint8_t buf[263];
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
     //Copy the message to send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
@@ -189,7 +262,7 @@ int MAVLinkSerial::timedRead()
         if (c >= 0) {
             return c;
         }
-    } while (double(::clock() - start_millis) / CLOCKS_PER_SEC < timeout * 1000.0);
+    } while (1000.0 * (::clock() - start_millis) / CLOCKS_PER_SEC < timeout );
 
     return -1;     // -1 indicates timeout
 }

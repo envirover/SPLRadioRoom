@@ -29,12 +29,15 @@
 #undef F
 #include "mavlink/include/standard/mavlink.h"
 
+#define SYSTEM_ID               255
+#define COMPONENT_ID            1
 #define ARDUPILOT_SYSTEM_ID     1
-#define ARDUPILOT_COMPONENT_ID  1
+#define ARDUPILOT_COMPONENT_ID  0
 
 #define SEND_RETRIES            5
 #define RECEIVE_RETRIES         10
-#define RECEIVE_RETRY_DELAY     5   //ms
+#define RECEIVE_RETRY_DELAY     10   //ms
+#define RETRIES_TIMEOUT         1000
 
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
@@ -42,11 +45,11 @@
 class MAVLinkSerial
 {
     Serial& serial;
-    unsigned long timeout;      // number of milliseconds to wait for the next char before aborting timed read
+    unsigned long timeout; // number of milliseconds to wait for the next char before aborting timed read
     clock_t start_millis;  // used for timeout measurement
-    uint8_t seq;
+    uint8_t seq;           // message sequence number
 
-    int timedRead();    // private method to read stream with timeout
+    int timedRead();       // private method to read stream with timeout
 
 public:
 
@@ -56,18 +59,38 @@ public:
     MAVLinkSerial(Serial& serial);
 
     /**
+     * Sends REQUEST_AUTOPILOT_CAPABILITIES message to the autopilot and
+     * reads AUTOPILOT_VERSION message replied by the autopilot.
+     *
+     * Returns true if AUTOPILOT_VERSION message was received.
+     */
+    bool request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version);
+
+    /**
+     * Retrieves firmware version string from the specified AUTOPILOT_VERSION message.
+     *
+     * Returns the  firmware version string.
+     */
+    char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size) const;
+
+    /**
      * Send MAVLink message to ArduPilot.
+     *
+     * Returns true on success.
      */
     bool send_message(const mavlink_message_t& msg);
 
     /**
      * Receive MAVLink message from ArduPilot.
+     *
+     * Returns true if MAVLink message was received.
      */
     bool receive_message(mavlink_message_t& msg);
 
     /**
      * Retries sending message to ArduPilot until ACK is received.
-     * Returns true if ACK received.
+     *
+     * Returns true if ACK message was received.
      */
     bool send_receive_message(const mavlink_message_t& msg, mavlink_message_t& ack);
 

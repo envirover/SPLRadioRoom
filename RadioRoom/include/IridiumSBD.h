@@ -82,6 +82,8 @@ public:
     }
 
     int begin();
+    int getTransceiverModel(char *buffer, size_t bufferSize);
+    int getTransceiverSerialNumber(char *buffer, size_t bufferSize);
     int sendSBDText(const char *message);
     int sendSBDBinary(const uint8_t *txData, size_t txDataSize);
     int sendReceiveSBDText(const char *message, uint8_t *rxBuffer, size_t &rxBufferSize);
@@ -132,6 +134,8 @@ private:
     bool waitForATResponse(char *response=NULL, int responseSize=0, const char *prompt=NULL, const char *terminator="OK\r\n");
 
     int  internalBegin();
+    int  internalGetTransceiverModel(char *buffer, size_t bufferSize);
+    int  internalGetTransceiverSerialNumber(char *buffer, size_t bufferSize);
     int  internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t *prxBufferSize);
     int  internalQueryRingIndicationStatus(int &sri);
     int  internalGetStatusExtended(uint16_t &moFlag, uint16_t &moMSN, uint16_t &mtFlag, uint16_t &mtMSN, uint16_t &raFlag, uint16_t &msgWaiting);

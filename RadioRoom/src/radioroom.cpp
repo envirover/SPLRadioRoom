@@ -20,17 +20,23 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <stdio.h>
 #include "SPLRadioRoom.h"
 
 SPLRadioRoom radioroom;
 
-int main(int argc, char** argv) {
-    radioroom.setup();
+int main(int argc, char** argv)
+{
+    if (config.init(argc, argv)) {
+        printf("Invalid configuration.\n");
+        return 1;
+    }
+
+    radioroom.init();
 
     while(1) {
         radioroom.loop();
     }
 
     return 0;
-
 }
