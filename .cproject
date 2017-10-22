@@ -24,6 +24,7 @@
 							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.152920786" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base">
 								<option id="gnu.cpp.compiler.option.include.paths.56436374" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/RadioRoom/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/RadioRoom/include/mavlink/include/standard}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.790363965" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>
@@ -72,6 +73,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.212221801" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base">
 								<option id="gnu.cpp.compiler.option.include.paths.1575175181" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/RadioRoom/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/RadioRoom/include/mavlink/include/standard}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.112988014" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>
@@ -112,19 +114,25 @@
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.c.compiler.2132060716;cdt.managedbuild.tool.gnu.c.compiler.input.2056974602">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1217708818;cdt.managedbuild.tool.gnu.c.compiler.input.805942620">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.373838222;cdt.managedbuild.tool.gnu.cpp.compiler.input.424127970">
+		<scannerConfigBuildInfo instanceId="0.2039546393.1684526291;0.2039546393.1684526291.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.212221801;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.112988014">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.c.compiler.96556217;cdt.managedbuild.tool.gnu.c.compiler.input.152988321">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.152920786;cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.790363965">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.c.compiler.2132060716;cdt.managedbuild.tool.gnu.c.compiler.input.2056974602">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="0.2039546393.1684526291;0.2039546393.1684526291.;cdt.managedbuild.tool.gnu.c.compiler.cygwin.base.641854562;cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.1557327918">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.373838222;cdt.managedbuild.tool.gnu.cpp.compiler.input.424127970">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="0.2039546393;0.2039546393.;cdt.managedbuild.tool.gnu.cross.c.compiler.140945279;cdt.managedbuild.tool.gnu.c.compiler.input.792823327">

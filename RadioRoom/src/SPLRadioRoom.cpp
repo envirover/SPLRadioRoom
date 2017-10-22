@@ -1,7 +1,7 @@
 /*
  SPLRadioRoom.cpp
 
- Iridium SBD telemetry for ArduPilot.
+Iridium SBD telemetry for MAVLink autopilots.
 
  (C) Copyright 2017 Envirover.
 
@@ -27,23 +27,20 @@
 #include <vector>
 #include <syslog.h>
 #include "SPLRadioRoom.h"
+#include "MAVLinkLogger.h"
 
 
 SPLRadioRoom::SPLRadioRoom() :
     autopilot(),
     isbd(),
-    high_latency_msg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID),
+    high_latency(),
+    seq(0),
     last_report_time(0)
 {
 }
 
 SPLRadioRoom::~SPLRadioRoom()
 {
-}
-
-void SPLRadioRoom::print_mavlink_msg(const mavlink_message_t& msg) const
-{
-    syslog(LOG_DEBUG, "** nmsgid = %d, compid = %d", msg.msgid, msg.compid);
 }
 
 bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
@@ -53,15 +50,13 @@ bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, ma
     uint16_t len = 0;
 
     if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-        syslog(LOG_DEBUG, "Sending MO message.");
-        print_mavlink_msg(mo_msg);
-
         len = mavlink_msg_to_send_buffer(buf, &mo_msg);
     }
 
     received = false;
 
     if (isbd.sendReceiveSBDBinary(buf, len, buf, buf_size) != ISBD_SUCCESS) {
+        MAVLinkLogger::log(LOG_WARNING, "SBD << FAILED", mo_msg);
         return false;
     }
 
@@ -72,13 +67,13 @@ bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, ma
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg, &mavlink_status)) {
                 received = true;
 
-                syslog(LOG_DEBUG, "MT message received.");
-                print_mavlink_msg(mt_msg);
-
+                MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
                 break;
             }
         }
     }
+
+    MAVLinkLogger::log(LOG_INFO, "SBD <<", mo_msg);
 
     return true;
 }
@@ -152,7 +147,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         }
 
         if (idx != count) {
-            syslog(LOG_INFO, "Not all mission items received.");
+            syslog(LOG_WARNING, "Not all mission items received.");
 
             mavlink_mission_ack_t mission_ack;
             mission_ack.target_system = msg.sysid;
@@ -164,7 +159,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
             return true;
         }
 
-        syslog(LOG_DEBUG, "Sending mission items to ArduPilot...");
+        syslog(LOG_INFO, "Sending mission items to ArduPilot...");
 
         for (int i = 0; i < MAX_SEND_RETRIES; i++) {
             if (autopilot.send_message(msg)) {
@@ -177,15 +172,15 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         for (uint16_t i = 0; i < count; i++) {
             autopilot.send_receive_message(missions[i], ack);
 
-            syslog(LOG_DEBUG, "Mission item sent to ArduPilot.");
+            //syslog(LOG_DEBUG, "Mission item sent to ArduPilot.");
 
             usleep(10000);
         }
 
         if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
-            syslog(LOG_DEBUG, "Mission accepted by ArduPilot.");
+            syslog(LOG_INFO, "Mission accepted by ArduPilot.");
         } else {
-            syslog(LOG_DEBUG, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
+            syslog(LOG_WARNING, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
         }
 
         return true;
@@ -218,11 +213,6 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 
                 if (!ack_received) {
                     ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
-
-                    if (ack_received) {
-                        syslog(LOG_INFO, "ACK received from ArduPilot.");
-                        print_mavlink_msg(mo_msg);
-                    }
                 }
             }
         }
@@ -250,7 +240,7 @@ void SPLRadioRoom::comm_receive()
     if (autopilot.receive_message(msg)) {
         //digitalWrite(LED_PIN, HIGH);
 
-        high_latency_msg.update(msg);
+        update_high_latency_msg(msg);
 
         /*
         if (filterMessage(msg)) {
@@ -350,8 +340,6 @@ void SPLRadioRoom::loop()
         usleep(10000);
     }
 
-    high_latency_msg.print();
-
     uint16_t mo_flag = 0, mo_msn = 0, mt_flag = 0, mt_msn = 0, ra_flag = 0, msg_waiting = 0;
 
     int err = isbd.getStatusExtended(mo_flag, mo_msn, mt_flag, mt_msn, ra_flag, msg_waiting);
@@ -375,10 +363,65 @@ void SPLRadioRoom::loop()
         //high_latency_msg.print();
 
         mavlink_message_t msg;
-        high_latency_msg.encode(msg);
+        mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
+        msg.seq = seq++;
 
         isbd_session(msg);
 
         last_report_time = current_time;
     }
+}
+
+inline int16_t radToCentidegrees(float rad) {
+  return rad / M_PI * 18000;
+}
+
+bool SPLRadioRoom::update_high_latency_msg(const mavlink_message_t& msg)
+{
+  switch (msg.msgid) {
+  case MAVLINK_MSG_ID_HEARTBEAT:    //0
+    high_latency.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
+    high_latency.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
+    return true;
+  case MAVLINK_MSG_ID_SYS_STATUS:   //1
+    high_latency.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
+    return true;
+  case MAVLINK_MSG_ID_GPS_RAW_INT:    //24
+    high_latency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
+    high_latency.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
+    high_latency.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
+    high_latency.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
+    high_latency.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
+    high_latency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
+    return true;
+  case MAVLINK_MSG_ID_ATTITUDE:   //30
+    high_latency.heading = (radToCentidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 36000) % 36000;
+    high_latency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
+    high_latency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
+    return true;
+  case MAVLINK_MSG_ID_LOCAL_POSITION_NED:
+    return true;
+  case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:    //33
+    //high_latency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
+    //high_latency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
+    //high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
+    high_latency.altitude_sp = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
+    return true;
+  case MAVLINK_MSG_ID_MISSION_CURRENT:    //42
+    high_latency.wp_num = mavlink_msg_mission_current_get_seq(&msg);
+    return true;
+  case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT:    //62
+    high_latency.wp_distance = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
+    high_latency.heading_sp = mavlink_msg_nav_controller_output_get_nav_bearing(&msg) * 100;
+    return true;
+  case MAVLINK_MSG_ID_VFR_HUD:    //74
+    high_latency.airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
+    high_latency.groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
+    //high_latency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
+    high_latency.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
+    high_latency.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
+    return true;
+  }
+
+  return false;
 }

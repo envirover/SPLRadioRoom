@@ -1,9 +1,10 @@
 CC = arm-linux-gnueabihf-g++.exe
 CFLAGS = -Wall
 EXECUTABLE = bin/radioroom
+INC=-I include -I include/mavlink/include/standard
 
 $(EXECUTABLE): src/*.cpp
-	$(CC) $(CFLAGS) src/*.cpp -o $(EXECUTABLE) -I include
+	$(CC) $(CFLAGS) $(INC) src/*.cpp -o $(EXECUTABLE) 
 	
 clean:
 	

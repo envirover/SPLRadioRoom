@@ -56,7 +56,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 typedef unsigned char  uint8_t;
 typedef unsigned short uint16_t;
 
-extern bool ISBDCallback() __attribute__((weak));
+extern bool isbdCallback() __attribute__((weak));
 
 /**
  * POSIX implementation for Iridium SBD transceiver communication.
@@ -71,7 +71,7 @@ class IridiumSBD {
     // Timings
     int csqInterval;
     int sbdixInterval;
-    int atTimeout;
+    int atTimeout; //seconds
     int sendReceiveTimeout;
 
     // State variables
@@ -140,7 +140,7 @@ public:
 private:
 
     // Internal utilities
-    bool detect_isbd(string device);
+    bool detectTransceiver(string device);
     int  begin();
     bool smartWait(int seconds);
     bool waitForATResponse(char *response=NULL, int responseSize=0, const char *prompt=NULL, const char *terminator="OK\r\n");

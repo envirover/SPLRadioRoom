@@ -26,6 +26,7 @@
 #include <syslog.h>
 #include <limits.h>
 #include "MAVLinkSerial.h"
+#include "MAVLinkLogger.h"
 
 
 MAVLinkSerial::MAVLinkSerial() :
@@ -171,6 +172,9 @@ bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
 
     uint16_t n = serial.write(buf, len);
 
+    int priority = (n == len) ? LOG_DEBUG : LOG_ERR;
+    MAVLinkLogger::log(priority, "MAV <<", msg);
+
     return n == len;
 }
 
@@ -187,6 +191,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
         //Serial.println(c);
 
         if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) {
+            MAVLinkLogger::log(LOG_DEBUG, "MAV >>", msg);
             return true;
         }
 

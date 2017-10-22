@@ -31,12 +31,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <limits.h>
 #include "IridiumSBD.h"
 
-bool ISBDCallback()
+bool isbdCallback()
 {
     return true;
 }
 
-bool IridiumSBD::detect_isbd(string device) {
+bool IridiumSBD::detectTransceiver(string device) {
     int ret = begin();
 
     if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
@@ -63,7 +63,7 @@ bool IridiumSBD::init(string path, speed_t speed, const vector<string>& devices)
     setPowerProfile(1);
 
     if (stream.open(path, speed) == 0) {
-        if (detect_isbd(path)) {
+        if (detectTransceiver(path)) {
             return true;
         }
 
@@ -80,7 +80,7 @@ bool IridiumSBD::init(string path, speed_t speed, const vector<string>& devices)
                 continue;
 
             if (stream.open(devices[i].data(), speed) == 0) {
-                if (detect_isbd(devices[i])) {
+                if (detectTransceiver(devices[i])) {
                     return true;
                 } else {
                     stream.close();
@@ -718,8 +718,8 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
 
 bool IridiumSBD::cancelled()
 {
-    if (ISBDCallback != NULL) {
-        return !ISBDCallback();
+    if (isbdCallback != NULL) {
+        return !isbdCallback();
     }
 
     return false;

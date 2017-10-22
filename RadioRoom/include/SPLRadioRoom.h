@@ -1,7 +1,7 @@
 /*
  SPLRadioRoom.h
 
- Iridium SBD telemetry for ArduPilot.
+ Iridium SBD telemetry for MAVLink autopilots.
 
  (C) Copyright 2017 Envirover.
 
@@ -28,7 +28,6 @@
 
 #include <vector>
 #include "MAVLinkSerial.h"
-#include "HighLatencyMsg.h"
 #include "IridiumSBD.h"
 #include "SPLConfig.h"
 
@@ -39,29 +38,32 @@
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
 /**
- * SPL RadioRoom companion computer.
+ * SPL RadioRoom companion computer for MAVLink autopilot.
  */
 class SPLRadioRoom {
 
-    MAVLinkSerial  autopilot;
-    IridiumSBD     isbd;
-    HighLatencyMsg high_latency_msg;
-    unsigned long  last_report_time;
+    MAVLinkSerial           autopilot;
+    IridiumSBD              isbd;
+    mavlink_high_latency_t  high_latency;
+    uint8_t                 seq; // MO message sequence number
+    unsigned long           last_report_time;
 
 public:
 
     /**
-     *
+     * Calls default constructors for MAVLinkSerial and IridiumSBD.
      */
     SPLRadioRoom();
 
     /**
-     *
+     * Destructor
      */
     virtual ~SPLRadioRoom();
 
     /**
+     * Initializes MAVLinkSerial and IridiumSBD instances.
      *
+     * Returns true if MAVLinkSerial and IridiumSBD were successfully initialized.
      */
     bool init();
 
@@ -85,7 +87,7 @@ private:
     /**
      * Debug print of mavlink_message_t message
      */
-    void print_mavlink_msg(const mavlink_message_t& msg) const;
+    //void print_mavlink_msg(const mavlink_message_t& msg) const;
 
     /**
      * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
@@ -121,6 +123,14 @@ private:
      * Reads and processes MAVLink messages from ArduPilot.
      */
     void comm_receive();
+
+    /*
+     * Integrates high frequency message into HIGH_LATENCY type message.
+     *
+     * @param msg message received from autopilot
+     * @return true if the message was integrated or should be just swallowed
+     */
+    bool update_high_latency_msg(const mavlink_message_t& msg);
 };
 
 #endif /* SPLRADIOROOM_H_ */

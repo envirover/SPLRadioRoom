@@ -25,9 +25,7 @@
 
 #include <ctime>
 #include "Serial.h"
-
-#undef F
-#include "mavlink/include/standard/mavlink.h"
+#include "mavlink.h"
 
 #define SYSTEM_ID               255
 #define COMPONENT_ID            1
