@@ -27,13 +27,22 @@
 #define SERIAL_H_
 
 #include <termios.h>
+#include <vector>
+#include <string>
+
+using namespace std;
+
+#define SERIAL_BY_ID_DIR "/dev/serial/by-id/"
+#define STANDARD_SERIALS "/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2,/dev/ttyS0,/dev/ttyAMA0"
 
 /**
  * Provides access to serial devices.
  */
 class Serial
 {
-    int tty_fd;
+    int     tty_fd;
+    termios old_tio;
+    string  path;
 
 public:
 
@@ -48,11 +57,16 @@ public:
     virtual ~Serial();
 
     /**
+     * Returns the serial device path set by open(...) call.
+     */
+    inline string get_path() const { return path; };
+
+    /**
      * Opens serial device with the specified path and sets the baud rate.
      *
      * Returns 0 in case of success or -1 in case of failure.
      */
-    int open(const char* path, speed_t speed);
+    int open(const string& path, speed_t speed);
 
     /**
      * Closes the serial device.
@@ -86,6 +100,17 @@ public:
      * Returns the number of bytes written or -1 in case of error.
      */
     int write(const void* buffer, size_t n);
+
+    /**
+     * Retrieves the list of serial devices from '/dev/serial/by-id' folder.
+     * If 'dev/serial/by-id' folder is not available, the method uses static list of
+     * standard serial devices.
+     *
+     * Full paths of the devices are added to 'devices' vector.
+     *
+     * Returns the number of devices found or -1 in case of an error.
+     */
+    static int get_serial_devices(vector<string>& devices);
 };
 
 #endif /* SERIAL_H_ */

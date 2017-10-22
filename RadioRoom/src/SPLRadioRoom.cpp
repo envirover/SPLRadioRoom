@@ -22,20 +22,18 @@
  Created on: Oct 17, 2017
      Author: Pavel Bobov
  */
-#include <stdio.h>
+
 #include <unistd.h>
 #include <vector>
-#include <istream>
+#include <syslog.h>
 #include "SPLRadioRoom.h"
 
-using namespace std;
 
 SPLRadioRoom::SPLRadioRoom() :
+    autopilot(),
+    isbd(),
     high_latency_msg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID),
-    ardupilot(telem),
-    isbd(nss),
     last_report_time(0)
-
 {
 }
 
@@ -43,10 +41,9 @@ SPLRadioRoom::~SPLRadioRoom()
 {
 }
 
-
 void SPLRadioRoom::print_mavlink_msg(const mavlink_message_t& msg) const
 {
-    printf("** \nmsgid = %d\ncompid = %d\n", msg.msgid, msg.compid);
+    syslog(LOG_DEBUG, "** nmsgid = %d, compid = %d", msg.msgid, msg.compid);
 }
 
 bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
@@ -56,7 +53,7 @@ bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, ma
     uint16_t len = 0;
 
     if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-        printf("Sending MO message.\n");
+        syslog(LOG_DEBUG, "Sending MO message.");
         print_mavlink_msg(mo_msg);
 
         len = mavlink_msg_to_send_buffer(buf, &mo_msg);
@@ -75,7 +72,7 @@ bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, ma
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg, &mavlink_status)) {
                 received = true;
 
-                printf("MT message received.\n");
+                syslog(LOG_DEBUG, "MT message received.");
                 print_mavlink_msg(mt_msg);
 
                 break;
@@ -116,12 +113,12 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
     mavlink_message_t missions[MAX_MISSION_COUNT];
 
     if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
-        printf("MISSION_COUNT MT message received.\n");
+        syslog(LOG_DEBUG, "MISSION_COUNT MT message received.");
 
         uint16_t count = mavlink_msg_mission_count_get_count(&msg);
 
         if (count > MAX_MISSION_COUNT) {
-            printf("Not enough memory for storing missions.\n");
+            syslog(LOG_INFO, "Not enough memory for storing missions.");
 
             mavlink_mission_ack_t mission_ack;
             mission_ack.target_system = msg.sysid;
@@ -136,7 +133,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         mavlink_message_t mt_msg, mo_msg;
         mo_msg.len = mo_msg.msgid = 0;
 
-        printf("Receiving mission items from ISBD.\n");
+        syslog(LOG_DEBUG, "Receiving mission items from ISBD.");
 
         uint16_t idx = 0;
 
@@ -145,7 +142,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 
             if (isbd_send_receive_message(mo_msg, mt_msg, received)) {
                 if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-                    printf("MISSION_ITEM MT message received.\n");
+                    syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
                     memcpy(missions + idx, &mt_msg, sizeof(mavlink_message_t));
                     idx++;
                 }
@@ -155,7 +152,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         }
 
         if (idx != count) {
-            printf("Not all mission items received.\n");
+            syslog(LOG_INFO, "Not all mission items received.");
 
             mavlink_mission_ack_t mission_ack;
             mission_ack.target_system = msg.sysid;
@@ -167,10 +164,10 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
             return true;
         }
 
-        printf("Sending mission items to ArduPilot...\n");
+        syslog(LOG_DEBUG, "Sending mission items to ArduPilot...");
 
         for (int i = 0; i < MAX_SEND_RETRIES; i++) {
-            if (ardupilot.send_message(msg)) {
+            if (autopilot.send_message(msg)) {
                 break;
             }
 
@@ -178,17 +175,17 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         }
 
         for (uint16_t i = 0; i < count; i++) {
-            ardupilot.send_receive_message(missions[i], ack);
+            autopilot.send_receive_message(missions[i], ack);
 
-            printf("Mission item sent to ArduPilot.\n");
+            syslog(LOG_DEBUG, "Mission item sent to ArduPilot.");
 
             usleep(10000);
         }
 
         if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
-            printf("Mission accepted by ArduPilot.\n");
+            syslog(LOG_DEBUG, "Mission accepted by ArduPilot.");
         } else {
-            printf("Mission not accepted by ArduPilot: %d\n", mavlink_msg_mission_ack_get_type(&ack));
+            syslog(LOG_DEBUG, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
         }
 
         return true;
@@ -200,7 +197,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 {
 
-    printf("ISBD session started.\n");
+    syslog(LOG_DEBUG, "ISBD session started.");
 
     bool received;
     bool ack_received = false;
@@ -216,14 +213,14 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 
                 if (!ack_received) {
                     ack_received = handle_mission_write(mt_msg, mo_msg);
-                    printf("MISSION_ACK received.\n");
+                    syslog(LOG_INFO, "MISSION_ACK received.");
                 }
 
                 if (!ack_received) {
-                    ack_received = ardupilot.send_receive_message(mt_msg, mo_msg);
+                    ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
 
                     if (ack_received) {
-                        printf("ACK received from ArduPilot.\n");
+                        syslog(LOG_INFO, "ACK received from ArduPilot.");
                         print_mavlink_msg(mo_msg);
                     }
                 }
@@ -231,7 +228,7 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
         }
     } while (isbd.getWaitingMessageCount() > 0 || ack_received);
 
-    printf("ISBD session ended.\n");
+    syslog(LOG_DEBUG, "ISBD session ended.");
 }
 
 /**
@@ -250,7 +247,7 @@ void SPLRadioRoom::comm_receive()
 
     //digitalWrite(LED_PIN, LOW);
 
-    if (ardupilot.receive_message(msg)) {
+    if (autopilot.receive_message(msg)) {
         //digitalWrite(LED_PIN, HIGH);
 
         high_latency_msg.update(msg);
@@ -272,7 +269,7 @@ bool ISBDCallback() {
 
   digitalWrite(LED_PIN, LOW);
 
-  if (ardupilot.receiveMessage(msg)) {
+  if (autopilot.receiveMessage(msg)) {
     digitalWrite(LED_PIN, HIGH);
 
     high_latency_msg.update(msg);
@@ -284,142 +281,47 @@ bool ISBDCallback() {
 }
 */
 
-bool detect_autopilot(MAVLinkSerial& ardupilot, const char* device)
-{
-    mavlink_autopilot_version_t autopilot_version;
-    uint8_t autopilot, mav_type, sys_id;
 
-    if (!ardupilot.request_autopilot_version(autopilot, mav_type, sys_id, autopilot_version)) {
-        printf("Autopilot not detected at serial device '%s'.\n", device);
-        return false;
-    }
-
-    char buff[64];
-    ardupilot.get_firmware_version(autopilot_version, buff, sizeof(buff));
-
-    printf("Autopilot detected at serial device '%s'.\n", device);
-    printf("Autopilot: %d, MAV type: %d, system id: %d, firmware version: %s\n", autopilot, mav_type, sys_id, buff);
-
-    return true;
-}
-
-bool detect_isbd(IridiumSBD& isbd, const char* device) {
-    int ret = isbd.begin();
-
-    if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
-        char model[256], imea[256];
-        imea[0] = model[0] = 0;
-        ret = isbd.getTransceiverModel(model, sizeof(model));
-        if (ret == ISBD_SUCCESS) {
-            ret = isbd.getTransceiverSerialNumber(imea, sizeof(imea));
-            if (ret == ISBD_SUCCESS) {
-                printf("%s (IMEA %s) detected at serial device '%s'.\n", model, imea, device);
-                return true;
-            }
-        }
-    }
-
-    printf("ISBD transceiver not detected at serial device '%s'. Error code = %d.\n", device, ret);
-    return false;
-}
-
+/**
+ * Open serial devices for autopilot and ISBD transceiver.
+ *
+ * Automatically detect the correct serial devices if autopilot and ISBD transceiver
+ * do not respond on the devices specified by the configuration properties.
+ *
+ */
 bool SPLRadioRoom::init()
 {
-    // Detecting autopilot's and ISBD transceiver's serial devices.
-
-    std::string s(config.get_serials());
-
-    size_t pos = 0;
-    string token;
     vector<string> devices;
-
-    while ((pos = s.find(",")) != string::npos) {
-        token = s.substr(0, pos);
-        devices.push_back(token);
-        s.erase(0, pos + 1);
+    if (config.get_auto_detect_serials()) {
+        Serial::get_serial_devices(devices);
     }
 
-    devices.push_back(s);
+    bool autopilot_connected = autopilot.init(config.get_mavlink_serial(),
+                                              config.get_mavlink_serial_speed(),
+                                              devices);
 
-    bool autopilot_connected = false;
-
-    if (telem.open(config.get_mavlink_serial(), config.get_mavlink_serial_speed()) == 0) {
-        if (detect_autopilot(ardupilot, config.get_mavlink_serial())) {
-            autopilot_connected = true;
-        } else {
-            telem.close();
-        }
-    } else {
-        printf("Failed to open serial device '%s'.\n", config.get_mavlink_serial());
-    }
-
-    if (!autopilot_connected && config.get_auto_detect_serials()) {
-        printf("WARN: Autopilot was not detected on the specified serial device. Trying to detect autopilot on other devices.\n");
-        for (int i = 0; i < devices.size(); i++) {
-            if (devices[i] == config.get_mavlink_serial())
-                continue;
-
-            if (telem.open(devices[i].data(), config.get_mavlink_serial_speed()) == 0) {
-                if (detect_autopilot(ardupilot, devices[i].data())) {
-                    autopilot_connected = true;
-                    config.set_mavlink_serial(devices[i].data());
-                    break;
-                }
-
-                telem.close();
-            } else {
-               printf("DEBUG: Failed to open serial device '%s'.\n", devices[i].data());
-            }
+    // Exclude the serial device used by autopilot from the device list used
+    // for ISBD transceiver serial device auto-detection.
+    for (std::vector<string>::iterator iter = devices.begin(); iter != devices.end(); ++iter) {
+        if (*iter == autopilot.get_path()) {
+            devices.erase(iter);
+            break;
         }
     }
 
-    if (!autopilot_connected) {
-        telem.open(config.get_mavlink_serial(), config.get_mavlink_serial_speed());
-        printf("SEVERE: Autopilot was not detected on any specified serial devices (%s).\n",
-               config.get_serials());
+    string isbd_serial = config.get_isbd_serial();
+
+    if (autopilot_connected && isbd_serial == autopilot.get_path() && devices.size() > 0) {
+        syslog(LOG_WARNING,
+               "Autopilot detected at serial device '%s' that was assigned to ISBD transceiver by the configuration settings.",
+               autopilot.get_path().data());
+
+        isbd_serial = devices[0];
     }
 
-    bool isbd_connected = false;
-
-    isbd.setPowerProfile(1);
-
-    if (strcmp(config.get_mavlink_serial(), config.get_isbd_serial()) != 0) {
-        if (nss.open(config.get_isbd_serial(), config.get_isbd_serial_speed()) == 0) {
-            if (detect_isbd(isbd, config.get_isbd_serial())) {
-                isbd_connected = true;
-            } else {
-                nss.close();
-            }
-        } else {
-            printf("Failed to open serial device '%s'.\n", config.get_isbd_serial());
-        }
-    }
-
-    if (!isbd_connected && config.get_auto_detect_serials()) {
-        printf("WARN: ISBD transceiver was not detected on the specified serial device. Trying to detect transceiver on other devices.\n");
-        for (int i = 0; i < devices.size(); i++) {
-            if (devices[i] == config.get_mavlink_serial() || devices[i] == config.get_isbd_serial())
-                continue;
-
-            if (nss.open(devices[i].data(), config.get_isbd_serial_speed()) == 0) {
-                if (detect_isbd(isbd, devices[i].data())) {
-                    isbd_connected = true;
-                    config.set_isbd_serial(devices[i].data());
-                    break;
-                } else {
-                    nss.close();
-                }
-            } else {
-                printf("DEBUG: Failed to open serial device '%s'.\n", devices[i].data());
-            }
-        }
-    }
-
-    if (!isbd_connected) {
-        nss.open(config.get_isbd_serial(), config.get_isbd_serial_speed());
-        printf("SEVERE: ISBD transceiver was not detected on any of the specified serial devices (%s).\n",
-               config.get_serials());
-    }
+    bool isbd_connected = isbd.init(isbd_serial,
+                                    config.get_isbd_serial_speed(),
+                                    devices);
 
     last_report_time = clock();
 
@@ -437,7 +339,9 @@ void SPLRadioRoom::loop()
     for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
         mavlink_message_t msg;
         mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
-        ardupilot.send_message(msg);
+        if (!autopilot.send_message(msg)) {
+            syslog(LOG_WARNING, "Failed to send message to autopilot.");
+        }
         usleep(10000);
     }
 
@@ -453,18 +357,18 @@ void SPLRadioRoom::loop()
     int err = isbd.getStatusExtended(mo_flag, mo_msn, mt_flag, mt_msn, ra_flag, msg_waiting);
 
     if (err != 0) {
-        printf("SBDSX failed: error %d\n", err);
+        syslog(LOG_INFO, "SBDSX failed: error %d", err);
     } else {
-        printf("Ring Alert flag: %d\n", ra_flag);
+        syslog(LOG_INFO, "Ring Alert flag: %d", ra_flag);
     }
 
     clock_t current_time = clock();
 
     unsigned long elapsedTime = (current_time - last_report_time) / CLOCKS_PER_SEC;
 
-    printf("Elapsed time: %d\n", elapsedTime);
+    syslog(LOG_INFO, "Elapsed time: %lu", elapsedTime);
 
-    printf("Report period: %d\n", config.get_report_period());
+    syslog(LOG_INFO, "Report period: %lu", config.get_report_period());
 
     // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
     if (ra_flag || elapsedTime > config.get_report_period()) {

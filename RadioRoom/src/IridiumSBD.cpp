@@ -27,11 +27,74 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <syslog.h>
+#include <limits.h>
 #include "IridiumSBD.h"
 
 bool ISBDCallback()
 {
     return true;
+}
+
+bool IridiumSBD::detect_isbd(string device) {
+    int ret = begin();
+
+    if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
+        char model[256], imea[256];
+        imea[0] = model[0] = 0;
+        ret = getTransceiverModel(model, sizeof(model));
+        if (ret == ISBD_SUCCESS) {
+            ret = getTransceiverSerialNumber(imea, sizeof(imea));
+            if (ret == ISBD_SUCCESS) {
+                syslog(LOG_NOTICE, "%s (IMEA %s) detected at serial device '%s'.", model, imea, device.data());
+                return true;
+            }
+        }
+    }
+
+    syslog(LOG_DEBUG, "ISBD transceiver not detected at serial device '%s'. Error code = %d.", device.data(), ret);
+    return false;
+}
+
+bool IridiumSBD::init(string path, speed_t speed, const vector<string>& devices)
+{
+    syslog(LOG_NOTICE, "Connecting to ISBD transceiver...");
+
+    setPowerProfile(1);
+
+    if (stream.open(path, speed) == 0) {
+        if (detect_isbd(path)) {
+            return true;
+        }
+
+        stream.close();
+    } else {
+        syslog(LOG_INFO, "Failed to open serial device '%s'.", path.data());
+    }
+
+    if (devices.size() > 0) {
+        syslog(LOG_NOTICE, "Attempting to detect ISBD transceiver at the available serial devices...");
+
+        for (size_t i = 0; i < devices.size(); i++) {
+            if (devices[i] == path)
+                continue;
+
+            if (stream.open(devices[i].data(), speed) == 0) {
+                if (detect_isbd(devices[i])) {
+                    return true;
+                } else {
+                    stream.close();
+                }
+            } else {
+                syslog(LOG_DEBUG, "Failed to open serial device '%s'.", devices[i].data());
+            }
+        }
+    }
+
+    stream.open(path, speed);
+    syslog(LOG_ERR, "ISBD transceiver was not detected on any of the serial devices.");
+
+    return false;
 }
 
 // Power on the RockBLOCK or return from sleep

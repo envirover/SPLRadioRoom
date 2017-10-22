@@ -39,24 +39,34 @@
 #define RECEIVE_RETRY_DELAY     10   //ms
 #define RETRIES_TIMEOUT         1000
 
+#define MAX_HEARTBEAT_INTERVAL  2000 //ms
+
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
  */
 class MAVLinkSerial
 {
-    Serial& serial;
-    unsigned long timeout; // number of milliseconds to wait for the next char before aborting timed read
-    clock_t start_millis;  // used for timeout measurement
-    uint8_t seq;           // message sequence number
-
-    int timedRead();       // private method to read stream with timeout
+    Serial         serial;
+    unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
+    clock_t        start_millis;  // used for timeout measurement
+    uint8_t        seq;           // message sequence number
 
 public:
 
     /**
      * Constructs MAVLinkSerial instance using the specified serial interface.
      */
-    MAVLinkSerial(Serial& serial);
+    MAVLinkSerial();
+
+    /**
+     * Initialize connection to the serial device.
+     */
+    bool init(string path, speed_t speed, const vector<string>& devices);
+
+    /**
+     * Returns the path of serial device set by init(...) call.
+     */
+    inline string get_path() const { return serial.get_path(); };
 
     /**
      * Sends REQUEST_AUTOPILOT_CAPABILITIES message to the autopilot and
@@ -96,6 +106,13 @@ public:
 
 private:
 
+    /*
+     * Checks if MAVLink autopilot is available on the specified serial device.
+     *
+     * Returns true is autopilot was detected.
+     */
+    bool detect_autopilot(const string device);
+
     /**
      * Receive messages from serial several times until received
      * COMMAND_ACK for COMMAND_LONG and COMMAND_INT or
@@ -109,6 +126,13 @@ private:
      * received from ArduPilot.
      */
     bool compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
+
+    /**
+     * Read stream with timeout.
+     *
+     * Returns character read  or -1 in case of timeout.
+     */
+    int timedRead();
 };
 
 #endif // MAVLINKSERIAL_H_

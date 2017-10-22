@@ -26,12 +26,9 @@ using namespace std;
 
 #define DEFAULT_MAVLINK_SERIAL      "/dev/ttyUSB0"
 #define DEFAULT_ISBD_SERIAL         "/dev/ttyUSB1"
-#define DEFAULT_SERIALS             "/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2,/dev/ttyS0,/dev/ttyAMA0"
 
 #define AP_TELEM_BAUD_RATE          B57600
 #define ISBD_BAUD_RATE              B19200
-
-
 
 #define DEFAULT_REPORT_PERIOD  300L // 5 minutes
 
@@ -45,7 +42,6 @@ class SPLConfig {
     speed_t  mavlink_serial_speed;
     speed_t  isbd_serial_speed;
     bool     auto_detect_serials;
-    string   serials;
     unsigned long report_period;
 
 public:
@@ -54,25 +50,20 @@ public:
     int init(int argc, char** argv);
 
     const char* get_mavlink_serial() const;
-    void set_mavlink_serial(const char* path);
-
     speed_t get_mavlink_serial_speed() const;
-    void set_mavlink_serial_speed(speed_t speed);
-
     const char* get_isbd_serial() const;
-    void set_isbd_serial(const char* path);
-
     speed_t get_isbd_serial_speed() const;
-    void set_isbd_serial_speed(speed_t speed);
-
     bool get_auto_detect_serials() const;
-    void set_auto_detect_serials(bool a);
-
-    const char* get_serials() const;
-    void set_serials(const char* s);
-
     unsigned long get_report_period() const;
+
+    // Report period could be changed at runtime by setting HL_REPORT_PERIOD parameter
     void set_report_period(unsigned long period);
+private:
+    void set_mavlink_serial(const char* path);
+    void set_mavlink_serial_speed(speed_t speed);
+    void set_isbd_serial(const char* path);
+    void set_isbd_serial_speed(speed_t speed);
+    void set_auto_detect_serials(bool a);
 };
 
 extern SPLConfig config;

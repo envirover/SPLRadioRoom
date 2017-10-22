@@ -62,9 +62,30 @@ extern bool ISBDCallback() __attribute__((weak));
  * POSIX implementation for Iridium SBD transceiver communication.
  */
 class IridiumSBD {
+
+    Serial stream; // Communicating with the Iridium
+
+    std::ostream& diag;
+    std::ostream& cons;
+
+    // Timings
+    int csqInterval;
+    int sbdixInterval;
+    int atTimeout;
+    int sendReceiveTimeout;
+
+    // State variables
+    int remainingMessages;
+    int sleepPin;
+    bool asleep;
+    bool reentrant;
+    int  minimumCSQ;
+    bool useWorkaround;
+    unsigned long lastPowerOnTime;
+
 public:
-    IridiumSBD(Serial &str, int sleepPinNo = -1) :
-        stream(str),
+    IridiumSBD(int sleepPinNo = -1) :
+        stream(),
         diag(std::cout),
         cons(std::cout),
         csqInterval(ISBD_DEFAULT_CSQ_INTERVAL),
@@ -81,7 +102,15 @@ public:
     {
     }
 
-    int begin();
+    /**
+     * Initializes connection to ISBD transceiver on the specified serial device.
+     * If auto_detect_serial is true the method automatically detects the serial device
+     * if the transceiver is available on any of the serial devices in the system.
+     *
+     * Returns true if connection was successful.
+     */
+    bool init(string path, speed_t speed, const vector<string>& devices);
+
     int getTransceiverModel(char *buffer, size_t bufferSize);
     int getTransceiverSerialNumber(char *buffer, size_t bufferSize);
     int sendSBDText(const char *message);
@@ -109,27 +138,10 @@ public:
     void attachDiags(std::ostream &stream);
 
 private:
-    Serial &stream; // Communicating with the Iridium
-
-    std::ostream& diag;
-    std::ostream& cons;
-
-    // Timings
-    int csqInterval;
-    int sbdixInterval;
-    int atTimeout;
-    int sendReceiveTimeout;
-
-    // State variables
-    int remainingMessages;
-    int sleepPin;
-    bool asleep;
-    bool reentrant;
-    int  minimumCSQ;
-    bool useWorkaround;
-    unsigned long lastPowerOnTime;
 
     // Internal utilities
+    bool detect_isbd(string device);
+    int  begin();
     bool smartWait(int seconds);
     bool waitForATResponse(char *response=NULL, int responseSize=0, const char *prompt=NULL, const char *terminator="OK\r\n");
 

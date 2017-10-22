@@ -26,6 +26,7 @@
 #ifndef SPLRADIOROOM_H_
 #define SPLRADIOROOM_H_
 
+#include <vector>
 #include "MAVLinkSerial.h"
 #include "HighLatencyMsg.h"
 #include "IridiumSBD.h"
@@ -42,15 +43,10 @@
  */
 class SPLRadioRoom {
 
-    Serial telem;
-    MAVLinkSerial  ardupilot;
-
-    Serial nss;
-    IridiumSBD isbd;
-
+    MAVLinkSerial  autopilot;
+    IridiumSBD     isbd;
     HighLatencyMsg high_latency_msg;
-
-    unsigned long last_report_time;
+    unsigned long  last_report_time;
 
 public:
 
@@ -75,6 +71,16 @@ public:
     void loop();
 
 private:
+
+    /**
+     * Initialize connection to the autopilot serial.
+     */
+    bool init_autopilot(vector<string>& devices);
+
+    /**
+     * Initialize connection to the ISBD transceiver.
+     */
+    bool init_isbd(vector<string>& devices);
 
     /**
      * Debug print of mavlink_message_t message

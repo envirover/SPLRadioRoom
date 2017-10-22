@@ -34,7 +34,6 @@ SPLConfig::SPLConfig() :
     mavlink_serial_speed(AP_TELEM_BAUD_RATE),
     isbd_serial_speed(ISBD_BAUD_RATE),
     auto_detect_serials(true),
-    serials(DEFAULT_SERIALS),
     report_period(DEFAULT_REPORT_PERIOD)
 {
 }
@@ -116,16 +115,6 @@ bool SPLConfig::get_auto_detect_serials() const
 void SPLConfig::set_auto_detect_serials(bool a)
 {
     auto_detect_serials = a;
-}
-
-const char* SPLConfig::get_serials() const
-{
-    return serials.data();
-}
-
-void SPLConfig::set_serials(const char* s)
-{
-    serials = s;
 }
 
 unsigned long SPLConfig::get_report_period() const

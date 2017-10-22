@@ -1,5 +1,5 @@
 CC = arm-linux-gnueabihf-g++.exe
-CFLAGS = 
+CFLAGS = -Wall
 EXECUTABLE = bin/radioroom
 
 $(EXECUTABLE): src/*.cpp

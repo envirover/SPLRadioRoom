@@ -23,12 +23,71 @@
 #include <ctime>
 #include <unistd.h>
 #include <stdio.h>
+#include <syslog.h>
+#include <limits.h>
 #include "MAVLinkSerial.h"
 
 
-MAVLinkSerial::MAVLinkSerial(Serial& serial) :
-    serial(serial), timeout(1000), start_millis(0), seq(0)
+MAVLinkSerial::MAVLinkSerial() :
+    serial(), timeout(1000), start_millis(0), seq(0)
 {
+}
+
+bool MAVLinkSerial::detect_autopilot(const string device)
+{
+    mavlink_autopilot_version_t autopilot_version;
+    uint8_t autopilot, mav_type, sys_id;
+
+    if (!request_autopilot_version(autopilot, mav_type, sys_id, autopilot_version)) {
+        syslog(LOG_DEBUG, "Autopilot not detected at serial device '%s'.", device.data());
+        return false;
+    }
+
+    char buff[64];
+    get_firmware_version(autopilot_version, buff, sizeof(buff));
+
+    syslog(LOG_NOTICE, "Autopilot detected at serial device '%s'.", device.data());
+    syslog(LOG_NOTICE, "MAV type: %d, system id: %d, autopilot class: %d, firmware version: %s", mav_type, sys_id, autopilot, buff);
+
+    return true;
+}
+
+bool MAVLinkSerial::init(string path, speed_t speed, const vector<string>& devices)
+{
+    syslog(LOG_NOTICE, "Connecting to autopilot...");
+
+    if (serial.open(path, speed) == 0) {
+        if (detect_autopilot(path)) {
+            return true;
+        }
+
+        serial.close();
+    } else {
+        syslog(LOG_WARNING, "Failed to open serial device '%s'.", path.data());
+    }
+
+    if (devices.size() > 0) {
+        syslog(LOG_NOTICE, "Attempting to detect autopilot at the available serial devices...");
+        for (size_t i = 0; i < devices.size(); i++) {
+            if (devices[i] == path)
+                continue;
+
+            if (serial.open(devices[i], speed) == 0) {
+                if (detect_autopilot(devices[i].data())) {
+                    return true;
+                }
+
+                serial.close();
+            } else {
+                syslog(LOG_DEBUG, "Failed to open serial device '%s'.", devices[i].data());
+            }
+        }
+    }
+
+    serial.open(path, speed);
+    syslog(LOG_ERR, "Autopilot was not detected on any of the serial devices.");
+
+    return false;
 }
 
 bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version)
@@ -37,7 +96,7 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
     autopilot = mav_type = sys_id = 0;
     memset(&autopilot_version, 0, sizeof(autopilot_version));
 
-    for (clock_t clk = clock(); (clock() - clk) / CLOCKS_PER_SEC < 1; ) {
+    for (clock_t clk = clock(); 1000.0 * (clock() - clk) / CLOCKS_PER_SEC < MAX_HEARTBEAT_INTERVAL; ) {
         if (receive_message(msg)) {
              if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                 autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
@@ -54,7 +113,7 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
 
     //Return false if heartbeat message was not received
     if (sys_id == 0) {
-        printf("Heartbeat not received.\n");
+        syslog(LOG_DEBUG, "Heartbeat not received.\n");
         return false;
     }
 
@@ -75,7 +134,7 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
                 }
             }
         } else {
-            printf("Failed to send message to autopilot.\n");
+            syslog(LOG_DEBUG, "Failed to send message to autopilot.\n");
         }
 
         usleep(RECEIVE_RETRY_DELAY * 1000);

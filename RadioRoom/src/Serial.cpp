@@ -32,10 +32,14 @@
 #include <fstream>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <syslog.h>
+#include <errno.h>
+#include <istream>
+#include <dirent.h>
 
 #include "Serial.h"
 
-Serial::Serial() : tty_fd(0)
+Serial::Serial() : tty_fd(0), path()
 {
 }
 
@@ -43,11 +47,14 @@ Serial::~Serial()
 {
 }
 
-int Serial::open(const char * path, speed_t speed)
+int Serial::open(const string& path, speed_t speed)
 {
-    tty_fd = ::open(path, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    this->path = path;
 
-    if (tty_fd <= 0) {
+    tty_fd = ::open(path.data(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+    if (tty_fd < 0) {
+        syslog(LOG_ERR, "Failed to open file '%s' (errno = %d).", path.data(), errno);
         return -1;
     }
 
@@ -64,6 +71,8 @@ int Serial::open(const char * path, speed_t speed)
     cfsetospeed(&tio, speed);
     cfsetispeed(&tio, speed);
 
+    tcgetattr (tty_fd, &old_tio);
+
     tcsetattr(tty_fd, TCSANOW, &tio);
 
     return 0;
@@ -71,6 +80,7 @@ int Serial::open(const char * path, speed_t speed)
 
 int Serial::close()
 {
+    tcsetattr(tty_fd, TCSANOW, &old_tio);
     return ::close(tty_fd);
 }
 
@@ -108,4 +118,37 @@ int Serial::write(const void* buffer, size_t n)
         return -1;
 
     return ret;
+}
+
+int Serial::get_serial_devices(vector<string>& devices) {
+    DIR *dp;
+    struct dirent *dirp;
+
+    if ((dp = opendir(SERIAL_BY_ID_DIR)) == NULL) {
+        syslog(LOG_ERR, "Failed to open '%s'.", SERIAL_BY_ID_DIR);
+        //Use the default list of serial devices
+        string s(STANDARD_SERIALS);
+        size_t pos = 0;
+        while ((pos = s.find(",")) != string::npos) {
+            string device = s.substr(0, pos);
+            devices.push_back(device);
+            s.erase(0, pos + 1);
+        }
+
+        devices.push_back(s);
+    } else {
+        while ((dirp = readdir(dp)) != NULL) {
+            if (string(dirp->d_name) == "." || string(dirp->d_name) == "..")
+                continue;
+
+            string device = string(SERIAL_BY_ID_DIR) + string(dirp->d_name);
+            char real_path[PATH_MAX];
+            realpath(device.data(), real_path);
+            devices.push_back(string(real_path));
+        }
+
+        closedir(dp);
+    }
+
+    return devices.size();
 }

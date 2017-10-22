@@ -20,15 +20,30 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
+//#include <stdio.h>
+#include <syslog.h>
+#include <unistd.h>
 #include "SPLRadioRoom.h"
+
+#define LOG_IDENTITY "radioroom"
 
 SPLRadioRoom radioroom;
 
 int main(int argc, char** argv)
 {
+    cout << "Radioroom started.";
+
+    openlog(LOG_IDENTITY, LOG_CONS | LOG_NDELAY, LOG_USER);
+    //setlogmask (LOG_UPTO (LOG_INFO));
+
+    syslog(LOG_NOTICE, "radioroom started.");
+
+    //close(STDIN_FILENO);
+    //close(STDOUT_FILENO);
+    //close(STDERR_FILENO);
+
     if (config.init(argc, argv)) {
-        printf("Invalid configuration.\n");
+        syslog(LOG_ERR, "Invalid configuration.\n");
         return 1;
     }
 
