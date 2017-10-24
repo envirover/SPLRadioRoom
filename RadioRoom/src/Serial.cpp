@@ -124,24 +124,12 @@ int Serial::get_serial_devices(vector<string>& devices) {
     DIR *dp;
     struct dirent *dirp;
 
-    if ((dp = opendir(SERIAL_BY_ID_DIR)) == NULL) {
-        syslog(LOG_ERR, "Failed to open '%s'.", SERIAL_BY_ID_DIR);
-        //Use the default list of serial devices
-        string s(STANDARD_SERIALS);
-        size_t pos = 0;
-        while ((pos = s.find(",")) != string::npos) {
-            string device = s.substr(0, pos);
-            devices.push_back(device);
-            s.erase(0, pos + 1);
-        }
-
-        devices.push_back(s);
-    } else {
+    if ((dp = opendir(SERIAL_BY_PATH_DIR)) != NULL) {
         while ((dirp = readdir(dp)) != NULL) {
             if (string(dirp->d_name) == "." || string(dirp->d_name) == "..")
                 continue;
 
-            string device = string(SERIAL_BY_ID_DIR) + string(dirp->d_name);
+            string device = string(SERIAL_BY_PATH_DIR) + string(dirp->d_name);
             char real_path[PATH_MAX];
             realpath(device.data(), real_path);
             devices.push_back(string(real_path));
@@ -149,6 +137,18 @@ int Serial::get_serial_devices(vector<string>& devices) {
 
         closedir(dp);
     }
+
+    // Add the default list of serial devices
+
+    string s(STANDARD_SERIALS);
+    size_t pos = 0;
+    while ((pos = s.find(",")) != string::npos) {
+        string device = s.substr(0, pos);
+        devices.push_back(device);
+        s.erase(0, pos + 1);
+    }
+
+    devices.push_back(s);
 
     return devices.size();
 }

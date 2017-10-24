@@ -1,7 +1,7 @@
 /*
  SPLConfig.h
 
- Iridium SBD telemetry for ArduPilot.
+ This file is a part of SPL RadioRoom project.
 
  (C) Copyright 2017 Envirover.
 

@@ -31,11 +31,7 @@ Iridium SBD telemetry for MAVLink autopilots.
 
 
 SPLRadioRoom::SPLRadioRoom() :
-    autopilot(),
-    isbd(),
-    high_latency(),
-    seq(0),
-    last_report_time(0)
+    autopilot(), isbd(), high_latency(), seq(0), last_report_time(0)
 {
 }
 
@@ -105,30 +101,19 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
 bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
-    mavlink_message_t missions[MAX_MISSION_COUNT];
+    vector<mavlink_message_t> missions;
 
     if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
-        syslog(LOG_DEBUG, "MISSION_COUNT MT message received.");
+        //syslog(LOG_DEBUG, "MISSION_COUNT MT message received.");
 
         uint16_t count = mavlink_msg_mission_count_get_count(&msg);
 
-        if (count > MAX_MISSION_COUNT) {
-            syslog(LOG_INFO, "Not enough memory for storing missions.");
-
-            mavlink_mission_ack_t mission_ack;
-            mission_ack.target_system = msg.sysid;
-            mission_ack.target_component = msg.compid;
-            mission_ack.type = MAV_MISSION_NO_SPACE;
-            mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-            ack.seq = 0; //TODO: use global counter for message sequence numbers.
-
-            return true;
-        }
+        missions.resize(count);
 
         mavlink_message_t mt_msg, mo_msg;
         mo_msg.len = mo_msg.msgid = 0;
 
-        syslog(LOG_DEBUG, "Receiving mission items from ISBD.");
+        syslog(LOG_INFO, "Receiving %d mission items from ISBD.", count);
 
         uint16_t idx = 0;
 
@@ -137,8 +122,8 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 
             if (isbd_send_receive_message(mo_msg, mt_msg, received)) {
                 if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-                    syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
-                    memcpy(missions + idx, &mt_msg, sizeof(mavlink_message_t));
+                    //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
+                    missions[idx] = mt_msg;
                     idx++;
                 }
             } else {
@@ -172,8 +157,6 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         for (uint16_t i = 0; i < count; i++) {
             autopilot.send_receive_message(missions[i], ack);
 
-            //syslog(LOG_DEBUG, "Mission item sent to ArduPilot.");
-
             usleep(10000);
         }
 
@@ -191,8 +174,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 
 void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 {
-
-    syslog(LOG_DEBUG, "ISBD session started.");
+    syslog(LOG_INFO, "ISBD session started.");
 
     bool received;
     bool ack_received = false;
@@ -203,6 +185,7 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 
         if (isbd_send_receive_message(mo_msg, mt_msg, received)) {
             mo_msg.len = mo_msg.msgid = 0;
+
             if (received) {
                 ack_received = handle_param_set(mt_msg, mo_msg);
 
@@ -218,59 +201,17 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
         }
     } while (isbd.getWaitingMessageCount() > 0 || ack_received);
 
-    syslog(LOG_DEBUG, "ISBD session ended.");
+    syslog(LOG_INFO, "ISBD session ended.");
 }
-
-/**
- * Filters out MO messages from ArduPilot.
- *
- * Returns true if the message is allowed to pass though the filter.
-boolean filterMessage(const mavlink_message_t& msg) {
-  //TODO: Add all relevant messages
-  return false;
-}
-*/
 
 void SPLRadioRoom::comm_receive()
 {
     mavlink_message_t msg;
 
-    //digitalWrite(LED_PIN, LOW);
-
     if (autopilot.receive_message(msg)) {
-        //digitalWrite(LED_PIN, HIGH);
-
         update_high_latency_msg(msg);
-
-        /*
-        if (filterMessage(msg)) {
-          print_mavlink_msg(msg);
-
-          isbd_session(msg);
-        }
-        */
     }
 }
-
-
-/*
-bool ISBDCallback() {
-  mavlink_message_t msg;
-
-  digitalWrite(LED_PIN, LOW);
-
-  if (autopilot.receiveMessage(msg)) {
-    digitalWrite(LED_PIN, HIGH);
-
-    high_latency_msg.update(msg);
-  }
-
-  nss.listen();
-
-  return true;
-}
-*/
-
 
 /**
  * Open serial devices for autopilot and ISBD transceiver.
@@ -313,8 +254,6 @@ bool SPLRadioRoom::init()
                                     config.get_isbd_serial_speed(),
                                     devices);
 
-    last_report_time = clock();
-
     return autopilot_connected && isbd_connected;
 }
 
@@ -344,24 +283,18 @@ void SPLRadioRoom::loop()
 
     int err = isbd.getStatusExtended(mo_flag, mo_msn, mt_flag, mt_msn, ra_flag, msg_waiting);
 
-    if (err != 0) {
-        syslog(LOG_INFO, "SBDSX failed: error %d", err);
-    } else {
-        syslog(LOG_INFO, "Ring Alert flag: %d", ra_flag);
+    if (err != ISBD_SUCCESS) {
+        syslog(LOG_WARNING, "Failed to get ISBD status. Error  = %d", err);
+    } else if (ra_flag) {
+        syslog(LOG_INFO, "Ring alert received.");
     }
 
     clock_t current_time = clock();
 
     unsigned long elapsedTime = (current_time - last_report_time) / CLOCKS_PER_SEC;
 
-    syslog(LOG_INFO, "Elapsed time: %lu", elapsedTime);
-
-    syslog(LOG_INFO, "Report period: %lu", config.get_report_period());
-
     // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
     if (ra_flag || elapsedTime > config.get_report_period()) {
-        //high_latency_msg.print();
-
         mavlink_message_t msg;
         mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
         msg.seq = seq++;

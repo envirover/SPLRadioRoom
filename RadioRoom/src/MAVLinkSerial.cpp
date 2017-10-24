@@ -172,8 +172,11 @@ bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
 
     uint16_t n = serial.write(buf, len);
 
-    int priority = (n == len) ? LOG_DEBUG : LOG_ERR;
-    MAVLinkLogger::log(priority, "MAV <<", msg);
+    if (n == len) {
+        MAVLinkLogger::log(LOG_DEBUG, "MAV <<", msg);
+    } else {
+        MAVLinkLogger::log(LOG_WARNING, "MAV << FAILED", msg);
+    }
 
     return n == len;
 }

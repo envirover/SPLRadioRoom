@@ -1,8 +1,26 @@
 /*
- * MAVLinkLogger.h
- *
- *  Created on: Oct 22, 2017
- *      Author: Pavel Bobov
+ MAVLinkLogger.h
+
+ This file is a part of SPL RadioRoom project.
+
+ (C) Copyright 2017 Envirover.
+
+ This library is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public
+ License as published by the Free Software Foundation; either
+ version 2.1 of the License, or (at your option) any later version.
+
+ This library is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+ Created on: Oct 22, 2017
+     Author: Pavel Bobov
  */
 
 #ifndef MAVLINKLOGGER_H_
@@ -12,7 +30,7 @@
 #include "mavlink.h"
 
 /**
- * Logs MAVLink messages to syslog.
+ * Class MAVLinkLogger provides static methos for logging MAVLink messages to syslog.
  */
 class MAVLinkLogger {
 public:
@@ -25,8 +43,8 @@ public:
      * Example prefixes:
      * "MAV >>" - message received form the autopilot.
      * "MAV <<" - message sent to the autopilot.
-     * "SBD >>" - message received from ISBD transceiver
-     * "SBD <<" - message sent to the ISBD transceiver
+     * "SBD >>" - message received from SBD transceiver
+     * "SBD <<" - message sent to the SBD transceiver
      */
     static void log(int priority, const char* prefix, const mavlink_message_t& message);
 };

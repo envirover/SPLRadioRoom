@@ -32,8 +32,9 @@
 
 using namespace std;
 
-#define SERIAL_BY_ID_DIR "/dev/serial/by-id/"
-#define STANDARD_SERIALS "/dev/ttyUSB0,/dev/ttyUSB1,/dev/ttyUSB2,/dev/ttyS0,/dev/ttyAMA0"
+#define SERIAL_BY_ID_DIR   "/dev/serial/by-id/"
+#define SERIAL_BY_PATH_DIR "/dev/serial/by-path/"
+#define STANDARD_SERIALS   "/dev/ttyS0,/dev/ttyAMA0"
 
 /**
  * Provides access to serial devices.
@@ -102,8 +103,8 @@ public:
     int write(const void* buffer, size_t n);
 
     /**
-     * Retrieves the list of serial devices from '/dev/serial/by-id' folder.
-     * If 'dev/serial/by-id' folder is not available, the method uses static list of
+     * Retrieves the list of serial devices from '/dev/serial/by-path' folder.
+     * If 'dev/serial/by-path' folder is not available, the method uses static list of
      * standard serial devices.
      *
      * Full paths of the devices are added to 'devices' vector.
