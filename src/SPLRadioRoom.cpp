@@ -39,40 +39,6 @@ SPLRadioRoom::~SPLRadioRoom()
 {
 }
 
-bool SPLRadioRoom::isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
-{
-    uint8_t buf[ISBD_MAX_MT_MGS_SIZE];
-    size_t buf_size = sizeof(buf);
-    uint16_t len = 0;
-
-    if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-        len = mavlink_msg_to_send_buffer(buf, &mo_msg);
-    }
-
-    received = false;
-
-    if (isbd.sendReceiveSBDBinary(buf, len, buf, buf_size) != ISBD_SUCCESS) {
-        MAVLinkLogger::log(LOG_WARNING, "SBD << FAILED", mo_msg);
-        return false;
-    }
-
-    if (buf_size > 0) {
-        mavlink_status_t mavlink_status;
-
-        for (size_t i = 0; i < buf_size; i++) {
-            if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg, &mavlink_status)) {
-                received = true;
-
-                MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
-                break;
-            }
-        }
-    }
-
-    MAVLinkLogger::log(LOG_INFO, "SBD <<", mo_msg);
-
-    return true;
-}
 
 bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
@@ -120,7 +86,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
             bool received = false;
 
-            if (isbd_send_receive_message(mo_msg, mt_msg, received)) {
+            if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
                 if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
                     //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
                     missions[idx] = mt_msg;
@@ -183,7 +149,7 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
     do {
         ack_received = false;
 
-        if (isbd_send_receive_message(mo_msg, mt_msg, received)) {
+        if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
             mo_msg.len = mo_msg.msgid = 0;
 
             if (received) {
@@ -199,7 +165,7 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
                 }
             }
         }
-    } while (isbd.getWaitingMessageCount() > 0 || ack_received);
+    } while (isbd.get_waiting_wessage_count() > 0 || ack_received);
 
     syslog(LOG_INFO, "ISBD session ended.");
 }
@@ -227,8 +193,8 @@ bool SPLRadioRoom::init()
         Serial::get_serial_devices(devices);
     }
 
-    bool autopilot_connected = autopilot.init(config.get_mavlink_serial(),
-                                              config.get_mavlink_serial_speed(),
+    bool autopilot_connected = autopilot.init(config.get_autopilot_serial(),
+                                              config.get_autopilot_serial_speed(),
                                               devices);
 
     // Exclude the serial device used by autopilot from the device list used
@@ -257,6 +223,12 @@ bool SPLRadioRoom::init()
     return autopilot_connected && isbd_connected;
 }
 
+void SPLRadioRoom::close()
+{
+    isbd.close();
+    autopilot.close();
+}
+
 void SPLRadioRoom::loop()
 {
     // Request data streams
@@ -279,15 +251,9 @@ void SPLRadioRoom::loop()
         usleep(10000);
     }
 
-    uint16_t mo_flag = 0, mo_msn = 0, mt_flag = 0, mt_msn = 0, ra_flag = 0, msg_waiting = 0;
+    uint16_t ra_flag = 0;
 
-    int err = isbd.getStatusExtended(mo_flag, mo_msn, mt_flag, mt_msn, ra_flag, msg_waiting);
-
-    if (err != ISBD_SUCCESS) {
-        syslog(LOG_WARNING, "Failed to get ISBD status. Error  = %d", err);
-    } else if (ra_flag) {
-        syslog(LOG_INFO, "Ring alert received.");
-    }
+    isbd.get_ring_alert_flag(ra_flag);
 
     clock_t current_time = clock();
 

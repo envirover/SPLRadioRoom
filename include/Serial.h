@@ -67,7 +67,7 @@ public:
      *
      * Returns 0 in case of success or -1 in case of failure.
      */
-    int open(const string& path, speed_t speed);
+    int open(const string& path, int baud_rate);
 
     /**
      * Closes the serial device.

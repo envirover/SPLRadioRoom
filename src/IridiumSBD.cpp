@@ -31,71 +31,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <limits.h>
 #include "IridiumSBD.h"
 
+#define UNUSED(x) (void)(x)
+
 bool isbdCallback()
 {
     return true;
 }
 
-bool IridiumSBD::detectTransceiver(string device) {
-    int ret = begin();
-
-    if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
-        char model[256], imea[256];
-        imea[0] = model[0] = 0;
-        ret = getTransceiverModel(model, sizeof(model));
-        if (ret == ISBD_SUCCESS) {
-            ret = getTransceiverSerialNumber(imea, sizeof(imea));
-            if (ret == ISBD_SUCCESS) {
-                syslog(LOG_NOTICE, "%s (IMEA %s) detected at serial device '%s'.", model, imea, device.data());
-                return true;
-            }
-        }
-    }
-
-    syslog(LOG_DEBUG, "ISBD transceiver not detected at serial device '%s'. Error code = %d.", device.data(), ret);
-    return false;
-}
-
-bool IridiumSBD::init(string path, speed_t speed, const vector<string>& devices)
-{
-    syslog(LOG_NOTICE, "Connecting to ISBD transceiver...");
-
-    setPowerProfile(1);
-
-    if (stream.open(path, speed) == 0) {
-        if (detectTransceiver(path)) {
-            return true;
-        }
-
-        stream.close();
-    } else {
-        syslog(LOG_INFO, "Failed to open serial device '%s'.", path.data());
-    }
-
-    if (devices.size() > 0) {
-        syslog(LOG_NOTICE, "Attempting to detect ISBD transceiver at the available serial devices...");
-
-        for (size_t i = 0; i < devices.size(); i++) {
-            if (devices[i] == path)
-                continue;
-
-            if (stream.open(devices[i].data(), speed) == 0) {
-                if (detectTransceiver(devices[i])) {
-                    return true;
-                } else {
-                    stream.close();
-                }
-            } else {
-                syslog(LOG_DEBUG, "Failed to open serial device '%s'.", devices[i].data());
-            }
-        }
-    }
-
-    stream.open(path, speed);
-    syslog(LOG_ERR, "ISBD transceiver was not detected on any of the serial devices.");
-
-    return false;
-}
 
 // Power on the RockBLOCK or return from sleep
 int IridiumSBD::begin()
@@ -295,16 +237,6 @@ void IridiumSBD::adjustSendReceiveTimeout(int seconds)
     this->sendReceiveTimeout = seconds;
 }
 
-// Diagnostics: attach a serial stream console
-void IridiumSBD::attachConsole(std::ostream &stream)
-{
-}
-
-// Diagnostics: attach a debug console
-void IridiumSBD::attachDiags(std::ostream &stream)
-{
-}
-
 void IridiumSBD::setMinimumSignalQuality(int quality)  // a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
 {
     if (quality >= 1 && quality <= 5) {
@@ -323,7 +255,7 @@ Private interface
 
 int IridiumSBD::internalBegin()
 {
-    diag << "Calling internalBegin\n";
+    //diag << "Calling internalBegin\n";
 
     if (!this->asleep) {
         return ISBD_ALREADY_AWAKE;
@@ -333,14 +265,14 @@ int IridiumSBD::internalBegin()
 
     bool modemAlive = false;
 
-    unsigned long startupTime = 500; //ms
-    for (unsigned long start = clock(); clock() - start < startupTime;)
+    long startupTime = 500; //ms
+    for (clock_t start = clock(); 1000 * (clock() - start) / CLOCKS_PER_SEC < startupTime;)
         if (cancelled()) {
             return ISBD_CANCELLED;
         }
 
     // Turn on modem and wait for a response from "AT" command to begin
-    for (unsigned long start = clock(); !modemAlive && clock() - start < 1000UL * ISBD_STARTUP_MAX_TIME;) {
+    for (clock_t start = clock(); !modemAlive && 1000 * (clock() - start) / CLOCKS_PER_SEC < ISBD_STARTUP_MAX_TIME;) {
         send("AT\r");
         modemAlive = waitForATResponse();
         if (cancelled()) {
@@ -349,7 +281,7 @@ int IridiumSBD::internalBegin()
     }
 
     if (!modemAlive) {
-        diag << "No modem detected.\r\n";
+        //diag << "No modem detected.\r\n";
         return ISBD_NO_MODEM_DETECTED;
     }
 
@@ -361,7 +293,7 @@ int IridiumSBD::internalBegin()
         }
     }
 
-    diag << "InternalBegin: success!\n";
+    //diag << "InternalBegin: success!\n";
     return ISBD_SUCCESS;
 }
 
@@ -397,7 +329,7 @@ int IridiumSBD::internalGetTransceiverSerialNumber(char *buffer, size_t bufferSi
 
 int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *txData, size_t txDataSize, uint8_t *rxBuffer, size_t *prxBufferSize)
 {
-    diag << "internalSendReceive\n";
+    //diag << "internalSendReceive\n";
 
     if (this->asleep) {
         return ISBD_IS_ASLEEP;
@@ -409,9 +341,9 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
         }
     } else if (txData && txDataSize) { // Binary transmission?
-        send2("AT+SBDWB=", true, false);
+        send("AT+SBDWB=");
         send(txDataSize);
-        send2("\r", false);
+        send("\r");
         if (!waitForATResponse(NULL, 0, NULL, "READY\r\n")) {
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
         }
@@ -422,9 +354,9 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             checksum += (uint16_t)txData[i];
         }
 
-        cons << "[" << txDataSize << " bytes]";
+        //cons << "[" << txDataSize << " bytes]";
 
-        diag << "Checksum:" << checksum << "\n";
+        //diag << "Checksum:" << checksum << "\n";
 
         stream.write(checksum >> 8);
         stream.write(checksum & 0xFF);
@@ -433,11 +365,11 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
         }
     } else { // Text transmission
-        send2("AT+SBDWT=", true, false);
+        send("AT+SBDWT=");
         if (txTxtMessage) { // It's ok to have a NULL txtTxtMessage if the transaction is RX only
             send(txTxtMessage);
         }
-        send2("\r", false);
+        send("\r");
         if (!waitForATResponse(NULL)) {
             return cancelled() ? ISBD_CANCELLED : ISBD_PROTOCOL_ERROR;
         }
@@ -467,14 +399,14 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
                 return ret;
             }
 
-            diag << "SBDIX MO code: " << moCode << "\n";
+            //diag << "SBDIX MO code: " << moCode << "\n";
 
-            if (moCode >= 0 && moCode <= 4) { // successful return!
-                diag << "SBDIX success!\n";
+            if (moCode <= 4) { // successful return!
+                //diag << "SBDIX success!\n";
 
                 this->remainingMessages = mtRemaining;
                 if (mtCode == 1 && rxBuffer) { // retrieved 1 message
-                    diag << "Incoming message!\n";
+                    //diag << "Incoming message!\n";
                     return doSBDRB(rxBuffer, prxBufferSize);
                 }
 
@@ -488,25 +420,25 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             }
 
             else if (moCode == 12 || moCode == 14 || moCode == 16) { // fatal failure: no retry
-                diag << "SBDIX fatal!\n";
+                //diag << "SBDIX fatal!\n";
                 return ISBD_SBDIX_FATAL_ERROR;
             }
 
             else { // retry
-                diag << "Waiting for SBDIX retry...\n";
+                //diag << "Waiting for SBDIX retry...\n";
                 if (!smartWait(sbdixInterval)) {
                     return ISBD_CANCELLED;
                 }
             }
         } else { // signal strength == 0
-            diag << "Waiting for CSQ retry...\n";
+            //diag << "Waiting for CSQ retry...\n";
             if (!smartWait(csqInterval)) {
                 return ISBD_CANCELLED;
             }
         }
     } // big wait loop
 
-    diag << "SBDIX timeout!\n";
+    //diag << "SBDIX timeout!\n";
     return ISBD_SENDRECEIVE_TIMEOUT;
 }
 
@@ -644,7 +576,7 @@ bool IridiumSBD::smartWait(int seconds)
 // stored in response buffer for later parsing by caller.
 bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char *prompt, const char *terminator)
 {
-    diag << "Waiting for response " << terminator << "\n";
+    //diag << "Waiting for response " << terminator << "\n";
 
     if (response) {
         memset(response, 0, responseSize);
@@ -662,7 +594,7 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
 
     int promptState = prompt ? LOOKING_FOR_PROMPT : LOOKING_FOR_TERMINATOR;
 
-    cons << "<< ";
+    //cons << "<< ";
 
     for (clock_t start = clock(); (clock() - start) / CLOCKS_PER_SEC < atTimeout;) {
         if (cancelled()) {
@@ -673,7 +605,7 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
         if (cc >= 0) {
             char c = cc;
 
-            cons << c;
+            //cons << c;
 
             if (prompt) {
                 switch (promptState) {
@@ -762,7 +694,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
         return ret;
     }
 
-    cons << "[Binary size:" << size << "]";
+    //cons << "[Binary size:" << size << "]";
 
     clock_t start = clock();
 
@@ -778,7 +710,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
 
             if (rxBuffer && prxBufferSize) {
                 if (*prxBufferSize > 0) {
-                    cons << (char)cc;
+                    //cons << (char)cc;
                     *rxBuffer++ = cc;
                     (*prxBufferSize)--;
                 } else {
@@ -798,7 +730,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
         return ret;
     }
 
-    cons << "[csum:" << checksum << "]";
+    //cons << "[csum:" << checksum << "]";
 
     // Return actual size of returned buffer
     if (prxBufferSize) {
@@ -837,26 +769,12 @@ int IridiumSBD::readUInt(uint16_t &u)
 
 void IridiumSBD::power(bool on)
 {
-}
-
-void IridiumSBD::send2(const char* str, bool beginLine, bool endLine)
-{
-    if (beginLine) {
-        cons << ">> ";
-    }
-
-    cons << str;
-
-    if (endLine) {
-        cons << "\n";
-    }
-
-    stream.write(str, strlen(str));
+    UNUSED(on);
 }
 
 void IridiumSBD::send(const char *str)
 {
-    cons << str;
+    //cons << str;
     stream.write(str, strlen(str));
 }
 
@@ -864,6 +782,6 @@ void IridiumSBD::send(uint16_t n)
 {
     char str[32];
     sprintf(str, "%u", n);
-    cons << str;
+    //cons << str;
     stream.write(str, strlen(str));
 }

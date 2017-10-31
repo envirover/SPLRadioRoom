@@ -1,0 +1,39 @@
+The system is: 8 [main] uname (12304) C:\Program Files\Git\usr\bin\uname.exe: *** fatal error - cygheap base mismatch detected - 0x1802F3408/0x1802F4408.
+This problem is probably due to using incompatible versions of the cygwin DLL.
+Search for cygwin1.dll using the Windows Start->Find/Search facility
+and delete all but the most recent version.  The most recent version *should*
+reside in x:\cygwin\bin, where 'x' is the drive on which you have
+installed the cygwin distribution.  Rebooting is also suggested if you
+are unable to find another cygwin DLL. - 1 [main] uname (11796) C:\Program Files\Git\usr\bin\uname.exe: *** fatal error - cygheap base mismatch detected - 0x1802F3408/0x1802F4408.
+This problem is probably due to using incompatible versions of the cygwin DLL.
+Search for cygwin1.dll using the Windows Start->Find/Search facility
+and delete all but the most recent version.  The most recent version *should*
+reside in x:\cygwin\bin, where 'x' is the drive on which you have
+installed the cygwin distribution.  Rebooting is also suggested if you
+are unable to find another cygwin DLL. - unknown
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /usr/bin/cc 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "a.exe"
+
+The C compiler identification is GNU, found in "/cygdrive/c/envirover/SPLRadioRoom/CMakeFiles/3.6.2/CompilerIdC/a.exe"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /usr/bin/CC 
+Build flags: 
+Id flags: 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.exe"
+
+The CXX compiler identification is GNU, found in "/cygdrive/c/envirover/SPLRadioRoom/CMakeFiles/3.6.2/CompilerIdCXX/a.exe"
+

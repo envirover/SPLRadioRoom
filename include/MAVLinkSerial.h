@@ -59,7 +59,12 @@ public:
     /**
      * Initialize connection to the serial device.
      */
-    bool init(string path, speed_t speed, const vector<string>& devices);
+    bool init(const string& path, int speed, const vector<string>& devices);
+
+    /**
+     * Closes connection to the serial device.
+     */
+    void close();
 
     /**
      * Returns the path of serial device set by init(...) call.

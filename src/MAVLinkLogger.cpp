@@ -64,7 +64,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL: {
         mavlink_change_operator_control_t msg;
         mavlink_msg_change_operator_control_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s CHANGE_OPERATOR_CONTROL(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, control_request=%d, version=%d, passkey=%s",
+        snprintf(buff, sizeof(buff), "%s CHANGE_OPERATOR_CONTROL(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, control_request=%d, version=%d, passkey=%.25s",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.target_system, msg.control_request, msg.version, msg.passkey);
         break;
     }
@@ -78,7 +78,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_AUTH_KEY: {
         mavlink_auth_key_t msg;
         mavlink_msg_auth_key_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s AUTH_KEY(%d), sysid=%d, compid=%d, seq=%d, key=%s",
+        snprintf(buff, sizeof(buff), "%s AUTH_KEY(%d), sysid=%d, compid=%d, seq=%d, key=%.32s",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.key);
         break;
     }
@@ -92,7 +92,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
         mavlink_param_request_read_t msg;
         mavlink_msg_param_request_read_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s PARAM_REQUEST_READ(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%s, param_index=%d",
+        snprintf(buff, sizeof(buff), "%s PARAM_REQUEST_READ(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%.16s, param_index=%d",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.target_system, msg.target_component, msg.param_id, msg.param_index);
         break;
     }
@@ -106,14 +106,14 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_PARAM_VALUE: {
         mavlink_param_value_t msg;
         mavlink_msg_param_value_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s PARAM_VALUE(%d), sysid=%d, compid=%d, seq=%d, param_id=%s, param_value=%f, param_type=%d, param_count=%d, param_index=%d",
+        snprintf(buff, sizeof(buff), "%s PARAM_VALUE(%d), sysid=%d, compid=%d, seq=%d, param_id=%.16s, param_value=%f, param_type=%d, param_count=%d, param_index=%d",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.param_id, msg.param_value, msg.param_type, msg.param_count, msg.param_index);
         break;
     }
     case MAVLINK_MSG_ID_PARAM_SET: {
         mavlink_param_set_t msg;
         mavlink_msg_param_set_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s PARAM_SET(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%s, param_value=%f, param_type=%d",
+        snprintf(buff, sizeof(buff), "%s PARAM_SET(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%.16s, param_value=%f, param_type=%d",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.target_system, msg.target_component, msg.param_id, msg.param_value, msg.param_type);
         break;
     }
@@ -306,7 +306,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_PARAM_MAP_RC: {
         mavlink_param_map_rc_t msg;
         mavlink_msg_param_map_rc_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s PARAM_MAP_RC(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%s, param_index=%d, parameter_rc_channel_index=%d, param_value0=%f, scale=%f, param_value_min=%f, param_value_max=%f",
+        snprintf(buff, sizeof(buff), "%s PARAM_MAP_RC(%d), sysid=%d, compid=%d, seq=%d, target_system=%d, target_component=%d, param_id=%.16s, param_index=%d, parameter_rc_channel_index=%d, param_value0=%f, scale=%f, param_value_min=%f, param_value_max=%f",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.target_system, msg.target_component, msg.param_id, msg.param_index, msg.parameter_rc_channel_index, msg.param_value0, msg.scale, msg.param_value_min, msg.param_value_max);
         break;
     }
@@ -969,7 +969,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_ADSB_VEHICLE: {
         mavlink_adsb_vehicle_t msg;
         mavlink_msg_adsb_vehicle_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s ADSB_VEHICLE(%d), sysid=%d, compid=%d, seq=%d, ICAO_address=%d, lat=%d, lon=%d, altitude_type=%d, altitude=%d, heading=%d, hor_velocity=%d, ver_velocity=%d, callsign=%s, emitter_type=%d, tslc=%d, flags=%d, squawk=%d",
+        snprintf(buff, sizeof(buff), "%s ADSB_VEHICLE(%d), sysid=%d, compid=%d, seq=%d, ICAO_address=%d, lat=%d, lon=%d, altitude_type=%d, altitude=%d, heading=%d, hor_velocity=%d, ver_velocity=%d, callsign=%.9s, emitter_type=%d, tslc=%d, flags=%d, squawk=%d",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.ICAO_address, msg.lat, msg.lon, msg.altitude_type, msg.altitude, msg.heading, msg.hor_velocity, msg.ver_velocity, msg.callsign, msg.emitter_type, msg.tslc, msg.flags, msg.squawk);
         break;
     }
@@ -1001,28 +1001,28 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     case MAVLINK_MSG_ID_DEBUG_VECT: {
         mavlink_debug_vect_t msg;
         mavlink_msg_debug_vect_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s DEBUG_VECT(%d), sysid=%d, compid=%d, seq=%d, name=%s, time_usec=%lld, x=%f, y=%f, z=%f",
+        snprintf(buff, sizeof(buff), "%s DEBUG_VECT(%d), sysid=%d, compid=%d, seq=%d, name=%.10s, time_usec=%lld, x=%f, y=%f, z=%f",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.name, msg.time_usec, msg.x, msg.y, msg.z);
         break;
     }
     case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT: {
         mavlink_named_value_float_t msg;
         mavlink_msg_named_value_float_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s NAMED_VALUE_FLOAT(%d), sysid=%d, compid=%d, seq=%d, time_boot_ms=%d, name=%s, value=%f",
+        snprintf(buff, sizeof(buff), "%s NAMED_VALUE_FLOAT(%d), sysid=%d, compid=%d, seq=%d, time_boot_ms=%d, name=%.10s, value=%f",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_boot_ms, msg.name, msg.value);
         break;
     }
     case MAVLINK_MSG_ID_NAMED_VALUE_INT: {
         mavlink_named_value_int_t msg;
         mavlink_msg_named_value_int_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s NAMED_VALUE_INT(%d), sysid=%d, compid=%d, seq=%d, time_boot_ms=%d, name=%s, value=%d",
+        snprintf(buff, sizeof(buff), "%s NAMED_VALUE_INT(%d), sysid=%d, compid=%d, seq=%d, time_boot_ms=%d, name=%.10s, value=%d",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_boot_ms, msg.name, msg.value);
         break;
     }
     case MAVLINK_MSG_ID_STATUSTEXT: {
         mavlink_statustext_t msg;
         mavlink_msg_statustext_decode(&message, &msg);
-        snprintf(buff, sizeof(buff), "%s STATUSTEXT(%d), sysid=%d, compid=%d, seq=%d, severity=%d, text=%s",
+        snprintf(buff, sizeof(buff), "%s STATUSTEXT(%d), sysid=%d, compid=%d, seq=%d, severity=%d, text=%.50s",
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.severity, msg.text);
         break;
     }
@@ -1126,36 +1126,6 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         break;
     }
     */
-//    case MAVLINK_MSG_ID_HEARTBEAT:
-//        mavlink_heartbeat_t heartbeat;
-//        mavlink_msg_heartbeat_decode(&message, &heartbeat);
-//        snprintf(buff, sizeof(buff), "%s HEARTBEAT (%d), sysid=%d, compid=%d, seq=%d, "
-//                "custom_mode=%d, type=%d, autopilot=%d, base_mode=%d, system_status=%d, mavlink_version=%d",
-//                prefix, message.msgid, message.sysid, message.compid, message.seq,
-//                heartbeat.custom_mode, heartbeat.type, heartbeat.autopilot, heartbeat.base_mode, heartbeat.system_status, heartbeat.mavlink_version);
-//        break;
-//    case MAVLINK_MSG_ID_HIGH_LATENCY:
-//        mavlink_high_latency_t high_latency;
-//        mavlink_msg_high_latency_decode(&message, &high_latency);
-//        snprintf(buff, sizeof(buff), "%s HIGH_LATENCY (%d), sysid=%d, compid=%d, seq=%d, "
-//                 "custom_mode=%d, latitude=%d, longitude=%d, roll=%d, pitch=%d, heading=%d, "
-//                 "heading_sp=%d, altitude_amsl=%d, altitude_sp=%d, wp_distance=%d, base_mode=%d, "
-//                 "landed_state=%d, throttle=%d, airspeed=%d, airspeed_sp=%d, groundspeed=%d, "
-//                 "climb_rate=%d, gps_nsat=%d, gps_fix_type=%d, battery_remaining=%d, "
-//                 "temperature=%d, temperature_air=%d",
-//                 prefix, message.msgid, message.sysid, message.compid,
-//                 message.seq, high_latency.custom_mode, high_latency.latitude,
-//                 high_latency.longitude, high_latency.roll, high_latency.pitch,
-//                 high_latency.heading, high_latency.heading_sp,
-//                 high_latency.altitude_amsl, high_latency.altitude_sp,
-//                 high_latency.wp_distance, high_latency.base_mode,
-//                 high_latency.landed_state, high_latency.throttle,
-//                 high_latency.airspeed, high_latency.airspeed_sp,
-//                 high_latency.groundspeed, high_latency.climb_rate,
-//                 high_latency.gps_nsat, high_latency.gps_fix_type,
-//                 high_latency.battery_remaining, high_latency.temperature,
-//                 high_latency.temperature_air);
-//        break;
     default:
         snprintf(buff, sizeof(buff), "%s msgid=%d, sysid=%d, compid=%d, seq=%d",
                  prefix, message.msgid, message.sysid, message.compid,
@@ -1164,6 +1134,6 @@ void MAVLinkLogger::log(int priority, const char* prefix,
     }
 
     syslog(priority, buff);
-    printf(buff);
-    printf("\n");
+    //printf(buff);
+    //printf("\n");
 }

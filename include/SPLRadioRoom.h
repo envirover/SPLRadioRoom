@@ -28,10 +28,8 @@
 
 #include <vector>
 #include "MAVLinkSerial.h"
-#include "IridiumSBD.h"
+#include "MAVLinkSBD.h"
 #include "SPLConfig.h"
-
-#define MAX_MISSION_COUNT  7
 
 #define MAX_SEND_RETRIES   5
 
@@ -43,7 +41,7 @@
 class SPLRadioRoom {
 
     MAVLinkSerial           autopilot;
-    IridiumSBD              isbd;
+    MAVLinkSBD              isbd;
     mavlink_high_latency_t  high_latency;
     uint8_t                 seq; // MO message sequence number
     unsigned long           last_report_time;
@@ -67,6 +65,11 @@ public:
      */
     bool init();
 
+    /*
+     * Closes MAVLinkSerial and IridiumSBD.
+     */
+    void close();
+
     /**
      *
      */
@@ -83,18 +86,6 @@ private:
      * Initialize connection to the ISBD transceiver.
      */
     bool init_isbd(vector<string>& devices);
-
-    /**
-     * Debug print of mavlink_message_t message
-     */
-    //void print_mavlink_msg(const mavlink_message_t& msg) const;
-
-    /**
-     * Sends MT message to ISBD and receives MO message from the inbound message queue if any.
-     *
-     * Returns true if the ISBD session succeeded.
-     */
-    bool isbd_send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received);
 
     /**
      * Updates HIGH_LATENCY message reporting period if HL_REPORT_PERIOD parameter value is set by
@@ -120,7 +111,7 @@ private:
     void isbd_session(mavlink_message_t& mo_msg);
 
     /**
-     * Reads and processes MAVLink messages from ArduPilot.
+     * Reads and processes MAVLink messages from autopilot.
      */
     void comm_receive();
 

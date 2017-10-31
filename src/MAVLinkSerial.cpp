@@ -53,9 +53,9 @@ bool MAVLinkSerial::detect_autopilot(const string device)
     return true;
 }
 
-bool MAVLinkSerial::init(string path, speed_t speed, const vector<string>& devices)
+bool MAVLinkSerial::init(const string& path, int speed, const vector<string>& devices)
 {
-    syslog(LOG_NOTICE, "Connecting to autopilot...");
+    syslog(LOG_NOTICE, "Connecting to autopilot (%s %d)...", path.data(), speed);
 
     if (serial.open(path, speed) == 0) {
         if (detect_autopilot(path)) {
@@ -89,6 +89,11 @@ bool MAVLinkSerial::init(string path, speed_t speed, const vector<string>& devic
     syslog(LOG_ERR, "Autopilot was not detected on any of the serial devices.");
 
     return false;
+}
+
+void MAVLinkSerial::close()
+{
+    serial.close();
 }
 
 bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version)

@@ -63,10 +63,7 @@ extern bool isbdCallback() __attribute__((weak));
  */
 class IridiumSBD {
 
-    Serial stream; // Communicating with the Iridium
-
-    std::ostream& diag;
-    std::ostream& cons;
+    Serial& stream; // Communicating with the Iridium
 
     // Timings
     int csqInterval;
@@ -84,10 +81,8 @@ class IridiumSBD {
     unsigned long lastPowerOnTime;
 
 public:
-    IridiumSBD(int sleepPinNo = -1) :
-        stream(),
-        diag(std::cout),
-        cons(std::cout),
+    IridiumSBD(Serial& serial) :
+        stream(serial),
         csqInterval(ISBD_DEFAULT_CSQ_INTERVAL),
         sbdixInterval(ISBD_DEFAULT_SBDIX_INTERVAL),
         atTimeout(ISBD_DEFAULT_AT_TIMEOUT),
@@ -102,14 +97,7 @@ public:
     {
     }
 
-    /**
-     * Initializes connection to ISBD transceiver on the specified serial device.
-     * If auto_detect_serial is true the method automatically detects the serial device
-     * if the transceiver is available on any of the serial devices in the system.
-     *
-     * Returns true if connection was successful.
-     */
-    bool init(string path, speed_t speed, const vector<string>& devices);
+    int begin();
 
     int getTransceiverModel(char *buffer, size_t bufferSize);
     int getTransceiverSerialNumber(char *buffer, size_t bufferSize);
@@ -134,14 +122,9 @@ public:
     void setMinimumSignalQuality(int quality);  // a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
     void useMSSTMWorkaround(bool useWorkAround); // true to use workaround from Iridium Alert 5/7
 
-    void attachConsole(std::ostream &stream);
-    void attachDiags(std::ostream &stream);
-
 private:
 
     // Internal utilities
-    bool detectTransceiver(string device);
-    int  begin();
     bool smartWait(int seconds);
     bool waitForATResponse(char *response=NULL, int responseSize=0, const char *prompt=NULL, const char *terminator="OK\r\n");
 
@@ -160,7 +143,6 @@ private:
     int  readUInt(uint16_t &u);
     void power(bool on);
 
-    void send2(const char *str, bool beginLine = true, bool endLine = true);
     void send(const char *str);
     void send(uint16_t n);
 
