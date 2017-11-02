@@ -23,8 +23,9 @@
      Author: Pavel Bobov
  */
 
-#include <stdio.h>
 #include "MAVLinkLogger.h"
+#include <stdio.h>
+
 
 #define MAX_LOG_MESSAGE_SIZE 1024
 

@@ -23,9 +23,10 @@
       Author: pbobo
  */
 
-#include <syslog.h>
+
 #include "MAVLinkSBD.h"
 #include "MAVLinkLogger.h"
+#include <syslog.h>
 
 MAVLinkSBD::MAVLinkSBD() : stream(), isbd(stream)
 {

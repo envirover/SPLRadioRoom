@@ -20,15 +20,14 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-//#include <sys/types.h>
-//#include <sys/stat.h>
+#include "SPLRadioRoom.h"
 #include <syslog.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include "version.h"
-#include "SPLRadioRoom.h"
+
 
 #define DEFAULT_PID_FILE "/var/run/radioroom.pid"
 

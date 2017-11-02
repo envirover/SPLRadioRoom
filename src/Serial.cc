@@ -22,6 +22,7 @@
  Created on: Oct 1, 2017
      Author: Pavel Bobov
  */
+#include "Serial.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,8 +37,6 @@
 #include <errno.h>
 #include <istream>
 #include <dirent.h>
-
-#include "Serial.h"
 
 speed_t baud_rate_to_speed_t(int baud_rate) {
     switch (baud_rate) {

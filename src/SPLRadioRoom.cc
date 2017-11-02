@@ -23,11 +23,11 @@ Iridium SBD telemetry for MAVLink autopilots.
      Author: Pavel Bobov
  */
 
+#include "SPLRadioRoom.h"
+#include "MAVLinkLogger.h"
 #include <unistd.h>
 #include <vector>
 #include <syslog.h>
-#include "SPLRadioRoom.h"
-#include "MAVLinkLogger.h"
 
 
 SPLRadioRoom::SPLRadioRoom() :

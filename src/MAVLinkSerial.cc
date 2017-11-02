@@ -20,13 +20,13 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include "MAVLinkSerial.h"
+#include "MAVLinkLogger.h"
 #include <ctime>
 #include <unistd.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <limits.h>
-#include "MAVLinkSerial.h"
-#include "MAVLinkLogger.h"
 
 
 MAVLinkSerial::MAVLinkSerial() :
