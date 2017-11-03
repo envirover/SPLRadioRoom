@@ -1,3 +1,31 @@
-cmake_minimum_required (VERSION 2.6)
-project (radioroom)
-add_executable(radioroom src/*.cpp src/*.c)
+cmake_minimum_required(VERSION 3.0.0)
+
+project(radioroom)
+
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
+
+include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include/standard")
+
+file(GLOB sources src/*.c src/*.cc)
+
+add_executable(radioroom ${sources})
+
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pavel Bobov")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "SPL RadioRoom")
+SET(CPACK_PACKAGE_VENDOR "Envirover")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReadMe.txt")
+#SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/Copyright.txt")
+SET(CPACK_PACKAGE_VERSION_MAJOR "2")
+SET(CPACK_PACKAGE_VERSION_MINOR "0")
+SET(CPACK_PACKAGE_VERSION_PATCH "0")
+
+install(TARGETS radioroom DESTINATION "/usr/sbin")
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc" DESTINATION "/etc")
+
+INCLUDE(CPack)
+

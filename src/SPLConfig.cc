@@ -21,7 +21,7 @@
  */
 
 #include "SPLConfig.h"
-#include "INIreader.h"
+#include "INIReader.h"
 
 SPLConfig config;
 
