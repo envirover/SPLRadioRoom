@@ -7,3 +7,5 @@ script:
   - cd build
   - cmake -G "Unix Makefiles" ..
   - cmake --build .
+  - cd ../bin
+  - cpack -G DEB
