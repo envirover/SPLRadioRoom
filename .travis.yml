@@ -1,11 +1,12 @@
 language: cpp
 
 before_script:
-
+  - apt install gcc-4.9-arm-linux-gnueabihf g++-4.9-arm-linux-gnueabihf pkg-config-arm-linux-gnueabihf
+  
 script: 
   - mkdir bin
   - cd bin
-  - cmake -G "Unix Makefiles" ..
+  - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" ..
   - make
   - ls 
   - cpack -G DEB --debug -V
