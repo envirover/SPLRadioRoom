@@ -14,8 +14,8 @@ file(GLOB sources src/*.c src/*.cc)
 
 add_executable(radioroom ${sources})
 
-install(TARGETS radioroom DESTINATION "/usr/sbin")
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc")
+install(TARGETS radioroom DESTINATION "usr/sbin")
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "etc")
 
 set(CPACK_GENERATOR "ZIP")
 set(CPACK_PACKAGE_NAME "radioroom")
