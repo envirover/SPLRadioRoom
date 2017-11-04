@@ -9,4 +9,5 @@ script:
   - make
   - ls 
   - cpack -G DEB --debug -V
-  - cat _CPack_Packages/Linux/DEB/PreinstallOutput.log
+  - dpkg-deb -c radioroom-2.0.0-Linux.deb
+  
