@@ -1,7 +1,7 @@
 language: cpp
 
 before_script:
-  - apt install gcc-4.9-arm-linux-gnueabihf g++-4.9-arm-linux-gnueabihf pkg-config-arm-linux-gnueabihf
+  - sudo apt install gcc-4.9-arm-linux-gnueabihf g++-4.9-arm-linux-gnueabihf pkg-config-arm-linux-gnueabihf
   
 script: 
   - mkdir bin
