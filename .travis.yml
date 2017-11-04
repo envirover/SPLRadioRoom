@@ -9,3 +9,4 @@ script:
   - cmake --build .
   - cd ../bin
   - cpack -G DEB
+  - cat _CPack_Packages/Linux/DEB/PreinstallOutput.log
