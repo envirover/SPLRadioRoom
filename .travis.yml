@@ -8,5 +8,6 @@ script:
   - cmake -G "Unix Makefiles" ..
   - cmake --build .
   - cd ../bin
-  - cpack -G DEB
+  - ls 
+  - cpack -G DEB --debug -V
   - cat _CPack_Packages/Linux/DEB/PreinstallOutput.log
