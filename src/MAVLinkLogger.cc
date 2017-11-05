@@ -52,14 +52,14 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_system_time_t msg;
         mavlink_msg_system_time_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s SYSTEM_TIME(%d), sysid=%d, compid=%d, seq=%d, time_unix_usec=%lld, time_boot_ms=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_unix_usec, msg.time_boot_ms);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_unix_usec, msg.time_boot_ms);
         break;
     }
     case MAVLINK_MSG_ID_PING: {
         mavlink_ping_t msg;
         mavlink_msg_ping_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s PING(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, seq=%d, target_system=%d, target_component=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.seq, msg.target_system, msg.target_component);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.seq, msg.target_system, msg.target_component);
         break;
     }
     case MAVLINK_MSG_ID_CHANGE_OPERATOR_CONTROL: {
@@ -122,7 +122,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_gps_raw_int_t msg;
         mavlink_msg_gps_raw_int_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s GPS_RAW_INT(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, fix_type=%d, lat=%d, lon=%d, alt=%d, eph=%d, epv=%d, vel=%d, cog=%d, satellites_visible=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.cog, msg.satellites_visible);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.cog, msg.satellites_visible);
         break;
     }
     /*
@@ -145,14 +145,14 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_raw_imu_t msg;
         mavlink_msg_raw_imu_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s RAW_IMU(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, xacc=%d, yacc=%d, zacc=%d, xgyro=%d, ygyro=%d, zgyro=%d, xmag=%d, ymag=%d, zmag=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag);
         break;
     }
     case MAVLINK_MSG_ID_RAW_PRESSURE: {
         mavlink_raw_pressure_t msg;
         mavlink_msg_raw_pressure_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s RAW_PRESSURE(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, press_abs=%d, press_diff1=%d, press_diff2=%d, temperature=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.press_abs, msg.press_diff1, msg.press_diff2, msg.temperature);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.press_abs, msg.press_diff1, msg.press_diff2, msg.temperature);
         break;
     }
     case MAVLINK_MSG_ID_SCALED_PRESSURE: {
@@ -500,21 +500,21 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_hil_state_t msg;
         mavlink_msg_hil_state_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_STATE(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, roll=%f, pitch=%f, yaw=%f, rollspeed=%f, pitchspeed=%f, yawspeed=%f, lat=%d, lon=%d, alt=%d, vx=%d, vy=%d, vz=%d, xacc=%d, yacc=%d, zacc=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed, msg.lat, msg.lon, msg.alt, msg.vx, msg.vy, msg.vz, msg.xacc, msg.yacc, msg.zacc);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed, msg.lat, msg.lon, msg.alt, msg.vx, msg.vy, msg.vz, msg.xacc, msg.yacc, msg.zacc);
         break;
     }
     case MAVLINK_MSG_ID_HIL_CONTROLS: {
         mavlink_hil_controls_t msg;
         mavlink_msg_hil_controls_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_CONTROLS(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, roll_ailerons=%f, pitch_elevator=%f, yaw_rudder=%f, throttle=%f, aux1=%f, aux2=%f, aux3=%f, aux4=%f, mode=%d, nav_mode=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.roll_ailerons, msg.pitch_elevator, msg.yaw_rudder, msg.throttle, msg.aux1, msg.aux2, msg.aux3, msg.aux4, msg.mode, msg.nav_mode);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.roll_ailerons, msg.pitch_elevator, msg.yaw_rudder, msg.throttle, msg.aux1, msg.aux2, msg.aux3, msg.aux4, msg.mode, msg.nav_mode);
         break;
     }
     case MAVLINK_MSG_ID_HIL_RC_INPUTS_RAW: {
         mavlink_hil_rc_inputs_raw_t msg;
         mavlink_msg_hil_rc_inputs_raw_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_RC_INPUTS_RAW(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, chan1_raw=%d, chan2_raw=%d, chan3_raw=%d, chan4_raw=%d, chan5_raw=%d, chan6_raw=%d, chan7_raw=%d, chan8_raw=%d, chan9_raw=%d, chan10_raw=%d, chan11_raw=%d, chan12_raw=%d, rssi=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw, msg.chan9_raw, msg.chan10_raw, msg.chan11_raw, msg.chan12_raw, msg.rssi);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.chan1_raw, msg.chan2_raw, msg.chan3_raw, msg.chan4_raw, msg.chan5_raw, msg.chan6_raw, msg.chan7_raw, msg.chan8_raw, msg.chan9_raw, msg.chan10_raw, msg.chan11_raw, msg.chan12_raw, msg.rssi);
         break;
     }
     /*
@@ -530,56 +530,56 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_optical_flow_t msg;
         mavlink_msg_optical_flow_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s OPTICAL_FLOW(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, sensor_id=%d, flow_x=%d, flow_y=%d, flow_comp_m_x=%f, flow_comp_m_y=%f, quality=%d, ground_distance=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.sensor_id, msg.flow_x, msg.flow_y, msg.flow_comp_m_x, msg.flow_comp_m_y, msg.quality, msg.ground_distance);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.sensor_id, msg.flow_x, msg.flow_y, msg.flow_comp_m_x, msg.flow_comp_m_y, msg.quality, msg.ground_distance);
         break;
     }
     case MAVLINK_MSG_ID_GLOBAL_VISION_POSITION_ESTIMATE: {
         mavlink_global_vision_position_estimate_t msg;
         mavlink_msg_global_vision_position_estimate_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s GLOBAL_VISION_POSITION_ESTIMATE(%d), sysid=%d, compid=%d, seq=%d, usec=%lld, x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
         break;
     }
     case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE: {
         mavlink_vision_position_estimate_t msg;
         mavlink_msg_vision_position_estimate_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s VISION_POSITION_ESTIMATE(%d), sysid=%d, compid=%d, seq=%d, usec=%lld, x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
         break;
     }
     case MAVLINK_MSG_ID_VISION_SPEED_ESTIMATE: {
         mavlink_vision_speed_estimate_t msg;
         mavlink_msg_vision_speed_estimate_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s VISION_SPEED_ESTIMATE(%d), sysid=%d, compid=%d, seq=%d, usec=%lld, x=%f, y=%f, z=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.usec, msg.x, msg.y, msg.z);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.usec, msg.x, msg.y, msg.z);
         break;
     }
     case MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE: {
         mavlink_vicon_position_estimate_t msg;
         mavlink_msg_vicon_position_estimate_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s VICON_POSITION_ESTIMATE(%d), sysid=%d, compid=%d, seq=%d, usec=%lld, x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.usec, msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw);
         break;
     }
     case MAVLINK_MSG_ID_HIGHRES_IMU: {
         mavlink_highres_imu_t msg;
         mavlink_msg_highres_imu_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIGHRES_IMU(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, xacc=%f, yacc=%f, zacc=%f, xgyro=%f, ygyro=%f, zgyro=%f, xmag=%f, ymag=%f, zmag=%f, abs_pressure=%f, diff_pressure=%f, pressure_alt=%f, temperature=%f, fields_updated=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag, msg.abs_pressure, msg.diff_pressure, msg.pressure_alt, msg.temperature, msg.fields_updated);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag, msg.abs_pressure, msg.diff_pressure, msg.pressure_alt, msg.temperature, msg.fields_updated);
         break;
     }
     case MAVLINK_MSG_ID_OPTICAL_FLOW_RAD: {
         mavlink_optical_flow_rad_t msg;
         mavlink_msg_optical_flow_rad_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s OPTICAL_FLOW_RAD(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, sensor_id=%d, integration_time_us=%d, integrated_x=%f, integrated_y=%f, integrated_xgyro=%f, integrated_ygyro=%f, integrated_zgyro=%f, temperature=%d, quality=%d, time_delta_distance_us=%d, distance=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.sensor_id, msg.integration_time_us, msg.integrated_x, msg.integrated_y, msg.integrated_xgyro, msg.integrated_ygyro, msg.integrated_zgyro, msg.temperature, msg.quality, msg.time_delta_distance_us, msg.distance);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.sensor_id, msg.integration_time_us, msg.integrated_x, msg.integrated_y, msg.integrated_xgyro, msg.integrated_ygyro, msg.integrated_zgyro, msg.temperature, msg.quality, msg.time_delta_distance_us, msg.distance);
         break;
     }
     case MAVLINK_MSG_ID_HIL_SENSOR: {
         mavlink_hil_sensor_t msg;
         mavlink_msg_hil_sensor_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_SENSOR(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, xacc=%f, yacc=%f, zacc=%f, xgyro=%f, ygyro=%f, zgyro=%f, xmag=%f, ymag=%f, zmag=%f, abs_pressure=%f, diff_pressure=%f, pressure_alt=%f, temperature=%f, fields_updated=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag, msg.abs_pressure, msg.diff_pressure, msg.pressure_alt, msg.temperature, msg.fields_updated);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.xacc, msg.yacc, msg.zacc, msg.xgyro, msg.ygyro, msg.zgyro, msg.xmag, msg.ymag, msg.zmag, msg.abs_pressure, msg.diff_pressure, msg.pressure_alt, msg.temperature, msg.fields_updated);
         break;
     }
     case MAVLINK_MSG_ID_SIM_STATE: {
@@ -609,28 +609,28 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_timesync_t msg;
         mavlink_msg_timesync_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s TIMESYNC(%d), sysid=%d, compid=%d, seq=%d, tc1=%lld, ts1=%lld",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.tc1, msg.ts1);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.tc1, (long long int)msg.ts1);
         break;
     }
     case MAVLINK_MSG_ID_CAMERA_TRIGGER: {
         mavlink_camera_trigger_t msg;
         mavlink_msg_camera_trigger_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s CAMERA_TRIGGER(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, seq=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.seq);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.seq);
         break;
     }
     case MAVLINK_MSG_ID_HIL_GPS: {
         mavlink_hil_gps_t msg;
         mavlink_msg_hil_gps_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_GPS(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, fix_type=%d, lat=%d, lon=%d, alt=%d, eph=%d, epv=%d, vel=%d, vn=%d, ve=%d, vd=%d, cog=%d, satellites_visible=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.vn, msg.ve, msg.vd, msg.cog, msg.satellites_visible);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.vn, msg.ve, msg.vd, msg.cog, msg.satellites_visible);
         break;
     }
     case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW: {
         mavlink_hil_optical_flow_t msg;
         mavlink_msg_hil_optical_flow_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s HIL_OPTICAL_FLOW(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, sensor_id=%d, integration_time_us=%d, integrated_x=%f, integrated_y=%f, integrated_xgyro=%f, integrated_ygyro=%f, integrated_zgyro=%f, temperature=%d, quality=%d, time_delta_distance_us=%d, distance=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.sensor_id, msg.integration_time_us, msg.integrated_x, msg.integrated_y, msg.integrated_xgyro, msg.integrated_ygyro, msg.integrated_zgyro, msg.temperature, msg.quality, msg.time_delta_distance_us, msg.distance);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.sensor_id, msg.integration_time_us, msg.integrated_x, msg.integrated_y, msg.integrated_xgyro, msg.integrated_ygyro, msg.integrated_zgyro, msg.temperature, msg.quality, msg.time_delta_distance_us, msg.distance);
         break;
     }
     /*
@@ -706,7 +706,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_gps2_raw_t msg;
         mavlink_msg_gps2_raw_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s GPS2_RAW(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, fix_type=%d, lat=%d, lon=%d, alt=%d, eph=%d, epv=%d, vel=%d, cog=%d, satellites_visible=%d, dgps_numch=%d, dgps_age=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.cog, msg.satellites_visible, msg.dgps_numch, msg.dgps_age);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.eph, msg.epv, msg.vel, msg.cog, msg.satellites_visible, msg.dgps_numch, msg.dgps_age);
         break;
     }
     case MAVLINK_MSG_ID_POWER_STATUS: {
@@ -773,7 +773,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_terrain_request_t msg;
         mavlink_msg_terrain_request_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s TERRAIN_REQUEST(%d), sysid=%d, compid=%d, seq=%d, lat=%d, lon=%d, grid_spacing=%d, mask=%lld",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.lat, msg.lon, msg.grid_spacing, msg.mask);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.lat, msg.lon, msg.grid_spacing, (long long int)msg.mask);
         break;
     }
     /*
@@ -837,7 +837,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_altitude_t msg;
         mavlink_msg_altitude_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s ALTITUDE(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, altitude_monotonic=%f, altitude_amsl=%f, altitude_local=%f, altitude_relative=%f, altitude_terrain=%f, bottom_clearance=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.altitude_monotonic, msg.altitude_amsl, msg.altitude_local, msg.altitude_relative, msg.altitude_terrain, msg.bottom_clearance);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.altitude_monotonic, msg.altitude_amsl, msg.altitude_local, msg.altitude_relative, msg.altitude_terrain, msg.bottom_clearance);
         break;
     }
     /*
@@ -885,35 +885,35 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_autopilot_version_t msg;
         mavlink_msg_autopilot_version_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s AUTOPILOT_VERSION(%d), sysid=%d, compid=%d, seq=%d, capabilities=%lld, flight_sw_version=%d, middleware_sw_version=%d, os_sw_version=%d, board_version=%d, flight_custom_version=%d, middleware_custom_version=%d, os_custom_version=%d, vendor_id=%d, product_id=%d, uid=%lld",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.capabilities, msg.flight_sw_version, msg.middleware_sw_version, msg.os_sw_version, msg.board_version, msg.flight_custom_version[0], msg.middleware_custom_version[0], msg.os_custom_version[0], msg.vendor_id, msg.product_id, msg.uid);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.capabilities, msg.flight_sw_version, msg.middleware_sw_version, msg.os_sw_version, msg.board_version, msg.flight_custom_version[0], msg.middleware_custom_version[0], msg.os_custom_version[0], msg.vendor_id, msg.product_id, (long long int)msg.uid);
         break;
     }
     case MAVLINK_MSG_ID_LANDING_TARGET: {
         mavlink_landing_target_t msg;
         mavlink_msg_landing_target_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s LANDING_TARGET(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, target_num=%d, frame=%d, angle_x=%f, angle_y=%f, distance=%f, size_x=%f, size_y=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.target_num, msg.frame, msg.angle_x, msg.angle_y, msg.distance, msg.size_x, msg.size_y);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.target_num, msg.frame, msg.angle_x, msg.angle_y, msg.distance, msg.size_x, msg.size_y);
         break;
     }
     case MAVLINK_MSG_ID_ESTIMATOR_STATUS: {
         mavlink_estimator_status_t msg;
         mavlink_msg_estimator_status_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s ESTIMATOR_STATUS(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, flags=%d, vel_ratio=%f, pos_horiz_ratio=%f, pos_vert_ratio=%f, mag_ratio=%f, hagl_ratio=%f, tas_ratio=%f, pos_horiz_accuracy=%f, pos_vert_accuracy=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.flags, msg.vel_ratio, msg.pos_horiz_ratio, msg.pos_vert_ratio, msg.mag_ratio, msg.hagl_ratio, msg.tas_ratio, msg.pos_horiz_accuracy, msg.pos_vert_accuracy);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.flags, msg.vel_ratio, msg.pos_horiz_ratio, msg.pos_vert_ratio, msg.mag_ratio, msg.hagl_ratio, msg.tas_ratio, msg.pos_horiz_accuracy, msg.pos_vert_accuracy);
         break;
     }
     case MAVLINK_MSG_ID_WIND_COV: {
         mavlink_wind_cov_t msg;
         mavlink_msg_wind_cov_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s WIND_COV(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, wind_x=%f, wind_y=%f, wind_z=%f, var_horiz=%f, var_vert=%f, wind_alt=%f, horiz_accuracy=%f, vert_accuracy=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.wind_x, msg.wind_y, msg.wind_z, msg.var_horiz, msg.var_vert, msg.wind_alt, msg.horiz_accuracy, msg.vert_accuracy);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.wind_x, msg.wind_y, msg.wind_z, msg.var_horiz, msg.var_vert, msg.wind_alt, msg.horiz_accuracy, msg.vert_accuracy);
         break;
     }
     case MAVLINK_MSG_ID_GPS_INPUT: {
         mavlink_gps_input_t msg;
         mavlink_msg_gps_input_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s GPS_INPUT(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, gps_id=%d, ignore_flags=%d, time_week_ms=%d, time_week=%d, fix_type=%d, lat=%d, lon=%d, alt=%f, hdop=%f, vdop=%f, vn=%f, ve=%f, vd=%f, speed_accuracy=%f, horiz_accuracy=%f, vert_accuracy=%f, satellites_visible=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.gps_id, msg.ignore_flags, msg.time_week_ms, msg.time_week, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.hdop, msg.vdop, msg.vn, msg.ve, msg.vd, msg.speed_accuracy, msg.horiz_accuracy, msg.vert_accuracy, msg.satellites_visible);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.gps_id, msg.ignore_flags, msg.time_week_ms, msg.time_week, msg.fix_type, msg.lat, msg.lon, msg.alt, msg.hdop, msg.vdop, msg.vn, msg.ve, msg.vd, msg.speed_accuracy, msg.horiz_accuracy, msg.vert_accuracy, msg.satellites_visible);
         break;
     }
     /*
@@ -936,7 +936,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_vibration_t msg;
         mavlink_msg_vibration_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s VIBRATION(%d), sysid=%d, compid=%d, seq=%d, time_usec=%lld, vibration_x=%f, vibration_y=%f, vibration_z=%f, clipping_0=%d, clipping_1=%d, clipping_2=%d",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_usec, msg.vibration_x, msg.vibration_y, msg.vibration_z, msg.clipping_0, msg.clipping_1, msg.clipping_2);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, (long long int)msg.time_usec, msg.vibration_x, msg.vibration_y, msg.vibration_z, msg.clipping_0, msg.clipping_1, msg.clipping_2);
         break;
     }
     case MAVLINK_MSG_ID_HOME_POSITION: {
@@ -1003,7 +1003,7 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         mavlink_debug_vect_t msg;
         mavlink_msg_debug_vect_decode(&message, &msg);
         snprintf(buff, sizeof(buff), "%s DEBUG_VECT(%d), sysid=%d, compid=%d, seq=%d, name=%.10s, time_usec=%lld, x=%f, y=%f, z=%f",
-                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.name, msg.time_usec, msg.x, msg.y, msg.z);
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.name, (long long int)msg.time_usec, msg.x, msg.y, msg.z);
         break;
     }
     case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT: {
