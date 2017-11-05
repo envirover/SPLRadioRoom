@@ -18,6 +18,6 @@ deploy:
     api_key:
       secure: mlEoE2YSrzj08LKU7e2cFrywCX0lObhtzHLzfB6o8Um4Olt/mlLpBXzvPxtbtV96E9Wsr91HReeTCiWnp/T+zUl7xhEfc6A9tOP9eT7byddgvnmoTHiu2PCeMs29aal5slCHLitxT40BXDQZWvQZhR/lP+1XSkS5GgfRWTYgyZ1uveHkReYiykmCG3K2aEn1sQSD8KC+Xy/JegSxncuOKzX9Xq56S/OcMefxPC4QuA/hUvsNEmok3cN3FwXIywgC5F+vzq6EFeLcCBNiwfy3xmN6l98b9oCNcDudRu+uKdunuY/WB1kyFwR8T/vWzSQWvRDne3Wshzq8jMSIX50SLJ2B6S+M3u5OZdtVSqFXVm+VY+lnM4DP4ao9k0ra4EdiVM7y1a/MpNqtZcXraLWrosPGhQY7inLDtUfLAQqkyPbjC3OGUsjdxYxUPuKydWcj/gkHMAv29MsUmBmy7Vy1XlPCjOPncExiBS+RJnq6I9+loMiwk3yEa7+86R4ubilKeHfOWkl0H2j6DyLJZ+pgWZ+Dz6XH8UQrEV1wovzVMuD+ksYi4eloobowdlakxG1fJEcX7wvKIcXxgjKb0LX6YMXJD2DBGqZIFMa9MFbSuoWFqyAebQRf2czk1JoXiT0mYna5GZamhis3JOVC2iN6Z90q8ysZ12NchMLSNbdxBhw=
     file: 
-      - radioroom-2.0.0-linux.deb
+      - radioroom-2.0.0-Linux.deb
     on:
       repo: envirover/SPLRadioRoom
