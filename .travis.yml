@@ -1,18 +1,23 @@
-language: c
-before_install:
-  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_1.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :1 -ac -screen 0 1280x1024x16"
-  - sleep 3
-  - export DISPLAY=:1.0
-  - wget http://downloads.arduino.cc/arduino-1.6.7-linux64.tar.xz
-  - tar xf arduino-1.6.7-linux64.tar.xz
-  - sudo mv arduino-1.6.7 /usr/local/share/arduino
-  - sudo ln -s /usr/local/share/arduino/arduino /usr/local/bin/arduino
-  - arduino --install-boards Intel:arc32
-install:
-script:
-  - arduino --verify --board Intel:arc32:arduino_101 $PWD/SPLRadioRoom/SPLRadioRoom.ino
-  - arduino --verify --board Intel:arc32:arduino_101 $PWD/RockBLOCKChat/RockBLOCKChat.ino
-notifications:
-  email:
-    on_success: change
-    on_failure: change
+language: cpp
+
+before_script:
+  - sudo apt-get update
+  - sudo apt-get install -y gcc-4.8-arm-linux-gnueabihf g++-4.8-arm-linux-gnueabihf pkg-config-arm-linux-gnueabihf
+  
+script: 
+  - mkdir bin
+  - cd bin
+  - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" ..
+  - make
+  - ls 
+  - cpack -G DEB --debug -V
+  - dpkg-deb -c radioroom-2.0.0-Linux.deb
+    
+deploy:
+  - provider: releases
+    api_key:
+      secure: mlEoE2YSrzj08LKU7e2cFrywCX0lObhtzHLzfB6o8Um4Olt/mlLpBXzvPxtbtV96E9Wsr91HReeTCiWnp/T+zUl7xhEfc6A9tOP9eT7byddgvnmoTHiu2PCeMs29aal5slCHLitxT40BXDQZWvQZhR/lP+1XSkS5GgfRWTYgyZ1uveHkReYiykmCG3K2aEn1sQSD8KC+Xy/JegSxncuOKzX9Xq56S/OcMefxPC4QuA/hUvsNEmok3cN3FwXIywgC5F+vzq6EFeLcCBNiwfy3xmN6l98b9oCNcDudRu+uKdunuY/WB1kyFwR8T/vWzSQWvRDne3Wshzq8jMSIX50SLJ2B6S+M3u5OZdtVSqFXVm+VY+lnM4DP4ao9k0ra4EdiVM7y1a/MpNqtZcXraLWrosPGhQY7inLDtUfLAQqkyPbjC3OGUsjdxYxUPuKydWcj/gkHMAv29MsUmBmy7Vy1XlPCjOPncExiBS+RJnq6I9+loMiwk3yEa7+86R4ubilKeHfOWkl0H2j6DyLJZ+pgWZ+Dz6XH8UQrEV1wovzVMuD+ksYi4eloobowdlakxG1fJEcX7wvKIcXxgjKb0LX6YMXJD2DBGqZIFMa9MFbSuoWFqyAebQRf2czk1JoXiT0mYna5GZamhis3JOVC2iN6Z90q8ysZ12NchMLSNbdxBhw=
+    file: 
+      - radioroom-2.0.0-linux.deb
+    on:
+      repo: envirover/SPLRadioRoom

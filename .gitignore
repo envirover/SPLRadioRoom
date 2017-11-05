@@ -27,3 +27,12 @@
 *.exe
 *.out
 *.app
+/.metadata/
+/.settings/
+/RadioRoom/bin/*
+/build/*
+/bin/*
+/Default/
+/RemoteSystemsTempFiles/
+/CMakeFiles/
+CMakeCache.txt

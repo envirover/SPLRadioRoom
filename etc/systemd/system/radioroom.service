@@ -1,0 +1,13 @@
+[Unit]
+Description=SPL RadioRoom Service
+Documentation=http://github.com/envirover/SPLRadioRoom
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/radioroom
+StandardOutput=null
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=radioroom.service
