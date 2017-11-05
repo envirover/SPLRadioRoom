@@ -1,23 +1,22 @@
 language: cpp
-
 before_script:
-  - sudo apt-get update
-  - sudo apt-get install -y gcc-4.8-arm-linux-gnueabihf g++-4.8-arm-linux-gnueabihf pkg-config-arm-linux-gnueabihf
-  
-script: 
-  - mkdir bin
-  - cd bin
-  - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" ..
-  - make
-  - ls 
-  - cpack -G DEB --debug -V
-  - dpkg-deb -c radioroom-2.0.0-Linux.deb
-    
+- sudo apt-get update
+- sudo apt-get install -y gcc-4.8-arm-linux-gnueabihf g++-4.8-arm-linux-gnueabihf
+  pkg-config-arm-linux-gnueabihf
+script:
+- mkdir bin
+- cd bin
+- cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake"
+  ..
+- make
+- ls
+- cpack -G DEB 
+- dpkg-deb -c radioroom-2.0.0-Linux.deb
+
 deploy:
-  - provider: releases
-    api_key:
-      secure: mlEoE2YSrzj08LKU7e2cFrywCX0lObhtzHLzfB6o8Um4Olt/mlLpBXzvPxtbtV96E9Wsr91HReeTCiWnp/T+zUl7xhEfc6A9tOP9eT7byddgvnmoTHiu2PCeMs29aal5slCHLitxT40BXDQZWvQZhR/lP+1XSkS5GgfRWTYgyZ1uveHkReYiykmCG3K2aEn1sQSD8KC+Xy/JegSxncuOKzX9Xq56S/OcMefxPC4QuA/hUvsNEmok3cN3FwXIywgC5F+vzq6EFeLcCBNiwfy3xmN6l98b9oCNcDudRu+uKdunuY/WB1kyFwR8T/vWzSQWvRDne3Wshzq8jMSIX50SLJ2B6S+M3u5OZdtVSqFXVm+VY+lnM4DP4ao9k0ra4EdiVM7y1a/MpNqtZcXraLWrosPGhQY7inLDtUfLAQqkyPbjC3OGUsjdxYxUPuKydWcj/gkHMAv29MsUmBmy7Vy1XlPCjOPncExiBS+RJnq6I9+loMiwk3yEa7+86R4ubilKeHfOWkl0H2j6DyLJZ+pgWZ+Dz6XH8UQrEV1wovzVMuD+ksYi4eloobowdlakxG1fJEcX7wvKIcXxgjKb0LX6YMXJD2DBGqZIFMa9MFbSuoWFqyAebQRf2czk1JoXiT0mYna5GZamhis3JOVC2iN6Z90q8ysZ12NchMLSNbdxBhw=
-    file: 
-      - radioroom-2.0.0-Linux.deb
-    on:
-      repo: envirover/SPLRadioRoom
+  provider: releases
+  api_key:
+    secure: jkOfxa7qoH3O50aJ12GFk4KBnwLHBAZvKG4Ka5x214ZEq1EV00ywuz1isN0qF+M2S1NJi0d/E58f4ndT1LQLgxcz3mcDcmo9v1EWFYEzfTL4o/BtV0IsrRy/pLg1t04QKHiy20kl8ViET293vBBla1yd72E04zlE6MjZMugifFdUoamHJkgMuY679JxE6o4KcXLxAwS3/lsrpCcdPEVj5DSuGUpyyGxKcoZW+cTTVc3zjBbjnLG9Hnle3zgIhC8hKHiCqy8uXtlgQN9m1E+P/Xn6LGAtO7Fa4Mlon9q1wbRXb+SRqG0sM8LmegORDHrFIvvuod0gCoIy1mbghnScAe9McUFeyVHQZ9ri7Xsb/G7fmpTAlPsf6EaKLm4m2gjXLec+W+thCPrtWUaoAdiq05d/ThP9mlOVbQ4A0O31oDSJJXctkb1OKgYrisBYY9dty4IKbVYkLA/+/QOi1EUAq9bspp77cUdhVx+MbrP3t982k/Ql8r3otmkIx4sbG404fnqxNauu5oe6zFgvratzOesYaL9p2dkkxCmzbY08pC1Uwn79GpTNMjvhNKVp6xi4AKR6+qDoMzXVZckpDrQnK/5yt4Fp4/5PRjGQhaayOx2vOLzZccOyiJLRZPgq3KAnSZRd4DnhzYFVPCuj91DLDo1jTsmgOj6rxjn1PHwguT8=
+  file: radioroom-2.0.0-Linux.deb
+  on:
+    repo: envirover/SPLRadioRoom
