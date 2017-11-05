@@ -20,3 +20,4 @@ deploy:
   file: radioroom-2.0.0-Linux.deb
   on:
     repo: envirover/SPLRadioRoom
+  skip_cleanup: true
