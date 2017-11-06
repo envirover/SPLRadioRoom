@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.0)
 
 project(radioroom)
 
-set(RADIOROOM_BUILD 1)
+set(RADIOROOM_BUILD "0")
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
@@ -39,6 +39,4 @@ add_executable(radioroom ${sources})
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc")
 
-
 include(CPack)
-
