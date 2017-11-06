@@ -1,12 +1,12 @@
 language: cpp
 before_script:
 - pwd
-- mkdir toolchain
-- cd toolchain
+- mkdir /home/travis/build/toolchain
+- cd /home/travis/build/toolchain
 - wget https://s3.amazonaws.com/RTI/Community/ports/toolchains/raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
 - tar xvzf raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
-- export PATH=/home/travis/toolchain/raspbian-toolchain-gcc-4.7.2-linux64/bin:$PATH
-- cd ..
+- export PATH=/home/travis/build/toolchain/raspbian-toolchain-gcc-4.7.2-linux64/bin:$PATH
+- cd /home/travis/build/envirover/SPLRadioRoom
 script:
 - mkdir bin
 - cd bin
