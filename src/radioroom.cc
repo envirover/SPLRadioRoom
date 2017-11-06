@@ -26,10 +26,8 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
+
 #include "version.h"
-
-
-#define DEFAULT_PID_FILE "/var/run/radioroom.pid"
 
 #define LOG_IDENTITY     "radioroom"
 
@@ -68,74 +66,8 @@ void handle_signal(int sig)
     }
 }
 
-//void daemonize(const std::string& pid_file_name)
-//{
-//    //Fork the Parent Process
-//     pid_t pid = fork();
-//
-//    if (pid < 0) {
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    //We got a good pid, Close the Parent Process
-//    if (pid > 0) {
-//        exit(EXIT_SUCCESS);
-//    }
-//
-//    //Change file mask
-//    umask(0);
-//
-//    //Create a new signature id for the child.
-//     if (setsid() < 0) {
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    /* Ignore signal sent from child to parent process */
-//    signal(SIGCHLD, SIG_IGN);
-//
-//    //Change Directory
-//    if ((chdir("/")) < 0) {
-//        exit(EXIT_FAILURE);
-//    }
-//
-//    /* Try to write PID of daemon to lockfile */
-//    if (!pid_file_name.empty())
-//    {
-//        char str[256];
-//
-//        int pid_fd = open(pid_file_name.data(), O_RDWR|O_CREAT, 0640);
-//
-//        if (pid_fd < 0) {
-//            /* Can't open lockfile */
-//            std::cout << "Failed to open PID file '" << pid_file_name << "'." << std::endl;
-//            std::cout << "Run radioroom as superuser or specify an alternative PID file."  << std::endl;
-//            exit(EXIT_FAILURE);
-//        }
-//
-//        if (lockf(pid_fd, F_TLOCK, 0) < 0) {
-//            /* Can't lock file */
-//            std::cout << "Failed to lock file '" << pid_file_name << "'." << std::endl;
-//            std::cout << "radioroom process is already started." << std::endl;
-//            exit(EXIT_FAILURE);
-//        }
-//
-//        /* Get current PID */
-//        sprintf(str, "%d\n", getpid());
-//
-//        /* Write PID to lockfile */
-//        write(pid_fd, str, strlen(str));
-//    }
-//
-//    /* Reopen stdin (fd = 0), stdout (fd = 1), stderr (fd = 2) */
-//    stdin = fopen("/dev/null", "r");
-//    stdout = fopen("/dev/null", "w+");
-//    stderr = fopen("/dev/null", "w+");
-//}
-
 int main(int argc, char** argv) {
     std::string config_file = DEFAULT_CONFIG_FILE;
-    //std::string pid_file    = DEFAULT_PID_FILE;
-    //bool nodetach = false;
 
     int c;
     while ((c = getopt(argc, argv, "c:hvV")) != -1) {
