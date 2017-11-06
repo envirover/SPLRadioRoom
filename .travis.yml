@@ -1,5 +1,6 @@
 language: cpp
 before_script:
+- pwd
 - mkdir toolchain
 - cd toolchain
 - wget https://s3.amazonaws.com/RTI/Community/ports/toolchains/raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
