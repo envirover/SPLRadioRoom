@@ -6,6 +6,7 @@ script:
 - mkdir bin
 - cd bin
 - arm-linux-gnueabihf-g++ -v
+- echo "TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER"
 - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" -DRADIOROOM_BUILD=$TRAVIS_BUILD_NUMBER ..
 - make
 - ls
