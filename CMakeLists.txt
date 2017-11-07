@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-project(radioroom)
-
-set(RADIOROOM_BUILD "0")
+project(radioroom VERSION 2.0.0)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
@@ -14,20 +12,12 @@ set(CPACK_PACKAGE_NAME "radioroom")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pavel Bobov")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Iridium SBD telemetry for MAVLink autopilots")
 set(CPACK_PACKAGE_VENDOR "Envirover")
-SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_VERSION_MAJOR "2")
-set(CPACK_PACKAGE_VERSION_MINOR "0")
-set(CPACK_PACKAGE_VERSION_PATCH "${RADIOROOM_BUILD}")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra" )
 
-# configure a header file to pass some of the CMake settings
-# to the source code
-configure_file (
-  "${PROJECT_SOURCE_DIR}/src/version.h.in"
-  "${PROJECT_BINARY_DIR}/version.h"
-  )
+configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/build.h")
 
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include/standard")
 include_directories("${PROJECT_BINARY_DIR}")

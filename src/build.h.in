@@ -1,0 +1,7 @@
+#ifndef VERSION_H_
+#define VERSION_H_
+
+#define RADIO_ROOM_VERSION "SPL RadioRoom @PROJECT_VERSION@"
+#define BUILD_NUM          "@BUILD_NUM@"
+
+#endif /* VERSION_H_ */
