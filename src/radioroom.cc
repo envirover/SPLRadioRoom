@@ -27,7 +27,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-#include "version.h"
+#include "build.h"
 
 #define LOG_IDENTITY     "radioroom"
 
@@ -51,7 +51,7 @@ void print_help()
 
 void print_version()
 {
-    std::cout << RADIO_ROOM_VERSION << std::endl;
+    std::cout << RADIO_ROOM_VERSION << "." << BUILD_NUM << std::endl;
     std::cout << "MAVLink wire protocol version " << MAVLINK_WIRE_PROTOCOL_VERSION << std::endl;
 }
 
