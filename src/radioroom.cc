@@ -57,7 +57,7 @@ void print_version()
 
 void handle_signal(int sig)
 {
-    if (sig == SIGINT || sig == SIGTERM) {
+    if (sig == SIGTERM) {
         running = 0;
 
         /* Reset signal handling to default behavior */

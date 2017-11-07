@@ -11,10 +11,8 @@ script:
 - mkdir bin
 - cd bin
 - arm-linux-gnueabihf-g++ -v
-- echo "TRAVIS_BUILD_NUMBER=$TRAVIS_BUILD_NUMBER"
 - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ..
 - make
-- ls
 - cpack -G DEB 
 before_deploy:
 - export RELEASE_PKG_FILE=$(ls *.deb)
