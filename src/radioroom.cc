@@ -51,7 +51,7 @@ void print_help()
 
 void print_version()
 {
-    std::cout << "SPL RadioRoom " << RADIO_ROOM_VERSION << " build " << BUILD_NUM << std::endl;
+    std::cout << RADIO_ROOM_VERSION << "." << BUILD_NUM << std::endl;
     std::cout << "MAVLink wire protocol version " << MAVLINK_WIRE_PROTOCOL_VERSION << std::endl;
 }
 
