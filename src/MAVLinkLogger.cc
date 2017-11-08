@@ -1134,7 +1134,5 @@ void MAVLinkLogger::log(int priority, const char* prefix,
         break;
     }
 
-    syslog(priority, buff);
-    //printf(buff);
-    //printf("\n");
+    syslog(priority, "%s", buff);
 }

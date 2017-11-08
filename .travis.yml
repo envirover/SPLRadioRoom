@@ -1,6 +1,5 @@
 language: cpp
 before_script:
-- pwd
 - mkdir /home/travis/build/toolchain
 - cd /home/travis/build/toolchain
 - wget https://s3.amazonaws.com/RTI/Community/ports/toolchains/raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
@@ -10,16 +9,16 @@ before_script:
 script:
 - mkdir bin
 - cd bin
-- arm-linux-gnueabihf-g++ -v
 - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ..
 - make
 - cpack -G DEB 
 before_deploy:
 - export RELEASE_PKG_FILE=$(ls *.deb)
-- echo "deploying $RELEASE_PKG_FILE to GitHub releases"
+- echo "Deploying $RELEASE_PKG_FILE to GitHub releases"
 deploy:
   provider: releases
-  name: "SPL RadioRoom 2.0.0 build $TRAVIS_BUILD_NUMBER"
+  name: "SPL RadioRoom build $TRAVIS_BUILD_NUMBER"
+  prerelease: true
   api_key:
     secure: jkOfxa7qoH3O50aJ12GFk4KBnwLHBAZvKG4Ka5x214ZEq1EV00ywuz1isN0qF+M2S1NJi0d/E58f4ndT1LQLgxcz3mcDcmo9v1EWFYEzfTL4o/BtV0IsrRy/pLg1t04QKHiy20kl8ViET293vBBla1yd72E04zlE6MjZMugifFdUoamHJkgMuY679JxE6o4KcXLxAwS3/lsrpCcdPEVj5DSuGUpyyGxKcoZW+cTTVc3zjBbjnLG9Hnle3zgIhC8hKHiCqy8uXtlgQN9m1E+P/Xn6LGAtO7Fa4Mlon9q1wbRXb+SRqG0sM8LmegORDHrFIvvuod0gCoIy1mbghnScAe9McUFeyVHQZ9ri7Xsb/G7fmpTAlPsf6EaKLm4m2gjXLec+W+thCPrtWUaoAdiq05d/ThP9mlOVbQ4A0O31oDSJJXctkb1OKgYrisBYY9dty4IKbVYkLA/+/QOi1EUAq9bspp77cUdhVx+MbrP3t982k/Ql8r3otmkIx4sbG404fnqxNauu5oe6zFgvratzOesYaL9p2dkkxCmzbY08pC1Uwn79GpTNMjvhNKVp6xi4AKR6+qDoMzXVZckpDrQnK/5yt4Fp4/5PRjGQhaayOx2vOLzZccOyiJLRZPgq3KAnSZRd4DnhzYFVPCuj91DLDo1jTsmgOj6rxjn1PHwguT8=
   file_glob: true
