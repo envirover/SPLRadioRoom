@@ -61,7 +61,6 @@ void handle_signal(int sig)
         running = 0;
 
         /* Reset signal handling to default behavior */
-        signal(SIGINT, SIG_DFL);
         signal(SIGTERM, SIG_DFL);
     }
 }
@@ -105,7 +104,6 @@ int main(int argc, char** argv) {
         syslog(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
     }
 
-    signal(SIGINT, handle_signal);
     signal(SIGTERM, handle_signal);
 
      if (radioroom.init()) {
