@@ -14,7 +14,7 @@ SPL RadioRoom system requires the following hardware and software:
 * Raspberry Pi computer with [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) Desktop or Light;
 * Activated [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
 
-in the minimal configuration RadioRoom requires Raspberry Pi Zero, RockBLOCK 9603, and an FTDI chip, with autopilot connected to the Rasperry Pi's serial port. This configuration has the smallest size and power consumption.
+In the minimal configuration RadioRoom requires Raspberry Pi Zero, RockBLOCK 9603, and FTDI chip, with autopilot connected to the Rasperry Pi's serial port. This configuration has the smallest size and power consumption.
 
 The first version of SPL RadioRoom run on Arduino 101. See [arduino/README.md](arduino/README.md) for information about this version.
 
