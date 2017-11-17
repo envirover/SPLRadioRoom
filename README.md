@@ -12,7 +12,7 @@ SPL RadioRoom is a firmware for a companion computer of MAVLink-based autopilots
 SPL RadioRoom system requires the following hardware and software:
 * Autopilot such as Pixhawk with [ArduPilot](http://ardupilot.org/) or [PX4](http://px4.io/) firmware;
 * Raspberry Pi computer with [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) Desktop or Light;
-* [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
+* Activated [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
 
 in the minimal configuration RadioRoom requires Raspberry Pi Zero, RockBLOCK 9603, and an FTDI chip, with autopilot connected to the Rasperry Pi's serial port. This configuration has the smallest size and power consumption.
 
@@ -30,7 +30,7 @@ See the instructions on connecting companion computer to Pixhawk running ArduPil
 
 Raspberry Pi was designed to be powered by +5.1V micro USB supply. +5V TELEM pin is rated for up to 2A peak power draw, so it could be used to power both Raspberry Pi and RockBLOCK.  
 
-It is recommended to connect RockBLOCK mudule using [FTDI USB to UART cable](https://www.rock7.com/shop-product-detail?productId=16) provided by Rock Seven Mobile. 3.3.V FTDI cables or chips from other vendors can also be used, but MaxPower field in the chip must be set to 500 mA to satisfy the power requirements of RockBLOCK (The default setting for MaxPower field is typically 100 mA). Alternatively, RockBLOCK could be powered by directly, not through the FTDI chip.
+It is recommended to connect RockBLOCK module using [FTDI USB to UART cable](https://www.rock7.com/shop-product-detail?productId=16) provided by Rock Seven Mobile. 3.3.V FTDI cables or chips from other vendors can also be used, but MaxPower field in the chip must be set to 500 mA to satisfy the power requirements of RockBLOCK (The default setting for MaxPower field is typically 100 mA). Alternatively, RockBLOCK could be powered by directly, not through the FTDI chip.
 
 ## Installing
 
@@ -39,19 +39,22 @@ To install RadioRoom on Raspberry Pi:
 1. Copy radioroom-2.0.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
 2. Install radioroom-2.0.0-raspbian.deb package.
 
-   ``$sudo dpkg -i radioroom-2.0.0-raspbian.deb``
+   ``$ sudo dpkg -i radioroom-2.0.0-raspbian.deb``
   
-3. Configure serial device paths for autopilot and ISBD transceiver in /etc/radioroom.conf.
+3. Configure the reporting period and the serial device paths for autopilot and ISBD transceiver in /etc/radioroom.conf. 
 4. Start radioroom service.
 
-   ``$sudo systemctl start radioroom.service``
+   ``$ sudo systemctl start radioroom.service``
    
+By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, RadioRoom can autodetect autopilot and ISBD if they are available on other serial and USB devices. To make the RadioRoom startup faster and more reliable it is recommended to set the device paths correctly. 
 
-Raspberry Pi require an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption is is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/).
+USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB devices it is recommended to use symlinks from /dev/serial/by-path or /dev/serial/by-path directories. These symplinks do not change after reboots. 
+
+Raspberry Pi require an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
   
 ## Troubleshooting
 
-Run ``$sudo systemctl status radioroom.service`` to check the status of radioroom service.
+Run ``$ sudo systemctl status radioroom.service`` to check the status of radioroom service.
 
 If radioroom is properly wired and configured, the output should look like this:
 
@@ -84,21 +87,23 @@ Add ``-v`` option to the radioroom command line in /etc/systemd/system/radioroom
 To build radioroom on Raspberry Pi. 
 
 ```
-$sudo apt-get install git cmake
-$git clone https://github.com/envirover/SPLRadioRoom.git
-$cd SPLRadioRoom
-$mkdir bin
-$cd bin
-$cmake ..
-$make
+$ sudo apt-get install git cmake
+$ git clone https://github.com/envirover/SPLRadioRoom.git
+$ cd SPLRadioRoom
+$ mkdir bin
+$ cd bin
+$ cmake ..
+$ make
 ```
+
+To create a debian package run ``$cpack ..`` command after that.
 
 To cross-compile on Windows.
 1. Install git and clone SPLRadioRoom repo.
 
    ``git clone https://github.com/envirover/SPLRadioRoom.git``
    
-2. Install [Windows toolchain for Raspberry Pi](Windows toolchain for Raspberry/PI).
+2. Install [Windows toolchain for Raspberry Pi](http://gnutoolchains.com/raspberry/).
 3. Create 'bin' subdirectory inside SPLRadioRoom and change the current directory to it.
 4. Run cmake using ../toolchain-arm-windows.cmake toolchain file.
 
@@ -106,6 +111,8 @@ To cross-compile on Windows.
 5. Run make.
 
    ``make``
+   
+For cross-compilation on Linux raspbian toolchain for Linux is required. toolchain-arm-linux.cmake should be specified as CMake toolchain file. 
 
 ## Issues
 
