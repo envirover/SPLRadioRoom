@@ -32,7 +32,7 @@ MAVLinkSerial  ardupilot(telem);
 
 Serial sbdSerial;
 
-HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
+//HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
 /*
  * Debug print of mavlink_message_t message
@@ -54,7 +54,7 @@ void commReceive() {
   if (ardupilot.receive_message(msg)) {
     //digitalWrite(LED_PIN, HIGH);
 
-    highLatencyMsg.update(msg);
+    //highLatencyMsg.update(msg);
 
     printMavlinkMsg(msg);
   }
@@ -116,7 +116,7 @@ void loop() {
   }
 
   printf("*** HIGH_LATENCY ***\n");
-  highLatencyMsg.print();
+ // highLatencyMsg.print();
 }
 
 int main(int argc, char** argv) {
