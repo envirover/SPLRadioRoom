@@ -33,6 +33,7 @@ Iridium SBD telemetry for MAVLink autopilots.
 SPLRadioRoom::SPLRadioRoom() :
     autopilot(), isbd(), high_latency(), seq(0), last_report_time(0)
 {
+    memset(&high_latency, 0, sizeof(high_latency));
 }
 
 SPLRadioRoom::~SPLRadioRoom()
@@ -263,7 +264,7 @@ void SPLRadioRoom::loop()
     if (ra_flag || elapsed_time > config.get_report_period()) {
         mavlink_message_t msg;
         mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
-        msg.seq = seq++;
+        //msg.seq = seq++;
 
         isbd_session(msg);
 
