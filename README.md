@@ -44,7 +44,10 @@ To install RadioRoom on Raspberry Pi:
 3. Configure the reporting period and the serial device paths for autopilot and ISBD transceiver in /etc/radioroom.conf. 
 4. Start radioroom service.
 
-   ``$ sudo systemctl start radioroom.service``
+   ```
+   $ sudo systemctl enable radioroom.service
+   $ sudo systemctl start radioroom.service
+   ```
    
 By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, RadioRoom can autodetect autopilot and ISBD if they are available on other serial and USB devices. To make the RadioRoom startup faster and more reliable it is recommended to set the device paths correctly. 
 
@@ -101,16 +104,16 @@ To create a debian package run ``$cpack ..`` command after that.
 To cross-compile on Windows.
 1. Install git and clone SPLRadioRoom repo.
 
-   ``git clone https://github.com/envirover/SPLRadioRoom.git``
+   ``$ git clone https://github.com/envirover/SPLRadioRoom.git``
    
 2. Install [Windows toolchain for Raspberry Pi](http://gnutoolchains.com/raspberry/).
 3. Create 'bin' subdirectory inside SPLRadioRoom and change the current directory to it.
 4. Run cmake using ../toolchain-arm-windows.cmake toolchain file.
 
-   ``cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-windows.cmake" ..`` 
+   ``$ cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-windows.cmake" ..`` 
 5. Run make.
 
-   ``make``
+   ``$ make``
    
 For cross-compilation on Linux raspbian toolchain for Linux is required. toolchain-arm-linux.cmake should be specified as CMake toolchain file. 
 
