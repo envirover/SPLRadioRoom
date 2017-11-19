@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <stdlib.h>
 #include <iostream>
+#include <stdint.h>
 #include "Serial.h"
 
 #define ISBD_LIBRARY_REVISION           2
@@ -52,9 +53,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ISBD_NO_SLEEP_PIN        11
 
 #define ISBD_MAX_MT_MGS_SIZE 270
-
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
 
 extern bool isbdCallback() __attribute__((weak));
 
