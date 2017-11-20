@@ -135,7 +135,7 @@ private:
      *
      * Returns character read  or -1 in case of timeout.
      */
-    int timedRead();
+    int timed_read();
 };
 
 #endif // MAVLINKSERIAL_H_

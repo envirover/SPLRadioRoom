@@ -106,7 +106,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
             mission_ack.target_component = msg.compid;
             mission_ack.type = MAV_MISSION_ERROR;
             mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-            ack.seq = 0; //TODO: use global counter for message sequence numbers.
+            //ack.seq = 0; //TODO: use global counter for message sequence numbers.
 
             return true;
         }

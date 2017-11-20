@@ -193,7 +193,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
     // Receive data from stream
     //serial.listen();
 
-    int c = timedRead();
+    int c = timed_read();
 
     while (c >= 0) {
         //Serial.println(c);
@@ -203,7 +203,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
             return true;
         }
 
-        c = timedRead();
+        c = timed_read();
     }
 
     return false;
@@ -241,7 +241,7 @@ bool MAVLinkSerial::receive_ack(const mavlink_message_t& msg, mavlink_message_t&
                 command_ack.command = mavlink_msg_command_ack_get_command(&ack);
                 command_ack.result  = mavlink_msg_command_ack_get_result(&ack);
                 mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-                ack.seq = seq++;
+                //ack.seq = seq++;
                 return true;
             }
             break;
@@ -253,7 +253,7 @@ bool MAVLinkSerial::receive_ack(const mavlink_message_t& msg, mavlink_message_t&
                 missionAck.target_component = msg.compid;
                 missionAck.type = mavlink_msg_mission_ack_get_type(&ack);
                 mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &missionAck);
-                ack.seq = seq++;
+                //ack.seq = seq++;
                 return true;
             }
             break;
@@ -266,7 +266,7 @@ bool MAVLinkSerial::receive_ack(const mavlink_message_t& msg, mavlink_message_t&
                 mavlink_msg_param_value_get_param_id(&msg, param_value.param_id);
                 param_value.param_value = mavlink_msg_param_set_get_param_value(&msg);
                 mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &param_value);
-                ack.seq = seq++;
+                //ack.seq = seq++;
                 return true;
             }
             break;
@@ -288,13 +288,13 @@ bool MAVLinkSerial::compose_failed_ack(const mavlink_message_t& msg, mavlink_mes
         command_ack.command = mavlink_msg_command_long_get_command(&msg);
         command_ack.result  =   MAV_RESULT_FAILED;
         mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-        ack.seq = seq++;
+        //ack.seq = seq++;
         return true;
     case MAVLINK_MSG_ID_COMMAND_INT:
         command_ack.command = mavlink_msg_command_int_get_command(&msg);
         command_ack.result  =   MAV_RESULT_FAILED;
         mavlink_msg_command_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-        ack.seq = seq++;
+        //ack.seq = seq++;
         return true;
     case MAVLINK_MSG_ID_MISSION_ITEM:
         mavlink_mission_ack_t mission_ack;
@@ -302,7 +302,7 @@ bool MAVLinkSerial::compose_failed_ack(const mavlink_message_t& msg, mavlink_mes
         mission_ack.target_component = msg.compid;
         mission_ack.type = MAV_MISSION_ERROR;
         mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-        ack.seq = seq++;
+        //ack.seq = seq++;
         return true;
     case MAVLINK_MSG_ID_PARAM_SET:
         mavlink_param_value_t param_value;
@@ -312,7 +312,7 @@ bool MAVLinkSerial::compose_failed_ack(const mavlink_message_t& msg, mavlink_mes
         mavlink_msg_param_value_get_param_id(&msg, param_value.param_id);
         param_value.param_value = mavlink_msg_param_set_get_param_value(&msg);
         mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &param_value);
-        ack.seq = seq++;
+        //ack.seq = seq++;
         return true;
     default:
         ack.len = ack.msgid = 0;
@@ -322,7 +322,7 @@ bool MAVLinkSerial::compose_failed_ack(const mavlink_message_t& msg, mavlink_mes
 
 
 // private method to read stream with timeout
-int MAVLinkSerial::timedRead()
+int MAVLinkSerial::timed_read()
 {
     int c;
 
