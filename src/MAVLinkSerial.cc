@@ -30,7 +30,7 @@
 
 
 MAVLinkSerial::MAVLinkSerial() :
-    serial(), timeout(1000), start_millis(0), seq(0)
+    serial(), timeout(1000), start_millis(0)
 {
 }
 
