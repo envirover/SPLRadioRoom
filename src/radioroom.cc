@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     openlog(LOG_IDENTITY, LOG_CONS | LOG_NDELAY, LOG_USER);
     setlogmask(config.get_debug_mode() ? LOG_UPTO(LOG_DEBUG) : LOG_UPTO(LOG_INFO));
 
-    syslog(LOG_NOTICE, "Starting %s...", RADIO_ROOM_VERSION);
+    syslog(LOG_NOTICE, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
     if (config.init(config_file) < 0) {
         syslog(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
@@ -107,9 +107,10 @@ int main(int argc, char** argv) {
     signal(SIGTERM, handle_signal);
 
      if (radioroom.init()) {
-        syslog(LOG_NOTICE, "%s started.", RADIO_ROOM_VERSION);
+        syslog(LOG_NOTICE, "%s.%s started.", RADIO_ROOM_VERSION, BUILD_NUM);
     } else {
-        syslog(LOG_CRIT, "%s initialization failed.", RADIO_ROOM_VERSION);
+        syslog(LOG_CRIT, "%s.%s initialization failed.", RADIO_ROOM_VERSION, BUILD_NUM);
+        return EXIT_FAILURE;
     }
 
     running = 1;
@@ -120,7 +121,7 @@ int main(int argc, char** argv) {
 
     radioroom.close();
 
-    syslog(LOG_NOTICE, "%s stopped.", RADIO_ROOM_VERSION);
+    syslog(LOG_NOTICE, "%s.%s stopped.", RADIO_ROOM_VERSION, BUILD_NUM);
 
     closelog();
 

@@ -47,7 +47,6 @@ class MAVLinkSerial
     Serial         serial;
     unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
     clock_t        start_millis;  // used for timeout measurement
-    uint8_t        seq;           // message sequence number
 
 public:
 
@@ -135,7 +134,7 @@ private:
      *
      * Returns character read  or -1 in case of timeout.
      */
-    int timedRead();
+    int timed_read();
 };
 
 #endif // MAVLINKSERIAL_H_

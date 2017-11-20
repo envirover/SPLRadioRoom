@@ -106,7 +106,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
             mission_ack.target_component = msg.compid;
             mission_ack.type = MAV_MISSION_ERROR;
             mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-            ack.seq = 0; //TODO: use global counter for message sequence numbers.
+            //ack.seq = 0; //TODO: use global counter for message sequence numbers.
 
             return true;
         }
@@ -261,7 +261,7 @@ void SPLRadioRoom::loop()
     unsigned long elapsed_time = (current_time - last_report_time) / CLOCKS_PER_SEC;
 
     // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
-    if (ra_flag || elapsed_time > config.get_report_period()) {
+    if (ra_flag || last_report_time == 0 || elapsed_time > config.get_report_period()) {
         mavlink_message_t msg;
         mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
         //msg.seq = seq++;
