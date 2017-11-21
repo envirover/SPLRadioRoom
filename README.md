@@ -53,7 +53,7 @@ By default the serial device paths are set to /dev/ttyACM0 for autopilot and to 
 
 USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB devices it is recommended to use symlinks from /dev/serial/by-path or /dev/serial/by-path directories, that do not change with reboots. 
 
-RadioRoom periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period is set in seconds by report_period property in /etc/radioroom.conf. The default value of report_period is 300 seconds. The reporting period can by changed remotely by setting HL_REPORT_PERIOD onboard parametr.
+RadioRoom periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period default value is 300 seconds. It can be changed by setting report_period configuration property in /etc/radioroom.conf, or remotely at runtime by setting HL_REPORT_PERIOD on-board parameter.
 
 Raspberry Pi require an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
   
