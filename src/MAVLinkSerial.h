@@ -125,7 +125,7 @@ private:
     /**
      * Compose an unconfirmed COMMAND_ACK or MISSION_ACK message.
      * Unconfirmed ACK messages are sent to GCS if ACK message was not
-     * received from ArduPilot.
+     * received from autopilot.
      */
     bool compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
 
