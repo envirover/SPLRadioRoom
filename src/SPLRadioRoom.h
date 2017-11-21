@@ -26,24 +26,23 @@
 #ifndef SPLRADIOROOM_H_
 #define SPLRADIOROOM_H_
 
-#include <vector>
 #include "MAVLinkSerial.h"
 #include "MAVLinkSBD.h"
 #include "SPLConfig.h"
+#include <vector>
 
 #define MAX_SEND_RETRIES   5
 
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
 /**
- * SPL RadioRoom companion computer for MAVLink autopilot.
+ * Iridium SBD telemetry for MAVLink autopilots.
  */
 class SPLRadioRoom {
 
     MAVLinkSerial           autopilot;
     MAVLinkSBD              isbd;
     mavlink_high_latency_t  high_latency;
-    uint8_t                 seq; // MO message sequence number
     unsigned long           last_report_time;
 
 public:
@@ -52,11 +51,6 @@ public:
      * Calls default constructors for MAVLinkSerial and IridiumSBD.
      */
     SPLRadioRoom();
-
-    /**
-     * Destructor
-     */
-    virtual ~SPLRadioRoom();
 
     /**
      * Initializes MAVLinkSerial and IridiumSBD instances.
@@ -71,25 +65,16 @@ public:
     void close();
 
     /**
-     *
+     * Requests data streams from autopilot and updates HIGH_LATENCY MAVLink message.
+     * Starts ISBD session if report period is elapsed or if ring alert received.
      */
     void loop();
 
 private:
 
     /**
-     * Initialize connection to the autopilot serial.
-     */
-    bool init_autopilot(vector<string>& devices);
-
-    /**
-     * Initialize connection to the ISBD transceiver.
-     */
-    bool init_isbd(vector<string>& devices);
-
-    /**
-     * Updates HIGH_LATENCY message reporting period if HL_REPORT_PERIOD parameter value is set by
-     * PARAM_SET MT message.
+     * If the specified message is of type PARAM_SET and the parameter name is HL_REPORT_PERIOD,
+     * the method sets report period configuration property. Otherwise the method does nothing.
      *
      * Returns true if the message was handled.
      */
@@ -99,27 +84,25 @@ private:
      * Handles writing waypoints list as described  in
      * http://qgroundcontrol.org/mavlink/waypoint_protocol
      *
-     * returns true if waypoints list was updated in ardupilot
+     * If message specified by msg parameter is of type MISSION_COUNT,
+     * the method retrieves all the mission items from ISBD, sends them
+     * to the autopilot, and sends MISSION_ACK to ISBD. Otherwise the
+     * method does nothing and just returns false.
+     *
+     * Returns true if waypoints list was updated in the autopilot.
      */
     bool handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack);
 
     /**
-     * Sends the message to ISBD, recieve all the messages in the
-     * inbound message queue, if any, pass them to ArduPilot,
-     * sends ACKs back to ISBD.
+     * Sends the specified HIGH_LATENCY message to ISBD.
+     * Receives and handles all the messages in the MT queue.
      */
     void isbd_session(mavlink_message_t& mo_msg);
 
-    /**
-     * Reads and processes MAVLink messages from autopilot.
-     */
-    void comm_receive();
-
     /*
-     * Integrates high frequency message into HIGH_LATENCY type message.
+     * Integrates the specified message into the HIGH_LATENCY message.
      *
-     * @param msg message received from autopilot
-     * @return true if the message was integrated or should be just swallowed
+     * Returns true if the message was integrated.
      */
     bool update_high_latency_msg(const mavlink_message_t& msg);
 };

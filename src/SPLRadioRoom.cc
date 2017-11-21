@@ -29,17 +29,15 @@ Iridium SBD telemetry for MAVLink autopilots.
 #include <vector>
 #include <syslog.h>
 
+inline int16_t radToCentidegrees(float rad) {
+  return rad / M_PI * 18000;
+}
 
 SPLRadioRoom::SPLRadioRoom() :
-    autopilot(), isbd(), high_latency(), seq(0), last_report_time(0)
+    autopilot(), isbd(), high_latency(), last_report_time(0)
 {
     memset(&high_latency, 0, sizeof(high_latency));
 }
-
-SPLRadioRoom::~SPLRadioRoom()
-{
-}
-
 
 bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
@@ -59,6 +57,7 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
             mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
+            syslog(LOG_INFO, "Report period changed to %lu seconds.", config.get_report_period());
             return true;
         }
     }
@@ -90,8 +89,7 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
             if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
                 if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
                     //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
-                    missions[idx] = mt_msg;
-                    idx++;
+                    missions[idx++] = mt_msg;
                 }
             } else {
                 usleep(5000000);
@@ -139,6 +137,11 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
     return false;
 }
 
+/**
+ * Send the specified mo_msg to ISBD.
+ * Receive and handle all messages waiting in the MT queue.
+ * Send ACKs for received messages from autopilot to ISBD.
+ */
 void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 {
     syslog(LOG_INFO, "ISBD session started.");
@@ -158,10 +161,10 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
 
                 if (!ack_received) {
                     ack_received = handle_mission_write(mt_msg, mo_msg);
-                    syslog(LOG_INFO, "MISSION_ACK received.");
                 }
 
                 if (!ack_received) {
+                    //Forward unhandled messages to the autopilot.
                     ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
                 }
             }
@@ -169,15 +172,6 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
     } while (isbd.get_waiting_wessage_count() > 0 || ack_received);
 
     syslog(LOG_INFO, "ISBD session ended.");
-}
-
-void SPLRadioRoom::comm_receive()
-{
-    mavlink_message_t msg;
-
-    if (autopilot.receive_message(msg)) {
-        update_high_latency_msg(msg);
-    }
 }
 
 /**
@@ -240,15 +234,26 @@ void SPLRadioRoom::loop()
 
     for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
         mavlink_message_t msg;
+
         mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
+
         if (!autopilot.send_message(msg)) {
             syslog(LOG_WARNING, "Failed to send message to autopilot.");
         }
+
         usleep(10000);
     }
 
+    /**
+     * Reads and processes MAVLink messages from autopilot.
+     */
     for (int i = 0; i < 100; i++) {
-        comm_receive();
+        mavlink_message_t msg;
+
+        if (autopilot.receive_message(msg)) {
+            update_high_latency_msg(msg);
+        }
+
         usleep(10000);
     }
 
@@ -260,7 +265,7 @@ void SPLRadioRoom::loop()
 
     unsigned long elapsed_time = (current_time - last_report_time) / CLOCKS_PER_SEC;
 
-    // Start ISBD session if ring alert is received or HIGH_LATENCY report period is elapsed.
+    // Start ISBD session if ring alert is received or report period is elapsed.
     if (ra_flag || last_report_time == 0 || elapsed_time > config.get_report_period()) {
         mavlink_message_t msg;
         mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
@@ -272,10 +277,9 @@ void SPLRadioRoom::loop()
     }
 }
 
-inline int16_t radToCentidegrees(float rad) {
-  return rad / M_PI * 18000;
-}
-
+/**
+ * Integrates data from the specified MAVLink message into the HIGH_LATENCY message.
+ */
 bool SPLRadioRoom::update_high_latency_msg(const mavlink_message_t& msg)
 {
   switch (msg.msgid) {

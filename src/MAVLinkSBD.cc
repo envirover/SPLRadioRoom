@@ -26,6 +26,7 @@
 
 #include "MAVLinkSBD.h"
 #include "MAVLinkLogger.h"
+#include <stdio.h>
 #include <syslog.h>
 
 MAVLinkSBD::MAVLinkSBD() : stream(), isbd(stream)
@@ -80,7 +81,7 @@ bool MAVLinkSBD::detect_transceiver(string device) {
 
 bool MAVLinkSBD::init(string path, int speed, const vector<string>& devices)
 {
-    syslog(LOG_NOTICE, "Connecting to ISBD transceiver (%s %d)...", path.data(), speed);
+    syslog(LOG_INFO, "Connecting to ISBD transceiver (%s %d)...", path.data(), speed);
 
     isbd.setPowerProfile(1);
 
@@ -95,7 +96,7 @@ bool MAVLinkSBD::init(string path, int speed, const vector<string>& devices)
     }
 
     if (devices.size() > 0) {
-        syslog(LOG_NOTICE, "Attempting to detect ISBD transceiver at the available serial devices...");
+        syslog(LOG_INFO, "Attempting to detect ISBD transceiver at the available serial devices...");
 
         for (size_t i = 0; i < devices.size(); i++) {
             if (devices[i] == path)
@@ -122,6 +123,7 @@ bool MAVLinkSBD::init(string path, int speed, const vector<string>& devices)
 void MAVLinkSBD::close()
 {
     stream.close();
+    syslog(LOG_DEBUG, "ISBD connection closed.");
 }
 
 bool MAVLinkSBD::send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
@@ -136,8 +138,17 @@ bool MAVLinkSBD::send_receive_message(const mavlink_message_t& mo_msg, mavlink_m
 
     received = false;
 
-    if (isbd.sendReceiveSBDBinary(buf, len, buf, buf_size) != ISBD_SUCCESS) {
-        MAVLinkLogger::log(LOG_WARNING, "SBD << FAILED", mo_msg);
+    int ret = isbd.sendReceiveSBDBinary(buf, len, buf, buf_size);
+
+    if (ret != ISBD_SUCCESS) {
+        if (mo_msg.len != 0 && mo_msg.msgid != 0) {
+            char prefix[32];
+            snprintf(prefix, 32, "SBD << FAILED(%d)", ret);
+            MAVLinkLogger::log(LOG_WARNING, prefix, mo_msg);
+        } else {
+            syslog(LOG_WARNING, "SBD >> FAILED(%d)", ret); //Failed to receive MT message from ISBD
+        }
+
         return false;
     }
 
@@ -148,13 +159,17 @@ bool MAVLinkSBD::send_receive_message(const mavlink_message_t& mo_msg, mavlink_m
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg, &mavlink_status)) {
                 received = true;
 
-                MAVLinkLogger::log(LOG_DEBUG, "SBD >>", mt_msg);
+                MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
                 break;
             }
         }
+
+        if (!received) {
+            syslog(LOG_WARNING, "Failed to parse MAVLink message received from ISBD.");
+        }
     }
 
-    MAVLinkLogger::log(LOG_DEBUG, "SBD <<", mo_msg);
+    MAVLinkLogger::log(LOG_INFO, "SBD <<", mo_msg);
 
     return true;
 }

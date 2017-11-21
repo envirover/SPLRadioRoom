@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     openlog(LOG_IDENTITY, LOG_CONS | LOG_NDELAY, LOG_USER);
     setlogmask(config.get_debug_mode() ? LOG_UPTO(LOG_DEBUG) : LOG_UPTO(LOG_INFO));
 
-    syslog(LOG_NOTICE, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
+    syslog(LOG_INFO, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
     if (config.init(config_file) < 0) {
         syslog(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
@@ -118,6 +118,8 @@ int main(int argc, char** argv) {
     while (running) {
         radioroom.loop();
     }
+
+    syslog(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
     radioroom.close();
 
