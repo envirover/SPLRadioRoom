@@ -26,6 +26,7 @@
 
 #include "MAVLinkSBD.h"
 #include "MAVLinkLogger.h"
+#include <stdio.h>
 #include <syslog.h>
 
 MAVLinkSBD::MAVLinkSBD() : stream(), isbd(stream)

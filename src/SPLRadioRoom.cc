@@ -57,7 +57,7 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
             mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
-            syslog(LOG_INFO, "Report period changed to %d seconds.", config.get_report_period());
+            syslog(LOG_INFO, "Report period changed to %lu seconds.", config.get_report_period());
             return true;
         }
     }
