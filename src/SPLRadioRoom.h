@@ -31,8 +31,6 @@
 #include "SPLConfig.h"
 #include <vector>
 
-#define MAX_SEND_RETRIES   5
-
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
 /**
@@ -98,6 +96,11 @@ private:
      * Receives and handles all the messages in the MT queue.
      */
     void isbd_session(mavlink_message_t& mo_msg);
+
+    /**
+     * Retrieves all the required data and composes HIGH_LATENCY message.
+     */
+    void get_high_latency_msg(mavlink_message_t& msg);
 
     /*
      * Integrates the specified message into the HIGH_LATENCY message.
