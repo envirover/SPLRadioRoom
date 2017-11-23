@@ -29,6 +29,17 @@ Iridium SBD telemetry for MAVLink autopilots.
 #include <vector>
 #include <syslog.h>
 
+/**
+ * The maximum number of high frequency messages send by autopilot in one period,
+ * before the pattern starts to repeat again.
+ */
+#define MAX_MESSAGES_PERIOD_SIZE 100
+
+#define AUTOPILOT_SEND_INTERVAL 10000   //microseconds
+#define ISBD_RETRY_INTERVAL     5000000 //microseconds
+
+#define MAX_SEND_RETRIES   5
+
 inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
 }
@@ -41,25 +52,27 @@ SPLRadioRoom::SPLRadioRoom() :
 
 bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
-    if (msg.msgid == MAVLINK_MSG_ID_PARAM_SET) {
-        char param_id[17];
-        mavlink_msg_param_set_get_param_id(&msg, param_id);
-        if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
-            float value = mavlink_msg_param_set_get_param_value(&msg);
-            config.set_report_period(value);
+    if (msg.msgid != MAVLINK_MSG_ID_PARAM_SET)
+        return false;
 
-            mavlink_param_value_t paramValue;
-            paramValue.param_value = value;
-            paramValue.param_count = 0;
-            paramValue.param_index = 0;
-            mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
-            paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
+    char param_id[17];
+    mavlink_msg_param_set_get_param_id(&msg, param_id);
 
-            mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
+    if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
+        float value = mavlink_msg_param_set_get_param_value(&msg);
+        config.set_report_period(value);
 
-            syslog(LOG_INFO, "Report period changed to %lu seconds.", config.get_report_period());
-            return true;
-        }
+        mavlink_param_value_t paramValue;
+        paramValue.param_value = value;
+        paramValue.param_count = 0;
+        paramValue.param_index = 0;
+        mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
+        paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
+
+        mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
+
+        syslog(LOG_INFO, "Report period changed to %lu seconds.", config.get_report_period());
+        return true;
     }
 
     return false;
@@ -67,74 +80,69 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
 bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
-    vector<mavlink_message_t> missions;
+    if (msg.msgid != MAVLINK_MSG_ID_MISSION_COUNT)
+        return false;
 
-    if (msg.msgid == MAVLINK_MSG_ID_MISSION_COUNT) {
-        //syslog(LOG_DEBUG, "MISSION_COUNT MT message received.");
+    uint16_t count = mavlink_msg_mission_count_get_count(&msg);
 
-        uint16_t count = mavlink_msg_mission_count_get_count(&msg);
+    vector<mavlink_message_t> missions(count);
 
-        missions.resize(count);
+    mavlink_message_t mt_msg, mo_msg;
+    mo_msg.len = mo_msg.msgid = 0;
 
-        mavlink_message_t mt_msg, mo_msg;
-        mo_msg.len = mo_msg.msgid = 0;
+    syslog(LOG_INFO, "Receiving %d mission items from ISBD.", count);
 
-        syslog(LOG_INFO, "Receiving %d mission items from ISBD.", count);
+    uint16_t idx = 0;
 
-        uint16_t idx = 0;
+    for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
+        bool received = false;
 
-        for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
-            bool received = false;
-
-            if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
-                if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-                    //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
-                    missions[idx++] = mt_msg;
-                }
-            } else {
-                usleep(5000000);
+        if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
+            if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
+                //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
+                missions[idx++] = mt_msg;
             }
-        }
-
-        if (idx != count) {
-            syslog(LOG_WARNING, "Not all mission items received.");
-
-            mavlink_mission_ack_t mission_ack;
-            mission_ack.target_system = msg.sysid;
-            mission_ack.target_component = msg.compid;
-            mission_ack.type = MAV_MISSION_ERROR;
-            mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-            //ack.seq = 0; //TODO: use global counter for message sequence numbers.
-
-            return true;
-        }
-
-        syslog(LOG_INFO, "Sending mission items to ArduPilot...");
-
-        for (int i = 0; i < MAX_SEND_RETRIES; i++) {
-            if (autopilot.send_message(msg)) {
-                break;
-            }
-
-            usleep(10000);
-        }
-
-        for (uint16_t i = 0; i < count; i++) {
-            autopilot.send_receive_message(missions[i], ack);
-
-            usleep(10000);
-        }
-
-        if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
-            syslog(LOG_INFO, "Mission accepted by ArduPilot.");
         } else {
-            syslog(LOG_WARNING, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
+            usleep(ISBD_RETRY_INTERVAL);
         }
+    }
+
+    if (idx != count) {
+        syslog(LOG_WARNING, "Not all mission items received.");
+
+        mavlink_mission_ack_t mission_ack;
+        mission_ack.target_system = msg.sysid;
+        mission_ack.target_component = msg.compid;
+        mission_ack.type = MAV_MISSION_ERROR;
+        mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+        //ack.seq = 0; //TODO: use global counter for message sequence numbers.
 
         return true;
     }
 
-    return false;
+    syslog(LOG_INFO, "Sending mission items to ArduPilot...");
+
+    for (int i = 0; i < MAX_SEND_RETRIES; i++) {
+        if (autopilot.send_message(msg)) {
+            break;
+        }
+
+        usleep(AUTOPILOT_SEND_INTERVAL);
+    }
+
+    for (uint16_t i = 0; i < count; i++) {
+        autopilot.send_receive_message(missions[i], ack);
+
+        usleep(AUTOPILOT_SEND_INTERVAL);
+    }
+
+    if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
+        syslog(LOG_INFO, "Mission accepted by ArduPilot.");
+    } else {
+        syslog(LOG_WARNING, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
+    }
+
+    return true;
 }
 
 /**
@@ -157,15 +165,16 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
             mo_msg.len = mo_msg.msgid = 0;
 
             if (received) {
-                ack_received = handle_param_set(mt_msg, mo_msg);
-
-                if (!ack_received) {
-                    ack_received = handle_mission_write(mt_msg, mo_msg);
-                }
-
-                if (!ack_received) {
-                    //Forward unhandled messages to the autopilot.
-                    ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
+                switch(mt_msg.msgid) {
+                    case MAVLINK_MSG_ID_PARAM_SET:
+                        ack_received = handle_param_set(mt_msg, mo_msg);
+                        break;
+                    case MAVLINK_MSG_ID_MISSION_COUNT:
+                        ack_received = handle_mission_write(mt_msg, mo_msg);
+                        break;
+                    default:
+                        //Forward unhandled messages to the autopilot.
+                        ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
                 }
             }
         }
@@ -226,36 +235,9 @@ void SPLRadioRoom::close()
 
 void SPLRadioRoom::loop()
 {
-    // Request data streams
-    uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2, MAV_DATA_STREAM_EXTENDED_STATUS,
-                                MAV_DATA_STREAM_POSITION, MAV_DATA_STREAM_RAW_CONTROLLER
-                               };
-    uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
+    mavlink_message_t msg;
 
-    for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
-        mavlink_message_t msg;
-
-        mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
-
-        if (!autopilot.send_message(msg)) {
-            syslog(LOG_WARNING, "Failed to send message to autopilot.");
-        }
-
-        usleep(10000);
-    }
-
-    /**
-     * Reads and processes MAVLink messages from autopilot.
-     */
-    for (int i = 0; i < 100; i++) {
-        mavlink_message_t msg;
-
-        if (autopilot.receive_message(msg)) {
-            update_high_latency_msg(msg);
-        }
-
-        usleep(10000);
-    }
+    get_high_latency_msg(msg);
 
     uint16_t ra_flag = 0;
 
@@ -267,14 +249,46 @@ void SPLRadioRoom::loop()
 
     // Start ISBD session if ring alert is received or report period is elapsed.
     if (ra_flag || last_report_time == 0 || elapsed_time > config.get_report_period()) {
-        mavlink_message_t msg;
-        mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
-        //msg.seq = seq++;
-
         isbd_session(msg);
 
         last_report_time = current_time;
     }
+}
+
+void SPLRadioRoom::get_high_latency_msg(mavlink_message_t& msg)
+{
+    /*
+     * Request data streams from the autopilot.
+     */
+    uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2, MAV_DATA_STREAM_EXTENDED_STATUS,
+                                MAV_DATA_STREAM_POSITION, MAV_DATA_STREAM_RAW_CONTROLLER};
+
+    uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
+
+    for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
+        mavlink_message_t msg;
+
+        mavlink_msg_request_data_stream_pack(255, 1, &msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
+
+        autopilot.send_message(msg);
+
+        usleep(AUTOPILOT_SEND_INTERVAL);
+    }
+
+    /**
+     * Reads and processes MAVLink messages from autopilot.
+     */
+    for (int i = 0; i < MAX_MESSAGES_PERIOD_SIZE; i++) {
+        mavlink_message_t msg;
+
+        if (autopilot.receive_message(msg)) {
+            update_high_latency_msg(msg);
+        }
+
+        usleep(AUTOPILOT_SEND_INTERVAL);
+    }
+
+    mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
 }
 
 /**
