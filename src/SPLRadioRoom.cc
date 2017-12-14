@@ -237,11 +237,18 @@ void SPLRadioRoom::loop()
 {
     mavlink_message_t msg;
 
-    get_high_latency_msg(msg);
-
     uint16_t ra_flag = 0;
 
     isbd.get_ring_alert_flag(ra_flag);
+
+    if (ra_flag) {
+        // Receive and handle the message in the MT queue.
+        msg.len   = 0;
+        msg.msgid = 0;
+        isbd_session(msg);
+    }
+
+    get_high_latency_msg(msg);
 
     clock_t current_time = clock();
 
@@ -249,9 +256,9 @@ void SPLRadioRoom::loop()
 
     // Start ISBD session if ring alert is received or report period is elapsed.
     if (ra_flag || last_report_time == 0 || elapsed_time > config.get_report_period()) {
-        isbd_session(msg);
-
         last_report_time = current_time;
+
+        isbd_session(msg);
     }
 }
 
