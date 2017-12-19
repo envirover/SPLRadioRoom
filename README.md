@@ -20,7 +20,7 @@ The first version of SPL RadioRoom run on Arduino 101. See [arduino/README.md](a
 
 ## Wiring 
 
-SPL RadioRoom uses serial devices to communicate with autopilot and ISBD transceiver. The safest bet is to use FTDI USB to serial adapters to connect both autopilot and transceiver to the Raspberry Pi's USB ports. Another, less straightforward option is to connect autopilot to the serial Raspberry Pi serial port using GPIO pins as shown on the diagram below. Please note that the serial port configuration is different for different Raspberry Pi versions.
+SPL RadioRoom uses serial devices to communicate with autopilot and ISBD transceiver. The safest bet is to use USB to TTL UART serial converter to connect both autopilot and transceiver to the Raspberry Pi's USB ports. Another, less straightforward option is to connect autopilot to the Raspberry Pi serial port using GPIO pins. 
 
 ![Wiring](https://s3-us-west-2.amazonaws.com/envirover/images/RadioRoomWiring3.jpg)
 
