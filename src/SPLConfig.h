@@ -29,7 +29,7 @@
 #define AUTOPILOT_SERIAL_BAUD_RATE  57600
 #define ISBD_SERIAL_BAUD_RATE       19200
 
-#define DEFAULT_REPORT_PERIOD  300L // 5 minutes
+#define DEFAULT_REPORT_PERIOD  300.0 // 5 minutes
 
 // radioroom.conf peoperties
 #define AUTOPILOT_CONFIG_SECTION        "autopilot"
@@ -82,9 +82,9 @@ public:
     bool get_auto_detect_serials() const;
     void set_auto_detect_serials(bool a);
 
-    unsigned long get_report_period() const;
+    double get_report_period() const;
     // Report period could be changed at runtime by setting HL_REPORT_PERIOD parameter
-    void set_report_period(unsigned long period);
+    void set_report_period(double period);
 
     bool get_debug_mode() const;
     void set_debug_mode(bool debug);
