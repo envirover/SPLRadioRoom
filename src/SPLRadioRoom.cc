@@ -45,7 +45,7 @@ inline int16_t radToCentidegrees(float rad) {
 }
 
 SPLRadioRoom::SPLRadioRoom() :
-    autopilot(), isbd(), high_latency(), last_report_time(0)
+    autopilot(), isbd(), high_latency(), report_time()
 {
     memset(&high_latency, 0, sizeof(high_latency));
 }
@@ -71,7 +71,7 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
         mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
-        syslog(LOG_INFO, "Report period changed to %lu seconds.", config.get_report_period());
+        syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_report_period());
         return true;
     }
 
@@ -248,16 +248,11 @@ void SPLRadioRoom::loop()
         isbd_session(msg);
     }
 
-    get_high_latency_msg(msg);
-
-    clock_t current_time = clock();
-
-    unsigned long elapsed_time = (current_time - last_report_time) / CLOCKS_PER_SEC;
-
     // Start ISBD session if ring alert is received or report period is elapsed.
-    if (ra_flag || last_report_time == 0 || elapsed_time > config.get_report_period()) {
-        last_report_time = current_time;
+    if (ra_flag || report_time.elapsed()) {
+        report_time.start(config.get_report_period());
 
+        get_high_latency_msg(msg);
         isbd_session(msg);
     }
 }

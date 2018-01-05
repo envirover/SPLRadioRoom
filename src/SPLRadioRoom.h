@@ -29,6 +29,7 @@
 #include "MAVLinkSerial.h"
 #include "MAVLinkSBD.h"
 #include "SPLConfig.h"
+#include "Stopwatch.h"
 #include <vector>
 
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
@@ -41,7 +42,7 @@ class SPLRadioRoom {
     MAVLinkSerial           autopilot;
     MAVLinkSBD              isbd;
     mavlink_high_latency_t  high_latency;
-    unsigned long           last_report_time;
+    Stopwatch               report_time;
 
 public:
 

@@ -66,6 +66,10 @@ int SPLConfig::init(const std::string& config_file)
                                             AUTO_DETECT_SERIALS_PROPERTY,
                                             true));
 
+    set_report_period(conf.GetReal(RADIOROOM_CONFIG_SECTION,
+                                   REPORT_PERIOD_PROPERTY,
+                                   DEFAULT_REPORT_PERIOD));
+
     return 0;
 }
 
@@ -129,12 +133,12 @@ void SPLConfig::set_auto_detect_serials(bool a)
     auto_detect_serials = a;
 }
 
-unsigned long SPLConfig::get_report_period() const
+double SPLConfig::get_report_period() const
 {
     return report_period;
 }
 
-void SPLConfig::set_report_period(unsigned long period)
+void SPLConfig::set_report_period(double period)
 {
     report_period = period;
 }
