@@ -1,6 +1,6 @@
 [Unit]
 Description=SPL RadioRoom Service
-Documentation=http://github.com/envirover/SPLRadioRoom
+Documentation=http://envirover.com/docs/splradioroom-rpi.html
 
 [Service]
 Type=simple
