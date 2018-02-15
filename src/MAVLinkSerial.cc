@@ -1,5 +1,5 @@
 /*
- MAVLinkSerial.cpp
+ MAVLinkSerial.cc
 
  MAVLinkSerial class sends and receives MAVLink messages to/from serial device.
 
@@ -261,9 +261,10 @@ bool MAVLinkSerial::receive_ack(const mavlink_message_t& msg, mavlink_message_t&
             if (receive_message(ack) && ack.msgid == MAVLINK_MSG_ID_PARAM_VALUE) {
                 //Repackage the message to get around problems with CRC mismatch
                 mavlink_param_value_t param_value;
-                param_value.param_count = 0;
-                param_value.param_index = 0;
-                mavlink_msg_param_value_get_param_id(&msg, param_value.param_id);
+                param_value.param_type = mavlink_msg_param_value_get_param_type(&ack);
+                param_value.param_count = mavlink_msg_param_value_get_param_count(&ack);
+                param_value.param_index = mavlink_msg_param_value_get_param_index(&ack);
+                mavlink_msg_param_value_get_param_id(&ack, param_value.param_id);
                 param_value.param_value = mavlink_msg_param_set_get_param_value(&msg);
                 mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &param_value);
                 //ack.seq = seq++;

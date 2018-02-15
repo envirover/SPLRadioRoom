@@ -1,5 +1,5 @@
 /*
- SPLRadioRoom.cpp
+ SPLRadioRoom.cc
 
 Iridium SBD telemetry for MAVLink autopilots.
 
@@ -73,6 +73,8 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
         syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_report_period());
         return true;
+    } else {
+        return autopilot.send_receive_message(msg, ack);
     }
 
     return false;
