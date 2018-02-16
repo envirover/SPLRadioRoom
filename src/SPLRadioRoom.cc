@@ -307,6 +307,9 @@ bool SPLRadioRoom::update_high_latency_msg(const mavlink_message_t& msg)
     return true;
   case MAVLINK_MSG_ID_SYS_STATUS:   //1
     high_latency.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
+    high_latency.temperature = mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000;
+    high_latency.temperature_air = mavlink_msg_sys_status_get_current_battery(&msg) < 0 ?
+                             -1 : mavlink_msg_sys_status_get_current_battery(&msg) / 100;
     return true;
   case MAVLINK_MSG_ID_GPS_RAW_INT:    //24
     high_latency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
