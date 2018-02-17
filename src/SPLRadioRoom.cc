@@ -26,8 +26,9 @@ Iridium SBD telemetry for MAVLink autopilots.
 #include "SPLRadioRoom.h"
 #include "MAVLinkLogger.h"
 #include <unistd.h>
-#include <vector>
 #include <syslog.h>
+#include <vector>
+#include <algorithm>
 
 /**
  * The maximum number of high frequency messages send by autopilot in one period,
@@ -42,6 +43,13 @@ Iridium SBD telemetry for MAVLink autopilots.
 
 inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
+}
+
+bool missions_comp(mavlink_message_t msg1, mavlink_message_t msg2)
+{
+    int seq1 = mavlink_msg_mission_item_get_seq(&msg1);
+    int seq2 = mavlink_msg_mission_item_get_seq(&msg2);
+    return seq1 < seq2;
 }
 
 SPLRadioRoom::SPLRadioRoom() :
@@ -121,6 +129,8 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 
         return true;
     }
+
+    std::sort(missions.begin(), missions.end(), missions_comp);
 
     syslog(LOG_INFO, "Sending mission items to ArduPilot...");
 
