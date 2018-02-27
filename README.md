@@ -121,7 +121,7 @@ For cross-compilation on Linux raspbian toolchain for Linux is required. toolcha
 
 ## Issues
 
-Find a bug or want to request a new feature?  Please let us know by submitting an [issue](https://github.com/envirover/SPLRadioRoom/issues).
+Find a bug or want to request a new feature?  Please let us know by submitting an [issue](https://github.com/envirover/support/issues).
 
 ## Contributing
 
