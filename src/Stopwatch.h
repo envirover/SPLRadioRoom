@@ -32,23 +32,34 @@
 class Stopwatch
 {
     time_t start_time;
-    double interval;
 
 public:
 
-    Stopwatch() : start_time(time(0)), interval(0.0)
+    Stopwatch() : start_time(::time(0))
     {
     }
 
     /*
-     * Starts count down for the specified number of seconds.
-     *
-     *
+     * Get current time.
      */
-    void start(double i)
+    time_t time() {
+        return ::time(0);
+    }
+
+    /*
+     * Reset stopwatch.
+     */
+    void reset()
     {
-        start_time = time(0);
-        interval = i;
+        reset(time());
+    }
+
+    /*
+     * Set start time.
+     */
+    void reset(time_t t)
+    {
+        start_time = t;
     }
 
     /**
@@ -56,16 +67,9 @@ public:
      */
     double elapsed_time()
     {
-        return time(0) - start_time;
+        return time() - start_time;
     }
 
-    /**
-     * Returns true if the time interval specified at the start of the stopwatch is elapsed.
-     */
-    bool elapsed()
-    {
-        return elapsed_time() >= interval;
-    }
 };
 
 #endif /* STOPWATCH_H_*/

@@ -1,9 +1,9 @@
 /*
- SPLRadioRoom.cc
+ MAVLinkHandler.cc
 
-Iridium SBD telemetry for MAVLink autopilots.
+BVLOS telemetry for MAVLink autopilots.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2018 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,8 @@ Iridium SBD telemetry for MAVLink autopilots.
      Author: Pavel Bobov
  */
 
-#include "SPLRadioRoom.h"
+#include "MAVLinkHandler.h"
+
 #include "MAVLinkLogger.h"
 #include <unistd.h>
 #include <syslog.h>
@@ -38,8 +39,10 @@ Iridium SBD telemetry for MAVLink autopilots.
 
 #define AUTOPILOT_SEND_INTERVAL 10000   //microseconds
 #define ISBD_RETRY_INTERVAL     5000000 //microseconds
+#define TCP_RETRY_INTERVAL      5000000 //microseconds
 
 #define MAX_SEND_RETRIES   5
+
 
 inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
@@ -52,13 +55,16 @@ bool missions_comp(mavlink_message_t msg1, mavlink_message_t msg2)
     return seq1 < seq2;
 }
 
-SPLRadioRoom::SPLRadioRoom() :
-    autopilot(), isbd(), high_latency(), report_time()
+MAVLinkHandler::MAVLinkHandler() :
+    autopilot(), isbd_channel(), high_latency(), report_time()
 {
     memset(&high_latency, 0, sizeof(high_latency));
 }
 
-bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
+/**
+ * Handles HL_REPORT_PERIOD_PARAM parameter setting.
+ */
+bool MAVLinkHandler::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
 {
     if (msg.msgid != MAVLINK_MSG_ID_PARAM_SET)
         return false;
@@ -68,7 +74,8 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
     if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
         float value = mavlink_msg_param_set_get_param_value(&msg);
-        config.set_report_period(value);
+        config.set_isbd_report_period(value);
+        config.set_tcp_report_period(value);
 
         mavlink_param_value_t paramValue;
         paramValue.param_value = value;
@@ -79,7 +86,7 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
 
         mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
-        syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_report_period());
+        syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_isbd_report_period());
         return true;
     } else {
         return autopilot.send_receive_message(msg, ack);
@@ -88,7 +95,10 @@ bool SPLRadioRoom::handle_param_set(const mavlink_message_t& msg, mavlink_messag
     return false;
 }
 
-bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_message_t& ack)
+/**
+ * Handles mission write transaction.
+ */
+bool MAVLinkHandler::handle_mission_write(MAVLinkChannel& channel, const mavlink_message_t& msg, mavlink_message_t& ack)
 {
     if (msg.msgid != MAVLINK_MSG_ID_MISSION_COUNT)
         return false;
@@ -97,18 +107,15 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
 
     vector<mavlink_message_t> missions(count);
 
-    mavlink_message_t mt_msg, mo_msg;
-    mo_msg.len = mo_msg.msgid = 0;
+    mavlink_message_t mt_msg;
 
-    syslog(LOG_INFO, "Receiving %d mission items from ISBD.", count);
+    syslog(LOG_INFO, "Receiving %d mission items from the comm link.", count);
 
     uint16_t idx = 0;
 
     for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
-        bool received = false;
-
-        if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
-            if (received && mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
+        if (channel.receive_message(mt_msg)) {
+            if (mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
                 //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
                 missions[idx++] = mt_msg;
             }
@@ -125,93 +132,107 @@ bool SPLRadioRoom::handle_mission_write(const mavlink_message_t& msg, mavlink_me
         mission_ack.target_component = msg.compid;
         mission_ack.type = MAV_MISSION_ERROR;
         mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-        //ack.seq = 0; //TODO: use global counter for message sequence numbers.
 
         return true;
     }
 
     std::sort(missions.begin(), missions.end(), missions_comp);
 
-    syslog(LOG_INFO, "Sending mission items to ArduPilot...");
+    return send_missions_to_autopilot(msg, missions, ack);
+}
+
+/**
+ * Sends the specified missions to autopilot.
+ */
+bool MAVLinkHandler::send_missions_to_autopilot(const mavlink_message_t& mission_count, const vector<mavlink_message_t>& missions, mavlink_message_t& ack)
+{
+    if (mission_count.msgid != MAVLINK_MSG_ID_MISSION_COUNT)
+        return false;
+
+    syslog(LOG_INFO, "Sending mission items to autopilot...");
 
     for (int i = 0; i < MAX_SEND_RETRIES; i++) {
-        if (autopilot.send_message(msg)) {
+        if (autopilot.send_message(mission_count)) {
             break;
         }
 
         usleep(AUTOPILOT_SEND_INTERVAL);
     }
 
-    for (uint16_t i = 0; i < count; i++) {
+    for (uint16_t i = 0; i < missions.size(); i++) {
         autopilot.send_receive_message(missions[i], ack);
 
         usleep(AUTOPILOT_SEND_INTERVAL);
     }
 
     if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
-        syslog(LOG_INFO, "Mission accepted by ArduPilot.");
+        syslog(LOG_INFO, "Missions accepted by autopilot.");
     } else {
-        syslog(LOG_WARNING, "Mission not accepted by ArduPilot: %d", mavlink_msg_mission_ack_get_type(&ack));
+        syslog(LOG_WARNING, "Missions not accepted by autopilot: %d", mavlink_msg_mission_ack_get_type(&ack));
     }
 
     return true;
 }
 
 /**
- * Send the specified mo_msg to ISBD.
+ * Send the specified mo_msg to the specified channel.
  * Receive and handle all messages waiting in the MT queue.
  * Send ACKs for received messages from autopilot to ISBD.
  */
-void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
+bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo_msg)
 {
-    syslog(LOG_INFO, "ISBD session started.");
+    syslog(LOG_INFO, "Comm session started for %s channel.", channel.get_channel_id().data());
 
-    bool received;
     bool ack_received = false;
     mavlink_message_t mt_msg;
 
     do {
         ack_received = false;
 
-        if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
-            mo_msg.len = mo_msg.msgid = 0;
+        if (!channel.send_message(mo_msg)) {
+            return false;
+        }
 
-            if (received) {
-                switch(mt_msg.msgid) {
-                    case MAVLINK_MSG_ID_PARAM_SET:
-                        ack_received = handle_param_set(mt_msg, mo_msg);
-                        break;
-                    case MAVLINK_MSG_ID_MISSION_COUNT:
-                        ack_received = handle_mission_write(mt_msg, mo_msg);
-                        break;
-                    default:
-                        //Forward unhandled messages to the autopilot.
-                        ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
-                }
+        mo_msg.len = mo_msg.msgid = 0;
+
+        if (channel.receive_message(mt_msg)) {
+            switch(mt_msg.msgid) {
+                case MAVLINK_MSG_ID_PARAM_SET:
+                    ack_received = handle_param_set(mt_msg, mo_msg);
+                    break;
+                case MAVLINK_MSG_ID_MISSION_COUNT:
+                    ack_received = handle_mission_write(channel, mt_msg, mo_msg);
+                    break;
+                default:
+                    //Forward unhandled messages to the autopilot.
+                    ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
             }
         }
-    } while (isbd.get_waiting_wessage_count() > 0 || ack_received);
+    } while (channel.message_available() || ack_received);
 
-    syslog(LOG_INFO, "ISBD session ended.");
+    syslog(LOG_INFO, "Comm session ended.");
+
+    return true;
 }
 
 /**
- * Open serial devices for autopilot and ISBD transceiver.
+ * Initializes autopilot and comm channels.
  *
  * Automatically detect the correct serial devices if autopilot and ISBD transceiver
  * do not respond on the devices specified by the configuration properties.
  *
  */
-bool SPLRadioRoom::init()
+bool MAVLinkHandler::init()
 {
     vector<string> devices;
+
     if (config.get_auto_detect_serials()) {
         Serial::get_serial_devices(devices);
     }
 
-    bool autopilot_connected = autopilot.init(config.get_autopilot_serial(),
-                                              config.get_autopilot_serial_speed(),
-                                              devices);
+    if (!autopilot.init(config.get_autopilot_serial(),  config.get_autopilot_serial_speed(), devices)) {
+        return false;
+    }
 
     // Exclude the serial device used by autopilot from the device list used
     // for ISBD transceiver serial device auto-detection.
@@ -222,54 +243,103 @@ bool SPLRadioRoom::init()
         }
     }
 
-    string isbd_serial = config.get_isbd_serial();
-
-    if (autopilot_connected && isbd_serial == autopilot.get_path() && devices.size() > 0) {
-        syslog(LOG_WARNING,
-               "Autopilot detected at serial device '%s' that was assigned to ISBD transceiver by the configuration settings.",
-               autopilot.get_path().data());
-
-        isbd_serial = devices[0];
+    if (config.get_tcp_enabled() && !tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
+        return false;
     }
 
-    bool isbd_connected = isbd.init(isbd_serial,
-                                    config.get_isbd_serial_speed(),
-                                    devices);
+    if (config.get_isbd_enabled()) {
+        string isbd_serial = config.get_isbd_serial();
 
-    return autopilot_connected && isbd_connected;
+        if (isbd_serial == autopilot.get_path() && devices.size() > 0) {
+            syslog(LOG_WARNING,
+                   "Autopilot detected at serial device '%s' that was assigned to ISBD transceiver by the configuration settings.",
+                   autopilot.get_path().data());
+
+            isbd_serial = devices[0];
+        }
+
+        if (!isbd_channel.init(isbd_serial, config.get_isbd_serial_speed(), devices)) {
+            return false;
+        }
+    }
+
+    if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+        syslog(LOG_ERR, "Invalid configuration: no enabled comm channels.");
+        return false;
+    }
+
+    return true;
 }
 
-void SPLRadioRoom::close()
+/**
+ * Closes all opened connections.
+ */
+void MAVLinkHandler::close()
 {
-    isbd.close();
+    tcp_channel.close();
+    isbd_channel.close();
     autopilot.close();
 }
 
-void SPLRadioRoom::loop()
+/**
+ * One iteration of the message handler.
+ */
+void MAVLinkHandler::loop()
 {
-    mavlink_message_t msg;
-
-    uint16_t ra_flag = 0;
-
-    isbd.get_ring_alert_flag(ra_flag);
-
-    if (ra_flag) {
-        // Receive and handle the message in the MT queue.
-        msg.len   = 0;
-        msg.msgid = 0;
-        isbd_session(msg);
-    }
-
-    // Start ISBD session if ring alert is received or report period is elapsed.
-    if (ra_flag || report_time.elapsed()) {
-        report_time.start(config.get_report_period());
-
-        get_high_latency_msg(msg);
-        isbd_session(msg);
+    if (config.get_tcp_report_period() <= config.get_isbd_report_period()) {
+        tcp_loop();
+        isbd_loop();
+    } else {
+        isbd_loop();
+        tcp_loop();
     }
 }
 
-void SPLRadioRoom::get_high_latency_msg(mavlink_message_t& msg)
+// Start TCP comm session first if the TCP channel is enabled and
+// either data is available to receive or TCP report period is elapsed.
+void MAVLinkHandler::tcp_loop() {
+    mavlink_message_t msg;
+
+    if (config.get_tcp_enabled() && (tcp_channel.message_available() ||
+        report_time.elapsed_time() >= config.get_tcp_report_period())) {
+        time_t period_start_time = report_time.time();
+
+        get_high_latency_msg(msg);
+
+        if (comm_session(tcp_channel, msg)) {
+            // Reset the stopwatch if the comm session succeeded.
+            report_time.reset(period_start_time);
+        }
+    }
+}
+
+/*
+ * Start ISBD comm session if the ISBD channel is enabled and
+ * either data is available to receive or ISBD report period is elapsed.
+ * Typically, configuration ISBD report period should be greater than
+ * TCP report period, so ISBD report period will elapse only when
+ * TCP sessions failed.
+ */
+void MAVLinkHandler::isbd_loop() {
+    mavlink_message_t msg;
+
+    if (config.get_isbd_enabled() && (isbd_channel.message_available() ||
+        report_time.elapsed_time() >= config.get_isbd_report_period())) {
+        time_t period_start_time = report_time.time();
+
+        get_high_latency_msg(msg);
+
+        if (comm_session(isbd_channel, msg)) {
+            // Reset the stopwatch if the comm session succeeded.
+            report_time.reset(period_start_time);
+        }
+    }
+}
+
+/*
+ * Retrieves MAVLink messages from autopilot and composes a HIGH_LATENCY message from them.
+ */
+void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
 {
     /*
      * Request data streams from the autopilot.
@@ -308,7 +378,7 @@ void SPLRadioRoom::get_high_latency_msg(mavlink_message_t& msg)
 /**
  * Integrates data from the specified MAVLink message into the HIGH_LATENCY message.
  */
-bool SPLRadioRoom::update_high_latency_msg(const mavlink_message_t& msg)
+bool MAVLinkHandler::update_high_latency_msg(const mavlink_message_t& msg)
 {
   switch (msg.msgid) {
   case MAVLINK_MSG_ID_HEARTBEAT:    //0

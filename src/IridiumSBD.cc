@@ -1,5 +1,5 @@
 /*
-IridiumSBD.cpp
+IridiumSBD.cc
 
 POSIX version of IridiumSBD library for Iridium SBD ("Short Burst Data") Communications.
 

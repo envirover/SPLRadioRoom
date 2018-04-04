@@ -30,7 +30,7 @@
 
 
 MAVLinkSerial::MAVLinkSerial() :
-    serial(), timeout(1000), start_millis(0)
+    MAVLinkChannel("serial"), serial(), timeout(1000), start_millis(0)
 {
 }
 
@@ -170,6 +170,10 @@ char* MAVLinkSerial::get_firmware_version(const mavlink_autopilot_version_t& aut
 
 bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
 {
+    if (msg.len != 0 && msg.msgid != 0) {
+       return true;
+    }
+
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
     //Copy the message to send buffer
@@ -207,6 +211,11 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
     }
 
     return false;
+}
+
+bool MAVLinkSerial::message_available()
+{
+    return true;
 }
 
 bool MAVLinkSerial::send_receive_message(const mavlink_message_t& msg, mavlink_message_t& ack)

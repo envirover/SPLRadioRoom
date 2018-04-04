@@ -3,9 +3,9 @@
 [![Build Status](https://travis-ci.org/envirover/SPLRadioRoom.svg?branch=master)](https://travis-ci.org/envirover/SPLRadioRoom)
 [![Join the chat at https://gitter.im/SPLRadioRoom/Lobby](https://badges.gitter.im/SPLRadioRoom/Lobby.svg)](https://gitter.im/SPLRadioRoom/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# SPL RadioRoom
+# RadioRoom
 
-SPL RadioRoom is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system. Together with [SPL GroundControl](https://github.com/envirover/SPLGroundControl) server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
+RadioRoom is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system. Together with [SPL GroundControl](https://github.com/envirover/SPLGroundControl) server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
 
 ## System Requirements
 
@@ -41,15 +41,17 @@ To install RadioRoom on Raspberry Pi:
 
    ``$ sudo dpkg -i radioroom-2.0.0-raspbian.deb``
   
-3. Configure the reporting period and the serial device paths for autopilot and ISBD transceiver in /etc/radioroom.conf. 
-4. Start radioroom service.
+3. Configure the reporting period and the serial device paths for autopilot in /etc/radioroom.conf.
+4. If ISBD transceiver is used, specify the serial device paths of the ISBD transceiver in /etc/radioroom.conf.
+5. If TCP/IP connection is used, specify the TCP server's IP address and port in /etc/radioroom.conf.
+6. Start radioroom service.
 
    ```
    $ sudo systemctl enable radioroom.service
    $ sudo systemctl start radioroom.service
    ```
    
-By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, RadioRoom can autodetect autopilot and ISBD if they are available on other serial and USB devices. To make the RadioRoom startup faster and more reliable it is recommended to set the device paths correctly. 
+By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, RadioRoom can auto-detect autopilot and ISBD if they are available on other serial and USB devices. To make the RadioRoom startup faster and more reliable it is recommended to set the device paths correctly. 
 
 USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB devices it is recommended to use symlinks from /dev/serial/by-path or /dev/serial/by-path directories, that do not change with reboots. 
 
@@ -130,7 +132,7 @@ Envirover welcomes contributions from anyone and everyone. Please see our [guide
 Licensing
 ---------
 ```
-Copyright (C) 2017 Envirover
+Copyright (C) 2018 Envirover
 
 SPL RadioRoom is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

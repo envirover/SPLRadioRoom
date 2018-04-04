@@ -1,9 +1,9 @@
 /*
  radioroom.cpp
 
- This file is a part of SPL RadioRoom project.
+ BVLOS telemetry for MAVLink autopilots.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2018 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,6 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "SPLRadioRoom.h"
 #include <syslog.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -29,9 +28,11 @@
 
 #include "build.h"
 
+#include "MAVLinkHandler.h"
+
 #define LOG_IDENTITY     "radioroom"
 
-SPLRadioRoom radioroom;
+MAVLinkHandler msg_handler;
 
 static int running = 0;
 
@@ -106,7 +107,7 @@ int main(int argc, char** argv) {
 
     signal(SIGTERM, handle_signal);
 
-     if (radioroom.init()) {
+     if (msg_handler.init()) {
         syslog(LOG_NOTICE, "%s.%s started.", RADIO_ROOM_VERSION, BUILD_NUM);
     } else {
         syslog(LOG_CRIT, "%s.%s initialization failed.", RADIO_ROOM_VERSION, BUILD_NUM);
@@ -116,12 +117,12 @@ int main(int argc, char** argv) {
     running = 1;
 
     while (running) {
-        radioroom.loop();
+        msg_handler.loop();
     }
 
     syslog(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
-    radioroom.close();
+    msg_handler.close();
 
     syslog(LOG_NOTICE, "%s.%s stopped.", RADIO_ROOM_VERSION, BUILD_NUM);
 
