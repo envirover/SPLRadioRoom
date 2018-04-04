@@ -56,7 +56,7 @@ bool missions_comp(mavlink_message_t msg1, mavlink_message_t msg2)
 }
 
 MAVLinkHandler::MAVLinkHandler() :
-    autopilot(), isbd_channel(), high_latency(), report_time()
+    autopilot(), isbd_channel(), tcp_channel(), high_latency(), report_time()
 {
     memset(&high_latency, 0, sizeof(high_latency));
 }

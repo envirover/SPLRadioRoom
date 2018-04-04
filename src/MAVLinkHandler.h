@@ -42,8 +42,8 @@ BVLOS telemetry for MAVLink autopilots.
 class MAVLinkHandler {
 
     MAVLinkSerial           autopilot;
-    MAVLinkISBDChannel             isbd_channel;
-    MAVLinkTCPChannel        tcp_channel;
+    MAVLinkISBDChannel      isbd_channel;
+    MAVLinkTCPChannel       tcp_channel;
     mavlink_high_latency_t  high_latency;
     Stopwatch               report_time;
 
