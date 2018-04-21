@@ -36,15 +36,15 @@
 #include <netdb.h>
 #include <errno.h>
 
+#define POLL_TIMEOUT 100 // milliseconds
+
 MAVLinkTCPChannel::MAVLinkTCPChannel() :
         MAVLinkChannel("TCP"), socket_fd(0), timeout(1000), start_millis(0), address(""), port(0)
 {
-
 }
 
 MAVLinkTCPChannel::~MAVLinkTCPChannel()
 {
-
 }
 
 bool MAVLinkTCPChannel::init(const std::string address, uint16_t port)
@@ -110,12 +110,12 @@ void MAVLinkTCPChannel::close()
 
 bool MAVLinkTCPChannel::send_message(const mavlink_message_t& msg)
 {
-    if (msg.len != 0 && msg.msgid != 0) {
+    if (msg.len == 0 && msg.msgid == 0) {
        return true;
     }
 
     if (socket_fd == 0) {
-        return false;
+        init(address, port);
     }
 
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -126,10 +126,10 @@ bool MAVLinkTCPChannel::send_message(const mavlink_message_t& msg)
     uint16_t n = ::send(socket_fd, buf, len, 0);
 
     if (n == len) {
-        MAVLinkLogger::log(LOG_INFO, "GCS <<", msg);
+        MAVLinkLogger::log(LOG_INFO, "TCP <<", msg);
     }
     else {
-        MAVLinkLogger::log(LOG_WARNING, "GCS << FAILED", msg);
+        MAVLinkLogger::log(LOG_WARNING, "TCP << FAILED", msg);
         close();
         init(address, port);
     }
@@ -170,7 +170,7 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg)
 
                 for (int i = 0; i < rc; i++) {
                     if (mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg, &mavlink_status)) {
-                        MAVLinkLogger::log(LOG_INFO, "GCS >>", msg);
+                        MAVLinkLogger::log(LOG_INFO, "TCP >>", msg);
                         return true;
                     }
                 }
@@ -189,6 +189,10 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg)
 
 bool MAVLinkTCPChannel::message_available()
 {
+    if (socket_fd == 0) {
+        return false;
+    }
+
     struct pollfd fds[1];
     int nfds = 1;
 
@@ -197,14 +201,5 @@ bool MAVLinkTCPChannel::message_available()
     fds[0].fd = socket_fd;
     fds[0].events = POLLIN;
 
-    timeout = 1000;
-
-    int rc = ::poll(fds, nfds, timeout);
-
-    if (rc <= 0) {
-        return false;
-    }
-
-    return true;
+    return ::poll(fds, nfds, POLL_TIMEOUT) > 0;
 }
-

@@ -170,7 +170,7 @@ char* MAVLinkSerial::get_firmware_version(const mavlink_autopilot_version_t& aut
 
 bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
 {
-    if (msg.len != 0 && msg.msgid != 0) {
+    if (msg.len == 0 && msg.msgid == 0) {
        return true;
     }
 
@@ -182,7 +182,7 @@ bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
     uint16_t n = serial.write(buf, len);
 
     if (n == len) {
-        MAVLinkLogger::log(LOG_DEBUG, "MAV <<", msg);
+        MAVLinkLogger::log(LOG_INFO, "MAV <<", msg);
     } else {
         MAVLinkLogger::log(LOG_WARNING, "MAV << FAILED", msg);
     }

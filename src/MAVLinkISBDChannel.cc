@@ -134,7 +134,7 @@ void MAVLinkISBDChannel::close()
  */
 bool MAVLinkISBDChannel::send_message(const mavlink_message_t& msg)
 {
-    if (msg.len != 0 && msg.msgid != 0) {
+    if (msg.len == 0 && msg.msgid == 0) {
        return true;
     }
 

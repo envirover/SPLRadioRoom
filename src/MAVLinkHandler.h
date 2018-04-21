@@ -44,7 +44,6 @@ class MAVLinkHandler {
     MAVLinkSerial           autopilot;
     MAVLinkISBDChannel      isbd_channel;
     MAVLinkTCPChannel       tcp_channel;
-    mavlink_high_latency_t  high_latency;
     Stopwatch               report_time;
 
 public:
@@ -132,7 +131,7 @@ private:
      *
      * Returns true if the message was integrated.
      */
-    bool update_high_latency_msg(const mavlink_message_t& msg);
+    bool update_high_latency_msg(const mavlink_message_t& msg, mavlink_high_latency_t& high_latency, uint16_t& mask);
 };
 
 #endif /* MAVLINKHANDLER_H_ */

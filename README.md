@@ -3,9 +3,9 @@
 [![Build Status](https://travis-ci.org/envirover/SPLRadioRoom.svg?branch=master)](https://travis-ci.org/envirover/SPLRadioRoom)
 [![Join the chat at https://gitter.im/SPLRadioRoom/Lobby](https://badges.gitter.im/SPLRadioRoom/Lobby.svg)](https://gitter.im/SPLRadioRoom/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# RadioRoom
+# SPL RadioRoom
 
-RadioRoom is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system. Together with [SPL GroundControl](https://github.com/envirover/SPLGroundControl) server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
+SPL RadioRoom is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system or a cellular data network connection. Together with [SPL GroundControl](https://github.com/envirover/SPLGroundControl) or UV Hub server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
 
 ## System Requirements
 
@@ -36,10 +36,10 @@ It is recommended to connect RockBLOCK module using [FTDI USB to UART cable](htt
 
 To install RadioRoom on Raspberry Pi:
 
-1. Copy radioroom-2.0.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
-2. Install radioroom-2.0.0-raspbian.deb package.
+1. Copy radioroom-2.1.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
+2. Install radioroom-2.1.0-raspbian.deb package.
 
-   ``$ sudo dpkg -i radioroom-2.0.0-raspbian.deb``
+   ``$ sudo dpkg -i radioroom-2.1.0-raspbian.deb``
   
 3. Configure the reporting period and the serial device paths for autopilot in /etc/radioroom.conf.
 4. If ISBD transceiver is used, specify the serial device paths of the ISBD transceiver in /etc/radioroom.conf.
@@ -57,7 +57,7 @@ USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB 
 
 RadioRoom periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period default value is 300 seconds. It can be changed by setting report_period configuration property in /etc/radioroom.conf, or remotely at runtime by setting HL_REPORT_PERIOD on-board parameter.
 
-Raspberry Pi require an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
+Raspberry Pi requires an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
   
 ## Troubleshooting
 
@@ -76,13 +76,13 @@ pi@raspberrypi:~ $ sudo systemctl status radioroom.service
            └─254 /usr/sbin/radioroom
 
 Nov 07 07:27:56 raspberrypi systemd[1]: Starting SPL RadioRoom Service...
-Nov 07 07:27:57 raspberrypi radioroom[254]: Starting SPL RadioRoom 2.0.0...
+Nov 07 07:27:57 raspberrypi radioroom[254]: Starting SPL RadioRoom 2.1.0...
 Nov 07 07:27:57 raspberrypi radioroom[254]: Connecting to autopilot (/dev/ttyUSB0 57600)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: Autopilot detected at serial device '/dev/ttyUSB0'.
 Nov 07 07:27:58 raspberrypi radioroom[254]: MAV type: 12, system id: 1, autopilot class: 3, firmware version: 3.5.0/255
 Nov 07 07:27:58 raspberrypi radioroom[254]: Connecting to ISBD transceiver (/dev/ttyUSB1 19200)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: IRIDIUM 9600 Family SBD Transceiver (IMEA 123456789012345) detected at serial device '/dev/ttyUSB1'.
-Nov 07 07:27:58 raspberrypi radioroom[254]: SPL RadioRoom 2.0.0 started.
+Nov 07 07:27:58 raspberrypi radioroom[254]: SPL RadioRoom 2.1.0 started.
 ```
 
 Log file of radioroom service is available at /var/log/radioroom.log.
