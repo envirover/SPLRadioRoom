@@ -274,7 +274,7 @@ bool MAVLinkHandler::init()
         }
     }
 
-    if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+    if (!config.get_tcp_enabled() && !config.get_isbd_enabled()) {
         syslog(LOG_ERR, "Invalid configuration: no enabled comm channels.");
         return false;
     }
