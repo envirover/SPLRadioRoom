@@ -185,6 +185,13 @@ void SPLRadioRoom::isbd_session(mavlink_message_t& mo_msg)
                         ack_received = handle_mission_write(mt_msg, mo_msg);
                         break;
                     default:
+                        /*
+                         * Send a heartbeat first
+                         */
+                        mavlink_message_t heartbeat;
+                        mavlink_msg_heartbeat_pack(255, 1, &heartbeat, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+                        autopilot.send_message(heartbeat);
+
                         //Forward unhandled messages to the autopilot.
                         ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
                 }
