@@ -180,6 +180,10 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg)
 
     if (rc < 0) {
         syslog(LOG_ERR, "Failed to receive MAVLink message from socket (errno = %d).", errno);
+    } else if (rc == 0) {
+        MAVLinkLogger::log(LOG_WARNING, "TCP >> FAILED (The stream socket peer has performed an orderly shutdown)", msg);
+        close();
+        init(address, port);
     } else {
         syslog(LOG_ERR, "Failed to parse MAVLink message.");
     }
