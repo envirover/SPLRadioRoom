@@ -213,6 +213,13 @@ bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo
                     ack_received = handle_mission_write(channel, mt_msg, mo_msg);
                     break;
                 default:
+                    /*
+                     * Send a heartbeat first
+                     */
+                    mavlink_message_t heartbeat;
+                    mavlink_msg_heartbeat_pack(mt_msg.sysid, mt_msg.compid, &heartbeat, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+                    autopilot.send_message(heartbeat);
+
                     //Forward unhandled messages to the autopilot.
                     ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
             }
@@ -386,19 +393,22 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
     /*
      * Send a heartbeat first
      */
-    mavlink_msg_heartbeat_pack(255, 1, &mt_msg, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+    mavlink_msg_heartbeat_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg, MAV_TYPE_GCS,
+                               MAV_AUTOPILOT_INVALID, 0, 0, 0);
     autopilot.send_message(mt_msg);
 
     /*
      * Request data streams from the autopilot.
      */
-    uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2, MAV_DATA_STREAM_EXTENDED_STATUS,
-                                MAV_DATA_STREAM_POSITION, MAV_DATA_STREAM_RAW_CONTROLLER};
+    uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2,
+                                MAV_DATA_STREAM_EXTENDED_STATUS, MAV_DATA_STREAM_POSITION,
+                                MAV_DATA_STREAM_RAW_CONTROLLER};
 
     uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
 
     for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
-        mavlink_msg_request_data_stream_pack(255, 1, &mt_msg, 1, 1, req_stream_ids[i], req_message_rates[i], 1);
+        mavlink_msg_request_data_stream_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg,
+                                             1, 1, req_stream_ids[i], req_message_rates[i], 1);
 
         autopilot.send_message(mt_msg);
 
