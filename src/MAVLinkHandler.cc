@@ -194,19 +194,17 @@ bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo
 {
     syslog(LOG_INFO, "Comm session started for %s channel.", channel.get_channel_id().data());
 
-    bool ack_received = false;
-    mavlink_message_t mt_msg;
+    if (!channel.send_message(mo_msg)) {
+        return false;
+    }
 
-    do {
-        ack_received = false;
-
-        if (!channel.send_message(mo_msg)) {
-            return false;
-        }
-
-        mo_msg.len = mo_msg.msgid = 0;
+    while (channel.message_available()) {
+        mavlink_message_t mt_msg;
 
         if (channel.receive_message(mt_msg)) {
+            mo_msg.len = mo_msg.msgid = 0;
+            bool ack_received = false;
+
             switch(mt_msg.msgid) {
                 case MAVLINK_MSG_ID_PARAM_SET:
                     ack_received = handle_param_set(mt_msg, mo_msg);
@@ -218,8 +216,12 @@ bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo
                     //Forward unhandled messages to the autopilot.
                     ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
             }
+
+            if (ack_received) {
+                channel.send_message(mo_msg);
+            }
         }
-    } while (channel.message_available() || ack_received);
+    }
 
     syslog(LOG_INFO, "Comm session ended.");
 

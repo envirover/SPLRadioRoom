@@ -385,6 +385,8 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
             return ret;
         }
 
+        syslog(LOG_INFO, "SBD signal quality: %d", strength);
+
         if (useWorkaround && strength >= minimumCSQ) {
             okToProceed = false;
             ret = internalMSSTMWorkaround(okToProceed);
