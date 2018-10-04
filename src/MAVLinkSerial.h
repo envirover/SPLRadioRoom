@@ -26,9 +26,11 @@
 #include <ctime>
 #include "Serial.h"
 #include "mavlink.h"
+#include "MAVLinkChannel.h"
 
 #define SYSTEM_ID               255
 #define COMPONENT_ID            1
+
 #define ARDUPILOT_SYSTEM_ID     1
 #define ARDUPILOT_COMPONENT_ID  0
 
@@ -42,7 +44,7 @@
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
  */
-class MAVLinkSerial
+class MAVLinkSerial : public MAVLinkChannel
 {
     Serial         serial;
     unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
@@ -98,6 +100,11 @@ public:
      * Returns true if MAVLink message was received.
      */
     bool receive_message(mavlink_message_t& msg);
+
+    /**
+     * Always returns true.
+     */
+    bool message_available();
 
     /**
      * Retries sending message to ArduPilot until ACK is received.

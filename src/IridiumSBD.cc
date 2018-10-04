@@ -1,5 +1,5 @@
 /*
-IridiumSBD.cpp
+IridiumSBD.cc
 
 POSIX version of IridiumSBD library for Iridium SBD ("Short Burst Data") Communications.
 
@@ -384,6 +384,8 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
         if (ret != ISBD_SUCCESS) {
             return ret;
         }
+
+        syslog(LOG_INFO, "SBD signal quality: %d", strength);
 
         if (useWorkaround && strength >= minimumCSQ) {
             okToProceed = false;

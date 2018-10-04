@@ -23,22 +23,26 @@
       Author: pbobo
  */
 
-#ifndef MAVLINKSBD_H_
-#define MAVLINKSBD_H_
+#ifndef MAVLINKISBDCHANNEL_H_
+#define MAVLINKISBDCHANNEL_H_
 
+#include <queue>
 #include "IridiumSBD.h"
 #include "mavlink.h"
+#include "MAVLinkChannel.h"
 
 /**
- * MAVLinkSerial is used to send/receive MAVLink messages to/from an ISBD transceiver.
+ * MAVLinkSBD is used to send/receive MAVLink messages to/from an ISBD transceiver.
  */
-class MAVLinkSBD {
+class MAVLinkISBDChannel : public MAVLinkChannel {
+
     Serial stream;
     IridiumSBD isbd;
+    queue<mavlink_message_t> received_messages;
 
 public:
-    MAVLinkSBD();
-    ~MAVLinkSBD();
+    MAVLinkISBDChannel();
+    ~MAVLinkISBDChannel();
 
     /**
      * Initializes connection to ISBD transceiver on the specified serial device.
@@ -54,6 +58,28 @@ public:
      */
     void close();
 
+    /**
+     * Sends the specified MAVLink message to ISBD.
+     *
+     * Returns true if the message was sent successfully.
+     */
+    bool send_message(const mavlink_message_t& msg);
+
+    /**
+     * Receives MAVLink message from ISBD.
+     *
+     * Returns true if a message was received.
+     */
+    bool receive_message(mavlink_message_t& msg);
+
+    /**
+     * Checks if data is available in ISBD.
+     *
+     * Returns true if data is available.
+     */
+    bool message_available();
+
+private:
     /**
      * Retrieves ring alert flag.
      *
@@ -73,12 +99,10 @@ public:
      */
     bool send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received);
 
-private:
-
     /**
      * Returns true if ISBD transceiver detected at the specified serial device.
      */
     bool detect_transceiver(std::string device);
 };
 
-#endif /* MAVLINKSBD_H_ */
+#endif /* MAVLINKISBDCHANNEL_H_ */

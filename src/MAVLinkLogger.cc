@@ -1,5 +1,5 @@
 /*
- MAVLinkLogger.cpp
+ MAVLinkLogger.cc
 
  This file is a part of SPL RadioRoom project.
 

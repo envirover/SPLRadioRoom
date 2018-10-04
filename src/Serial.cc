@@ -1,7 +1,7 @@
 /*
- Serial.cpp
+ Serial.cc
 
- This file is a part of SPLRadioRoom project.
+ This file is a part of SPL RadioRoom project.
 
  (C) Copyright 2017 Envirover.
 
