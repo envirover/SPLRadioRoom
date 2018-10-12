@@ -1,7 +1,7 @@
 /*
  MAVLinkChannel.h
 
- This file is a part of SPL RadioRoom project.
+ This file is a part of UV Radio Room project.
 
  (C) Copyright 2018 Envirover.
 
