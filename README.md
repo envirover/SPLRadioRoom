@@ -3,13 +3,13 @@
 [![Build Status](https://travis-ci.org/envirover/SPLRadioRoom.svg?branch=master)](https://travis-ci.org/envirover/SPLRadioRoom)
 [![Join the chat at https://gitter.im/SPLRadioRoom/Lobby](https://badges.gitter.im/SPLRadioRoom/Lobby.svg)](https://gitter.im/SPLRadioRoom/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# SPL RadioRoom
+# UV Radio Room
 
-SPL RadioRoom is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system or/and an Internet connection. Together with [UV Hub](http://envirover.com/docs/uvhub.html) server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
+UV Radio Room is a firmware for a companion computer of MAVLink-based autopilots such as ArduPilot or PX4 that provides telemetry over Iridium Short Burst Data (ISBD) satellite messaging system or/and an Internet connection. Together with [UV Hub](http://envirover.com/docs/uvhub.html) server it provides a two-way communication solution between unmanned vehicles and ground control stations such as QGroundControl or Mission Planer.
 
 ## System Requirements
 
-SPL RadioRoom system requires the following hardware and software:
+UV Radio Room system requires the following hardware and software:
 * Autopilot such as Pixhawk with [ArduPilot](http://ardupilot.org/) or [PX4](http://px4.io/) firmware;
 * Raspberry Pi computer with [Raspbian Stretch](https://www.raspberrypi.org/downloads/raspbian/) Desktop or Light;
 * Activated [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
@@ -17,7 +17,7 @@ SPL RadioRoom system requires the following hardware and software:
 
 ## Wiring 
 
-SPL RadioRoom uses serial devices to communicate with autopilot and ISBD transceiver. Cellular or satellite Internet modems cold be connected using USB, Ethernet, or WiFi connections.
+UV Radio Room uses serial devices to communicate with autopilot and ISBD transceiver. Cellular or satellite Internet modems cold be connected using USB, Ethernet, or WiFi connections.
 
 ![Wiring](https://s3-us-west-2.amazonaws.com/envirover/images/RadioRoomWiring3.jpg)
 
@@ -35,7 +35,7 @@ Though +5V TELEM pin on Pixhawk is rated for up to 2A peak power draw, it is rec
 
 ## Installing
 
-To install RadioRoom on Raspberry Pi:
+To install UV Radio Room on Raspberry Pi:
 
 1. Copy radioroom-2.1.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
 2. Install radioroom-2.1.0-raspbian.deb package.
@@ -52,11 +52,11 @@ To install RadioRoom on Raspberry Pi:
    $ sudo systemctl start radioroom.service
    ```
    
-By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, RadioRoom can auto-detect autopilot and ISBD if they are available on other serial and USB devices. To make the RadioRoom startup faster and more reliable it is recommended to set the device paths correctly. 
+By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, UV Radio Room can auto-detect autopilot and ISBD if they are available on other serial and USB devices. To make the UV Radio Room startup faster and more reliable it is recommended to set the device paths correctly. 
 
 USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB devices it is recommended to use symlinks from /dev/serial/by-path or /dev/serial/by-path directories, that do not change with reboots. 
 
-RadioRoom periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period default value is 60 seconds. It can be changed by setting report_period configuration property in /etc/radioroom.conf.
+UV Radio Room periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period default value is 60 seconds. It can be changed by setting report_period configuration property in /etc/radioroom.conf.
 
 Raspberry Pi requires an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
   
@@ -68,7 +68,7 @@ If radioroom is properly wired and configured, the output should look like this:
 
 ```
 pi@raspberrypi:~ $ sudo systemctl status radioroom.service
-● radioroom.service - SPL RadioRoom Service
+● radioroom.service - UV Radio Room Service
    Loaded: loaded (/etc/systemd/system/radioroom.service; enabled; vendor preset: enabled)
    Active: activating (start) since Tue 2018-11-07 07:27:56 UTC; 6 days ago
      Docs: http://github.com/envirover/SPLRadioRoom
@@ -76,14 +76,14 @@ pi@raspberrypi:~ $ sudo systemctl status radioroom.service
    CGroup: /system.slice/radioroom.service
            └─254 /usr/sbin/radioroom
 
-Nov 07 07:27:56 raspberrypi systemd[1]: Starting SPL RadioRoom Service...
-Nov 07 07:27:57 raspberrypi radioroom[254]: Starting SPL RadioRoom 2.1.0...
+Nov 07 07:27:56 raspberrypi systemd[1]: Starting UV Radio Room Service...
+Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.1.0...
 Nov 07 07:27:57 raspberrypi radioroom[254]: Connecting to autopilot (/dev/ttyUSB0 57600)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: Autopilot detected at serial device '/dev/ttyUSB0'.
 Nov 07 07:27:58 raspberrypi radioroom[254]: MAV type: 12, system id: 1, autopilot class: 3, firmware version: 3.5.0/255
 Nov 07 07:27:58 raspberrypi radioroom[254]: Connecting to ISBD transceiver (/dev/ttyUSB1 19200)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: IRIDIUM 9600 Family SBD Transceiver (IMEA 123456789012345) detected at serial device '/dev/ttyUSB1'.
-Nov 07 07:27:58 raspberrypi radioroom[254]: SPL RadioRoom 2.1.0 started.
+Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.1.0 started.
 ```
 
 Log file of radioroom service is available at /var/log/radioroom.log.
@@ -135,16 +135,16 @@ Licensing
 ```
 Copyright (C) 2018 Envirover
 
-SPL RadioRoom is free software: you can redistribute it and/or modify
+UV Radio Room is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-SPL RadioRoom is distributed in the hope that it will be useful,
+UV Radio Room is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with SPLRadioRoom. If not, see <http://www.gnu.org/licenses/>.
+along with UV Radio Room. If not, see <http://www.gnu.org/licenses/>.
 ```
