@@ -32,7 +32,7 @@ using namespace std;
 using namespace std::chrono;
 
 MAVLinkSerial::MAVLinkSerial() :
-    MAVLinkChannel("serial"), serial(), timeout(1000), start_millis(0)
+    MAVLinkChannel("serial"), serial(), timeout(1000)
 {
 }
 
