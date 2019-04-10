@@ -24,13 +24,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "IridiumSBD.h"
-#include <ctime>
+#include <chrono>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <limits.h>
 
+using namespace std;
+using namespace std::chrono;
 
 #define UNUSED(x) (void)(x)
 
@@ -267,13 +269,15 @@ int IridiumSBD::internalBegin()
     bool modemAlive = false;
 
     long startupTime = 500; //ms
-    for (clock_t start = clock(); 1000 * (clock() - start) / CLOCKS_PER_SEC < startupTime;)
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<milliseconds>(high_resolution_clock::now() - start).count() < startupTime;)
         if (cancelled()) {
             return ISBD_CANCELLED;
         }
 
     // Turn on modem and wait for a response from "AT" command to begin
-    for (clock_t start = clock(); !modemAlive && 1000 * (clock() - start) / CLOCKS_PER_SEC < ISBD_STARTUP_MAX_TIME;) {
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<seconds>(high_resolution_clock::now() - start).count() < ISBD_STARTUP_MAX_TIME && !modemAlive;) {
         send("AT\r");
         modemAlive = waitForATResponse();
         if (cancelled()) {
@@ -377,7 +381,8 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
     }
 
     // Long SBDIX loop begins here
-    for (unsigned long start = clock(); (clock() - start) / CLOCKS_PER_SEC < ISBD_DEFAULT_SENDRECEIVE_TIME;) {
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<seconds>(high_resolution_clock::now() - start).count() < ISBD_DEFAULT_SENDRECEIVE_TIME;) {
         int strength = 0;
         bool okToProceed = true;
         int ret = internalGetSignalQuality(strength);
@@ -566,10 +571,14 @@ int IridiumSBD::internalSleep()
 
 bool IridiumSBD::smartWait(int seconds)
 {
-    for (unsigned long start=clock(); clock() - start < 1000UL * seconds;)
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+        duration_cast<std::chrono::seconds>(high_resolution_clock::now() - start).count() < seconds;) {
         if (cancelled()) {
             return false;
         }
+
+        usleep(1000);
+    }
 
     return true;
 }
@@ -597,9 +606,8 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
 
     int promptState = prompt ? LOOKING_FOR_PROMPT : LOOKING_FOR_TERMINATOR;
 
-    //cons << "<< ";
-
-    for (clock_t start = clock(); (clock() - start) / CLOCKS_PER_SEC < atTimeout;) {
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<seconds>(high_resolution_clock::now() - start).count() < atTimeout;) {
         if (cancelled()) {
             return false;
         }
@@ -607,8 +615,6 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
         int cc = stream.read();
         if (cc >= 0) {
             char c = cc;
-
-            //cons << c;
 
             if (prompt) {
                 switch (promptState) {
@@ -699,7 +705,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
 
     //cons << "[Binary size:" << size << "]";
 
-    clock_t start = clock();
+    high_resolution_clock::time_point start = high_resolution_clock::now();
 
     for (uint16_t bytesRead = 0; bytesRead < size;) {
         if (cancelled()) {
@@ -722,7 +728,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
             }
         }
 
-        if ((clock() - start) / CLOCKS_PER_SEC >= atTimeout) {
+        if (duration_cast<seconds>(high_resolution_clock::now() - start).count() >= atTimeout) {
             return ISBD_SENDRECEIVE_TIMEOUT;
         }
     }
@@ -749,7 +755,8 @@ int IridiumSBD::readUInt(uint16_t &u)
     int n = 0;
     u = 0;
 
-    for (clock_t start = clock(); (clock() - start) / CLOCKS_PER_SEC < atTimeout && n < 2;) {
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<seconds>(high_resolution_clock::now() - start).count() < atTimeout && n < 2;) {
         if (cancelled()) {
             return ISBD_CANCELLED;
         }

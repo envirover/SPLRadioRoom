@@ -37,6 +37,9 @@
 #include <errno.h>
 #include <istream>
 #include <dirent.h>
+#include <sys/select.h>
+
+#define SERIAL_READ_TIMEOUT 250000 // microseconds
 
 speed_t baud_rate_to_speed_t(int baud_rate) {
     switch (baud_rate) {
@@ -120,7 +123,7 @@ int Serial::open(const string& path, int baud_rate)
 {
     this->path = path;
 
-    tty_fd = ::open(path.data(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+    tty_fd = ::open(path.data(), O_RDWR | O_NOCTTY /*| O_NONBLOCK*/);
 
     if (tty_fd < 0) {
         syslog(LOG_ERR, "Failed to open file '%s' (errno = %d).", path.data(), errno);
@@ -169,6 +172,25 @@ int Serial::read()
 
 int Serial::read(void* buffer, size_t size)
 {
+    fd_set set;
+    struct timeval timeout;
+
+    FD_ZERO(&set); /* clear the set */
+    FD_SET(tty_fd, &set); /* add our file descriptor to the set */
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = SERIAL_READ_TIMEOUT;
+
+    int rv = ::select(tty_fd + 1, &set, NULL, NULL, &timeout);
+
+    if (rv < 0) {
+      return -1; /* an error accured */
+    }
+
+    if (rv == 0) {
+      return 0; /* a timeout occured */
+    }
+
     return ::read(tty_fd, buffer, size);
 }
 

@@ -430,7 +430,7 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
             // Break the loop if all the messages required to compose HIGH_LATENCY
             // message are already received
             if ((mask & MAVLINK_MSG_MASK_HIGH_LATENCY) == MAVLINK_MSG_MASK_HIGH_LATENCY) {
-                syslog(LOG_INFO, "HIGH_LATENCY message prepared in %d steps!!!", i);
+                syslog(LOG_INFO, "HIGH_LATENCY message prepared in %d steps, mask = %x.", i, mask);
                 break;
             }
         }
@@ -439,8 +439,6 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
     }
 
     mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
-
-    syslog(LOG_INFO, "HIGH_LATENCY message prepared. mask = %x", mask);
 }
 
 /**

@@ -23,7 +23,6 @@
 #ifndef MAVLINKSERIAL_H_
 #define MAVLINKSERIAL_H_
 
-#include <ctime>
 #include "Serial.h"
 #include "mavlink.h"
 #include "MAVLinkChannel.h"
@@ -48,7 +47,6 @@ class MAVLinkSerial : public MAVLinkChannel
 {
     Serial         serial;
     unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
-    clock_t        start_millis;  // used for timeout measurement
 
 public:
 
@@ -135,13 +133,6 @@ private:
      * received from autopilot.
      */
     bool compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
-     * Read stream with timeout.
-     *
-     * Returns character read  or -1 in case of timeout.
-     */
-    int timed_read();
 };
 
 #endif // MAVLINKSERIAL_H_

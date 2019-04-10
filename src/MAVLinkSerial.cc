@@ -22,15 +22,17 @@
 
 #include "MAVLinkSerial.h"
 #include "MAVLinkLogger.h"
-#include <ctime>
+#include <chrono>
 #include <unistd.h>
 #include <stdio.h>
 #include <syslog.h>
 #include <limits.h>
 
+using namespace std;
+using namespace std::chrono;
 
 MAVLinkSerial::MAVLinkSerial() :
-    MAVLinkChannel("serial"), serial(), timeout(1000), start_millis(0)
+    MAVLinkChannel("serial"), serial(), timeout(1000)
 {
 }
 
@@ -102,7 +104,8 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
     autopilot = mav_type = sys_id = 0;
     memset(&autopilot_version, 0, sizeof(autopilot_version));
 
-    for (clock_t clk = clock(); 1000.0 * (clock() - clk) / CLOCKS_PER_SEC < MAX_HEARTBEAT_INTERVAL; ) {
+    for (high_resolution_clock::time_point start = high_resolution_clock::now();
+         duration_cast<milliseconds>(high_resolution_clock::now() - start).count() < MAX_HEARTBEAT_INTERVAL; ) {
         if (receive_message(msg)) {
              if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                 autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
@@ -197,7 +200,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
     // Receive data from stream
     //serial.listen();
 
-    int c = timed_read();
+    int c = serial.read();
 
     while (c >= 0) {
         //Serial.println(c);
@@ -207,7 +210,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
             return true;
         }
 
-        c = timed_read();
+        c = serial.read();
     }
 
     return false;
@@ -329,23 +332,3 @@ bool MAVLinkSerial::compose_failed_ack(const mavlink_message_t& msg, mavlink_mes
         return false;
     }
 }
-
-
-// private method to read stream with timeout
-int MAVLinkSerial::timed_read()
-{
-    int c;
-
-    start_millis = ::clock();
-
-    do {
-        c = serial.read();
-
-        if (c >= 0) {
-            return c;
-        }
-    } while (1000.0 * (::clock() - start_millis) / CLOCKS_PER_SEC < timeout );
-
-    return -1;     // -1 indicates timeout
-}
-
