@@ -23,7 +23,7 @@
 #ifndef MAVLINKSERIAL_H_
 #define MAVLINKSERIAL_H_
 
-#include <ctime>
+//#include <ctime>
 #include "Serial.h"
 #include "mavlink.h"
 #include "MAVLinkChannel.h"
@@ -141,7 +141,7 @@ private:
      *
      * Returns character read  or -1 in case of timeout.
      */
-    int timed_read();
+    //int timed_read();
 };
 
 #endif // MAVLINKSERIAL_H_

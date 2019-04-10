@@ -105,19 +105,20 @@ int main(int argc, char** argv) {
         syslog(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
     }
 
-    signal(SIGTERM, handle_signal);
-
-     if (msg_handler.init()) {
+    if (msg_handler.init()) {
         syslog(LOG_NOTICE, "%s.%s started.", RADIO_ROOM_VERSION, BUILD_NUM);
     } else {
         syslog(LOG_CRIT, "%s.%s initialization failed.", RADIO_ROOM_VERSION, BUILD_NUM);
         return EXIT_FAILURE;
     }
 
+    signal(SIGTERM, handle_signal);
+
     running = 1;
 
     while (running) {
         msg_handler.loop();
+        usleep(100000);
     }
 
     syslog(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
