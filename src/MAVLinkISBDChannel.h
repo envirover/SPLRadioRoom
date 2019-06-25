@@ -28,7 +28,7 @@
 
 #include <queue>
 #include "IridiumSBD.h"
-#include "mavlink.h"
+#include "MAVLinkLib.h"
 #include "MAVLinkChannel.h"
 
 /**

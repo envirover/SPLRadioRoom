@@ -1034,6 +1034,13 @@ void MAVLinkLogger::log(int priority, const char* prefix,
                  prefix, message.msgid, message.sysid, message.compid, message.seq, msg.time_boot_ms, msg.ind, msg.value);
         break;
     }
+    case MAVLINK_MSG_ID_BATTERY2: {
+        mavlink_battery2_t msg;
+        mavlink_msg_battery2_decode(&message, &msg);
+        snprintf(buff, sizeof(buff), "%s BATTERY2(%d), sysid=%d, compid=%d, seq=%d, voltage=%d, current_battery=%d",
+                 prefix, message.msgid, message.sysid, message.compid, message.seq, msg.voltage, msg.current_battery);
+        break;
+    }
     /*
     case MAVLINK_MSG_ID_SETUP_SIGNING: {
         mavlink_setup_signing_t msg;

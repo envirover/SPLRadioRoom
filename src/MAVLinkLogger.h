@@ -27,7 +27,7 @@
 #define MAVLINKLOGGER_H_
 
 #include <syslog.h>
-#include "mavlink.h"
+#include "MAVLinkLib.h"
 
 /**
  * Class MAVLinkLogger provides static methos for logging MAVLink messages to syslog.

@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11" )
 
 configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/build.h")
 
-include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include/standard")
+include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include")
 include_directories("${PROJECT_BINARY_DIR}")
 
 file(GLOB sources src/*.c src/*.cc)

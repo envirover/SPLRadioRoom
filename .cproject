@@ -12,7 +12,7 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="" errorParsers="org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.GCCErrorParser" id="0.2039546393" name="Default" parent="org.eclipse.cdt.build.core.prefbase.cfg" postannouncebuildStep="" postbuildStep="" preannouncebuildStep="" prebuildStep="">
+				<configuration artifactExtension="" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="" errorParsers="org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.GCCErrorParser" id="0.2039546393" name="Default" optionalBuildProperties="" parent="org.eclipse.cdt.build.core.prefbase.cfg" postannouncebuildStep="" postbuildStep="" preannouncebuildStep="" prebuildStep="">
 					<folderInfo id="0.2039546393." name="/" resourcePath="">
 						<toolChain errorParsers="" id="cdt.managedbuild.toolchain.gnu.cygwin.base.1772583044" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.Cygwin_PE" id="cdt.managedbuild.target.gnu.platform.cygwin.base.962038640" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.cygwin.base"/>
@@ -23,8 +23,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.archiver.cygwin.base.848438510" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.cygwin.base"/>
 							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.152920786" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base">
 								<option id="gnu.cpp.compiler.option.include.paths.56436374" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/libs/mavlink/include/standard}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/bin}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/libs/mavlink/include}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.790363965" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>
@@ -62,19 +62,23 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="RadioRoom" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="Build for Raspberry PI" id="0.2039546393.1684526291" name="ARM" parent="org.eclipse.cdt.build.core.prefbase.cfg" postbuildStep="cp C:\envirover\SPLRadioRoom\Default\RadioRoom.exe C:\envirover\SPLRadioRoom/RadioRoom\bin\">
+				<configuration artifactName="RadioRoom" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="Build for Raspberry PI" id="0.2039546393.1684526291" name="ARM" optionalBuildProperties="" parent="org.eclipse.cdt.build.core.prefbase.cfg" postbuildStep="cp C:\envirover\SPLRadioRoom\Default\RadioRoom.exe C:\envirover\SPLRadioRoom/RadioRoom\bin\">
 					<folderInfo id="0.2039546393.1684526291." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.base.1400610646" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.Cygwin_PE" id="cdt.managedbuild.target.gnu.platform.cygwin.base.74026036" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.cygwin.base"/>
-							<builder buildPath="${workspace_loc:/SPLRadioRoom/bin}" id="cdt.managedbuild.target.gnu.builder.cygwin.base.125948678" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.cygwin.base"/>
+							<builder buildPath="${workspace_loc:/SPLRadioRoom/bin}" id="cdt.managedbuild.target.gnu.builder.cygwin.base.125948678" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.cygwin.base">
+								<outputEntries>
+									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="bin"/>
+								</outputEntries>
+							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.cygwin.base.784841727" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.cygwin.base">
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2110429321" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.cygwin.base.1440500622" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.cygwin.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.212221801" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base">
 								<option id="gnu.cpp.compiler.option.include.paths.1575175181" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/libs/mavlink/include/standard}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/bin}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/SPLRadioRoom/libs/mavlink/include}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.112988014" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
 							</tool>

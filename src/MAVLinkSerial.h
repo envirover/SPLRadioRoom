@@ -24,7 +24,7 @@
 #define MAVLINKSERIAL_H_
 
 #include "Serial.h"
-#include "mavlink.h"
+#include "MAVLinkLib.h"
 #include "MAVLinkChannel.h"
 
 #define SYSTEM_ID               255
