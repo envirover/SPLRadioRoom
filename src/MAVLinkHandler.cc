@@ -91,7 +91,7 @@ bool MAVLinkHandler::handle_param_set(const mavlink_message_t& msg, mavlink_mess
         mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
         paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
 
-        mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
+        mavlink_msg_param_value_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
         syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_isbd_report_period());
         return true;
@@ -138,7 +138,7 @@ bool MAVLinkHandler::handle_mission_write(MAVLinkChannel& channel, const mavlink
         mission_ack.target_system = msg.sysid;
         mission_ack.target_component = msg.compid;
         mission_ack.type = MAV_MISSION_ERROR;
-        mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+        mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
 
         return true;
     }
@@ -405,7 +405,8 @@ void MAVLinkHandler::request_data_streams()
 
     for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
         mavlink_msg_request_data_stream_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg,
-                                             1, 1, req_stream_ids[i], DATA_STREAM_RATE, 1);
+                                             autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID,
+                                             req_stream_ids[i], DATA_STREAM_RATE, 1);
 
         autopilot.send_message(mt_msg);
 
@@ -448,7 +449,7 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
       syslog(LOG_WARNING, "HIGH_LATENCY message is incomplete. Mask = %x.", mask);
     }
 
-    mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
+    mavlink_msg_high_latency_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
 }
 
 /**

@@ -30,7 +30,6 @@
 #define SYSTEM_ID               255
 #define COMPONENT_ID            1
 
-#define ARDUPILOT_SYSTEM_ID     1
 #define ARDUPILOT_COMPONENT_ID  0
 
 #define SEND_RETRIES            5
@@ -47,6 +46,7 @@ class MAVLinkSerial : public MAVLinkChannel
 {
     Serial         serial;
     unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
+    uint8_t        system_id;     // target system id
 
 public:
 
@@ -85,15 +85,21 @@ public:
      */
     char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size) const;
 
+
     /**
-     * Send MAVLink message to ArduPilot.
+     * Returns the autopilot system id.
+     */
+    uint8_t get_system_id() const;
+
+    /**
+     * Send MAVLink message to autopilot.
      *
      * Returns true on success.
      */
     bool send_message(const mavlink_message_t& msg);
 
     /**
-     * Receive MAVLink message from ArduPilot.
+     * Receive MAVLink message from autopilot.
      *
      * Returns true if MAVLink message was received.
      */
@@ -105,7 +111,7 @@ public:
     bool message_available();
 
     /**
-     * Retries sending message to ArduPilot until ACK is received.
+     * Retries sending message to autopilot until ACK is received.
      *
      * Returns true if ACK message was received.
      */
@@ -116,9 +122,9 @@ private:
     /*
      * Checks if MAVLink autopilot is available on the specified serial device.
      *
-     * Returns true is autopilot was detected.
+     * If an autopilot was detected, returns the autopilot's system id, otherwise returns 0.
      */
-    bool detect_autopilot(const string device);
+    uint8_t detect_autopilot(const string device);
 
     /**
      * Receive messages from serial several times until received
