@@ -31,12 +31,6 @@ BVLOS telemetry for MAVLink autopilots.
 #include <vector>
 #include <algorithm>
 
-/**
- * The maximum number of high frequency messages send by autopilot in one period,
- * before the pattern starts to repeat again.
- */
-#define MAX_MESSAGES_PERIOD_SIZE 24
-
 #define AUTOPILOT_SEND_INTERVAL 10000   //microseconds
 #define ISBD_RETRY_INTERVAL     5000000 //microseconds
 #define TCP_RETRY_INTERVAL      5000000 //microseconds
@@ -44,17 +38,19 @@ BVLOS telemetry for MAVLink autopilots.
 #define MAX_SEND_RETRIES   5
 
 // Masks of MAVLink messages used to compose single HIGH_LATENCY message
-#define MAVLINK_MSG_MASK_HEARTBEAT              0x01
-#define MAVLINK_MSG_MASK_SYS_STATUS             0x02
-#define MAVLINK_MSG_MASK_GPS_RAW_INT            0x04
-#define MAVLINK_MSG_MASK_ATTITUDE               0x08
-#define MAVLINK_MSG_MASK_GLOBAL_POSITION_INT    0x10
-#define MAVLINK_MSG_MASK_MISSION_CURRENT        0x20
-#define MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT  0x40
-#define MAVLINK_MSG_MASK_VFR_HUD                0x80
+#define MAVLINK_MSG_MASK_HEARTBEAT              0x0001
+#define MAVLINK_MSG_MASK_SYS_STATUS             0x0002
+#define MAVLINK_MSG_MASK_GPS_RAW_INT            0x0004
+#define MAVLINK_MSG_MASK_ATTITUDE               0x0008
+#define MAVLINK_MSG_MASK_GLOBAL_POSITION_INT    0x0010
+#define MAVLINK_MSG_MASK_MISSION_CURRENT        0x0020
+#define MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT  0x0040
+#define MAVLINK_MSG_MASK_VFR_HUD                0x0080
+#define MAVLINK_MSG_MASK_BATTERY2               0x0100 // optional
 
-#define MAVLINK_MSG_MASK_HIGH_LATENCY           0xFF
+#define MAVLINK_MSG_MASK_HIGH_LATENCY           0x00FF
 
+#define DATA_STREAM_RATE   2 //Hz
 
 inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
@@ -95,7 +91,7 @@ bool MAVLinkHandler::handle_param_set(const mavlink_message_t& msg, mavlink_mess
         mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
         paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
 
-        mavlink_msg_param_value_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
+        mavlink_msg_param_value_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
 
         syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_isbd_report_period());
         return true;
@@ -142,7 +138,7 @@ bool MAVLinkHandler::handle_mission_write(MAVLinkChannel& channel, const mavlink
         mission_ack.target_system = msg.sysid;
         mission_ack.target_component = msg.compid;
         mission_ack.type = MAV_MISSION_ERROR;
-        mavlink_msg_mission_ack_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
+        mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
 
         return true;
     }
@@ -288,6 +284,8 @@ bool MAVLinkHandler::init()
         return false;
     }
 
+    request_data_streams();
+
     return true;
 }
 
@@ -333,7 +331,7 @@ void MAVLinkHandler::tcp_loop() {
     }
 
     if (message_available || report_time.elapsed_time() >= config.get_tcp_report_period()) {
-        time_t period_start_time = report_time.time();
+        high_resolution_clock::time_point period_start_time = report_time.time();
 
         mavlink_message_t msg;
 
@@ -368,7 +366,7 @@ void MAVLinkHandler::isbd_loop() {
     }
 
     if (message_available || report_time.elapsed_time() >= config.get_isbd_report_period()) {
-        time_t period_start_time = report_time.time();
+        high_resolution_clock::time_point period_start_time = report_time.time();
 
         mavlink_message_t msg;
 
@@ -381,13 +379,8 @@ void MAVLinkHandler::isbd_loop() {
     }
 }
 
-/*
- * Retrieves MAVLink messages from autopilot and composes a HIGH_LATENCY message from them.
- */
-void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
+void MAVLinkHandler::request_data_streams()
 {
-    syslog(LOG_INFO, "Prepare HIGH_LATENCY message...");
-
     mavlink_message_t mt_msg;
 
     /*
@@ -400,20 +393,33 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
     /*
      * Request data streams from the autopilot.
      */
-    uint8_t req_stream_ids[] = {MAV_DATA_STREAM_EXTRA1, MAV_DATA_STREAM_EXTRA2,
-                                MAV_DATA_STREAM_EXTENDED_STATUS, MAV_DATA_STREAM_POSITION,
-                                MAV_DATA_STREAM_RAW_CONTROLLER};
-
-    uint16_t req_message_rates[] = {2, 3, 2, 2, 2};
+    uint8_t req_stream_ids[] = {
+        MAV_DATA_STREAM_EXTENDED_STATUS, // SYS_STATUS, NAV_CONTROLLER_OUTPUT, GPS_RAW, MISSION_CURRENT
+        MAV_DATA_STREAM_POSITION,        // GLOBAL_POSITION_INT
+        //MAV_DATA_STREAM_RAW_CONTROLLER,
+        MAV_DATA_STREAM_RAW_SENSORS,     //
+        MAV_DATA_STREAM_EXTRA1,          // ATTITUDE
+        MAV_DATA_STREAM_EXTRA2,          // VFR_HUD
+        MAV_DATA_STREAM_EXTRA3           // MSG_BATTERY2
+    };
 
     for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
         mavlink_msg_request_data_stream_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg,
-                                             1, 1, req_stream_ids[i], req_message_rates[i], 1);
+                                             autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID,
+                                             req_stream_ids[i], DATA_STREAM_RATE, 1);
 
         autopilot.send_message(mt_msg);
 
         usleep(AUTOPILOT_SEND_INTERVAL);
     }
+}
+
+/*
+ * Retrieves MAVLink messages from autopilot and composes a HIGH_LATENCY message from them.
+ */
+void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
+{
+    syslog(LOG_INFO, "Preparing HIGH_LATENCY message...");
 
     /**
      * Reads and processes MAVLink messages from autopilot.
@@ -423,22 +429,27 @@ void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
 
     memset(&high_latency, 0, sizeof(high_latency));
 
-    for (int i = 0; i < MAX_MESSAGES_PERIOD_SIZE; i++) {
+    // Rate of HEARTBEAT message cannot be requested. Usually it's 1 Hz.
+    // So at least 1 second is required to compose HIGH_LATENCY message.
+    double data_stream_period = 1.0;
+
+    Stopwatch stopwatch;
+
+    for (int i = 0; stopwatch.elapsed_time() < data_stream_period; i++) {
+        mavlink_message_t mt_msg;
+
         if (autopilot.receive_message(mt_msg)) {
             update_high_latency_msg(mt_msg, high_latency, mask);
-
-            // Break the loop if all the messages required to compose HIGH_LATENCY
-            // message are already received
-            if ((mask & MAVLINK_MSG_MASK_HIGH_LATENCY) == MAVLINK_MSG_MASK_HIGH_LATENCY) {
-                syslog(LOG_INFO, "HIGH_LATENCY message prepared in %d steps, mask = %x.", i, mask);
-                break;
-            }
         }
-
-        usleep(AUTOPILOT_SEND_INTERVAL);
     }
 
-    mavlink_msg_high_latency_encode(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
+    if ((mask & MAVLINK_MSG_MASK_HIGH_LATENCY) == MAVLINK_MSG_MASK_HIGH_LATENCY) {
+      syslog(LOG_INFO, "HIGH_LATENCY message prepared.");
+    } else {
+      syslog(LOG_WARNING, "HIGH_LATENCY message is incomplete. Mask = %x.", mask);
+    }
+
+    mavlink_msg_high_latency_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
 }
 
 /**
@@ -455,14 +466,12 @@ bool MAVLinkHandler::update_high_latency_msg(const mavlink_message_t& msg, mavli
   case MAVLINK_MSG_ID_SYS_STATUS:   //1
     high_latency.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
     high_latency.temperature = mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000;
-    high_latency.temperature_air = mavlink_msg_sys_status_get_current_battery(&msg) < 0 ?
-                             -1 : mavlink_msg_sys_status_get_current_battery(&msg) / 100;
     mask |= MAVLINK_MSG_MASK_SYS_STATUS;
     return true;
   case MAVLINK_MSG_ID_GPS_RAW_INT:    //24
-    high_latency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
-    high_latency.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
-    high_latency.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
+    //high_latency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
+    //high_latency.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
+    //high_latency.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
     high_latency.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
     high_latency.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
     high_latency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
@@ -474,12 +483,10 @@ bool MAVLinkHandler::update_high_latency_msg(const mavlink_message_t& msg, mavli
     high_latency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
     mask |= MAVLINK_MSG_MASK_ATTITUDE;
     return true;
-  case MAVLINK_MSG_ID_LOCAL_POSITION_NED:
-    return true;
   case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:    //33
-    //high_latency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
-    //high_latency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-    //high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
+    high_latency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
+    high_latency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
+    high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
     high_latency.altitude_sp = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
     mask |= MAVLINK_MSG_MASK_GLOBAL_POSITION_INT;
     return true;
@@ -499,6 +506,11 @@ bool MAVLinkHandler::update_high_latency_msg(const mavlink_message_t& msg, mavli
     high_latency.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
     high_latency.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
     mask |= MAVLINK_MSG_MASK_VFR_HUD;
+    return true;
+  case MAVLINK_MSG_ID_BATTERY2:    //147
+    uint16_t batt2_voltage = mavlink_msg_battery2_get_voltage(&msg);
+    high_latency.temperature_air = batt2_voltage / 1000;
+    mask |= MAVLINK_MSG_MASK_BATTERY2;
     return true;
   }
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 
-project(radioroom VERSION 2.1.0)
+project(radioroom VERSION 2.2.0)
 
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
@@ -22,7 +22,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11" )
 
 configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/build.h")
 
-include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include/standard")
+include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include")
 include_directories("${PROJECT_BINARY_DIR}")
 
 file(GLOB sources src/*.c src/*.cc)

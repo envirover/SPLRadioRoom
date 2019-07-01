@@ -27,7 +27,7 @@
 #define MAVLINKTCPCHANNEL_H_
 
 #include <string>
-#include "mavlink.h"
+#include "MAVLinkLib.h"
 #include "MAVLinkChannel.h"
 
 /**

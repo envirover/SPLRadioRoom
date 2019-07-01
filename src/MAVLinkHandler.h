@@ -121,6 +121,11 @@ private:
      */
     bool comm_session(MAVLinkChannel& channel, mavlink_message_t& mo_msg);
 
+    /*
+     * Requests autopilot data streams required to compose HIGH_LATENCY message.
+     */
+    void request_data_streams();
+
     /**
      * Retrieves all the required data from the autopilot and composes HIGH_LATENCY message.
      */

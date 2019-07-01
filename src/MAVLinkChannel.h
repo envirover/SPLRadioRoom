@@ -26,7 +26,7 @@
 #ifndef MAVLINKCHANNEL_H_
 #define MAVLINKCHANNEL_H_
 
-#include "mavlink.h"
+#include "MAVLinkLib.h"
 
 /*
  * Interface for send/receive channels of MAVLink messages.
