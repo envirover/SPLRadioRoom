@@ -271,9 +271,9 @@ bool MAVLinkHandler::init()
     if (config.get_tcp_enabled()) {
         if (tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
             tcp_channel_connected = true;
-            syslog(LOG_INFO, "UV Radio Room initialization: TCP channel initialized.");
+            syslog(LOG_INFO, "TCP channel initialized.");
         } else {
-            syslog(LOG_WARNING, "UV Radio Room initialization: TCP channel initialization failed.");
+            syslog(LOG_WARNING, "TCP channel initialization failed.");
         }
     }
 
@@ -290,14 +290,14 @@ bool MAVLinkHandler::init()
 
         if (isbd_channel.init(isbd_serial, config.get_isbd_serial_speed(), devices)) {
             isbd_channel_connected = true;
-            syslog(LOG_INFO, "UV Radio Room initialization: ISBD channel initialized.");
+            syslog(LOG_INFO, "ISBD channel initialized.");
         } else {
-            syslog(LOG_WARNING, "UV Radio Room initialization: ISBD channel initialization failed.");
+            syslog(LOG_WARNING, "ISBD channel initialization failed.");
         }
     }
 
     if (!tcp_channel_connected && !isbd_channel_connected) {
-        syslog(LOG_ERR, "UV Radio Room initialization failed: no connected comm channels.");
+        syslog(LOG_ERR, "UV Radio Room initialization failed. No connected comm channels.");
         return false;
     }
 
