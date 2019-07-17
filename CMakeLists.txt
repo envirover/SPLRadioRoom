@@ -30,6 +30,8 @@ file(GLOB sources src/*.c src/*.cc)
 add_executable(radioroom ${sources})
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" FILE_PERMISSIONS  )
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 
+        FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
+        DIRECTORY_PERMISSIONS OWNER_WRITE OWNER_READ OWNER_EXECUTE GROUP_READ WORLD_READ)
 
 include(CPack)
