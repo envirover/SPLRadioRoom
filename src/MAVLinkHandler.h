@@ -45,6 +45,8 @@ class MAVLinkHandler {
     MAVLinkISBDChannel      isbd_channel;
     MAVLinkTCPChannel       tcp_channel;
     Stopwatch               report_time;
+    bool                    tcp_channel_connected;
+    bool                    isbd_channel_connected;
 
 public:
 

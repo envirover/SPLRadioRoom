@@ -64,7 +64,8 @@ bool missions_comp(mavlink_message_t msg1, mavlink_message_t msg2)
 }
 
 MAVLinkHandler::MAVLinkHandler() :
-    autopilot(), isbd_channel(), tcp_channel(), report_time()
+    autopilot(), isbd_channel(), tcp_channel(), report_time(), 
+    tcp_channel_connected(false), isbd_channel_connected(false)
 {
 }
 
@@ -240,6 +241,11 @@ bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo
  */
 bool MAVLinkHandler::init()
 {
+    if (!config.get_tcp_enabled() && !config.get_isbd_enabled()) {
+        syslog(LOG_ERR, "Invalid configuration: no enabled comm channels.");
+        return false;
+    }
+
     vector<string> devices;
 
     if (config.get_auto_detect_serials()) {
@@ -247,8 +253,11 @@ bool MAVLinkHandler::init()
     }
 
     if (!autopilot.init(config.get_autopilot_serial(),  config.get_autopilot_serial_speed(), devices)) {
+        syslog(LOG_ERR, "UV Radio Room initialization failed: cannot connect to autopilot.");
         return false;
     }
+
+    request_data_streams();
 
     // Exclude the serial device used by autopilot from the device list used
     // for ISBD transceiver serial device auto-detection.
@@ -259,8 +268,13 @@ bool MAVLinkHandler::init()
         }
     }
 
-    if (config.get_tcp_enabled() && !tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
-        return false;
+    if (config.get_tcp_enabled()) {
+        if (tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
+            tcp_channel_connected = true;
+            syslog(LOG_INFO, "TCP channel initialized.");
+        } else {
+            syslog(LOG_WARNING, "TCP channel initialization failed.");
+        }
     }
 
     if (config.get_isbd_enabled()) {
@@ -274,18 +288,20 @@ bool MAVLinkHandler::init()
             isbd_serial = devices[0];
         }
 
-        if (!isbd_channel.init(isbd_serial, config.get_isbd_serial_speed(), devices)) {
-            return false;
+        if (isbd_channel.init(isbd_serial, config.get_isbd_serial_speed(), devices)) {
+            isbd_channel_connected = true;
+            syslog(LOG_INFO, "ISBD channel initialized.");
+        } else {
+            syslog(LOG_WARNING, "ISBD channel initialization failed.");
         }
     }
 
-    if (!config.get_tcp_enabled() && !config.get_isbd_enabled()) {
-        syslog(LOG_ERR, "Invalid configuration: no enabled comm channels.");
+    if (!tcp_channel_connected && !isbd_channel_connected) {
+        syslog(LOG_ERR, "UV Radio Room initialization failed. No connected comm channels.");
         return false;
     }
 
-    request_data_streams();
-
+    syslog(LOG_INFO, "UV Radio Room initialization succeeded.");
     return true;
 }
 
@@ -295,7 +311,11 @@ bool MAVLinkHandler::init()
 void MAVLinkHandler::close()
 {
     tcp_channel.close();
+    tcp_channel_connected = false;
+
     isbd_channel.close();
+    isbd_channel_connected = false;
+    
     autopilot.close();
 }
 
@@ -313,10 +333,10 @@ void MAVLinkHandler::loop()
     }
 }
 
-// Start TCP comm session first if the TCP channel is enabled and
+// Start TCP comm session first if the TCP channel is connected and
 // either data is available to receive or TCP report period is elapsed.
 void MAVLinkHandler::tcp_loop() {
-    if (!config.get_tcp_enabled()) {
+    if (!tcp_channel_connected) {
         return;
     }
 
@@ -345,14 +365,14 @@ void MAVLinkHandler::tcp_loop() {
 }
 
 /*
- * Start ISBD comm session if the ISBD channel is enabled and
+ * Start ISBD comm session if the ISBD channel is connected and
  * either data is available to receive or ISBD report period is elapsed.
  * Typically, configuration ISBD report period should be greater than
  * TCP report period, so ISBD report period will elapse only when
  * TCP sessions failed.
  */
 void MAVLinkHandler::isbd_loop() {
-    if (!config.get_isbd_enabled()) {
+    if (!isbd_channel_connected) {
         return;
     }
 
