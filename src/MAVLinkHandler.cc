@@ -336,6 +336,16 @@ void MAVLinkHandler::loop()
 // Start TCP comm session first if the TCP channel is connected and
 // either data is available to receive or TCP report period is elapsed.
 void MAVLinkHandler::tcp_loop() {
+    // Initialize TCP channel if it was not initialized in init().
+    if (config.get_tcp_enabled() && !tcp_channel_connected) {
+        if (tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
+            tcp_channel_connected = true;
+            syslog(LOG_INFO, "TCP channel initialized.");
+        } else {
+            syslog(LOG_WARNING, "TCP channel initialization failed.");
+        }        
+    }
+
     if (!tcp_channel_connected) {
         return;
     }
