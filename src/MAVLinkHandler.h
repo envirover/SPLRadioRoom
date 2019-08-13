@@ -33,6 +33,7 @@ BVLOS telemetry for MAVLink autopilots.
 #include "Config.h"
 #include "MAVLinkISBDChannel.h"
 #include "MAVLinkTCPChannel.h"
+#include "MAVLinkQueue.h"
 
 #define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
 
