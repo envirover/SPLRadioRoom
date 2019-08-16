@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <limits.h>
+#include <time.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -123,7 +124,7 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
             }
         }
 
-        usleep(RECEIVE_RETRY_DELAY * 1000);
+        nanosleep(RECEIVE_RETRY_DELAY, NULL);
     }
 
     //Return false if heartbeat message was not received
@@ -152,7 +153,7 @@ bool MAVLinkSerial::request_autopilot_version(uint8_t& autopilot, uint8_t& mav_t
             syslog(LOG_DEBUG, "Failed to send message to autopilot.\n");
         }
 
-        usleep(RECEIVE_RETRY_DELAY * 1000);
+        nanosleep(RECEIVE_RETRY_DELAY, NULL);
     }
 
     return true;
@@ -276,7 +277,7 @@ bool MAVLinkSerial::receive_ack(const mavlink_message_t& msg, mavlink_message_t&
             return false;
         }
 
-        usleep(RECEIVE_RETRY_DELAY * 1000);
+        nanosleep(RECEIVE_RETRY_DELAY, NULL);
     }
 
     return false;

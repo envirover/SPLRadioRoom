@@ -25,12 +25,14 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "build.h"
-
 #include "MAVLinkHandler.h"
 
 #define LOG_IDENTITY     "radioroom"
+
+const struct timespec MSG_HANDLER_LOOP_PERIOD[] = {{0, 100000000L}}; // 100 ms
 
 MAVLinkHandler msg_handler;
 
@@ -118,7 +120,7 @@ int main(int argc, char** argv) {
 
     while (running) {
         msg_handler.loop();
-        usleep(100000);
+        nanosleep(MSG_HANDLER_LOOP_PERIOD, NULL);
     }
 
     syslog(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);

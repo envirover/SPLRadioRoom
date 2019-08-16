@@ -28,12 +28,9 @@ BVLOS telemetry for MAVLink autopilots.
 #include "MAVLinkLogger.h"
 #include <unistd.h>
 #include <syslog.h>
+#include <time.h>
 #include <vector>
 #include <algorithm>
-
-#define AUTOPILOT_SEND_INTERVAL 10000   //microseconds
-#define ISBD_RETRY_INTERVAL     5000000 //microseconds
-#define TCP_RETRY_INTERVAL      5000000 //microseconds
 
 #define MAX_SEND_RETRIES   5
 
@@ -51,6 +48,13 @@ BVLOS telemetry for MAVLink autopilots.
 #define MAVLINK_MSG_MASK_HIGH_LATENCY           0x00FF
 
 #define DATA_STREAM_RATE   2 //Hz
+
+#ifndef M_PI
+  #define M_PI 3.1415926
+#endif
+
+const struct timespec AUTOPILOT_SEND_INTERVAL[] = {{0, 10000000L}}; // 10 milliseconds
+const struct timespec ISBD_RETRY_INTERVAL[] = {{5, 0L}}; // 5 seconds
 
 inline int16_t radToCentidegrees(float rad) {
   return rad / M_PI * 18000;
@@ -128,7 +132,7 @@ bool MAVLinkHandler::handle_mission_write(MAVLinkChannel& channel, const mavlink
                 missions[idx++] = mt_msg;
             }
         } else {
-            usleep(ISBD_RETRY_INTERVAL);
+            nanosleep(ISBD_RETRY_INTERVAL, NULL);
         }
     }
 
@@ -164,13 +168,13 @@ bool MAVLinkHandler::send_missions_to_autopilot(const mavlink_message_t& mission
             break;
         }
 
-        usleep(AUTOPILOT_SEND_INTERVAL);
+        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
     }
 
     for (uint16_t i = 0; i < missions.size(); i++) {
         autopilot.send_receive_message(missions[i], ack);
 
-        usleep(AUTOPILOT_SEND_INTERVAL);
+        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
     }
 
     if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
@@ -440,7 +444,7 @@ void MAVLinkHandler::request_data_streams()
 
         autopilot.send_message(mt_msg);
 
-        usleep(AUTOPILOT_SEND_INTERVAL);
+        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
     }
 }
 

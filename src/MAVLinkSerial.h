@@ -34,10 +34,11 @@
 
 #define SEND_RETRIES            5
 #define RECEIVE_RETRIES         10
-#define RECEIVE_RETRY_DELAY     10   //ms
 #define RETRIES_TIMEOUT         1000
 
 #define MAX_HEARTBEAT_INTERVAL  2000 //ms
+
+const struct timespec RECEIVE_RETRY_DELAY[] = {{0, 10000000L}}; // 10 ms
 
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.

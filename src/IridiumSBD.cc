@@ -36,6 +36,8 @@ using namespace std::chrono;
 
 #define UNUSED(x) (void)(x)
 
+const struct timespec SMART_WAIT_SLEEP[] = {{0, 1000000L}}; // 1ms
+
 bool isbdCallback()
 {
     return true;
@@ -577,7 +579,7 @@ bool IridiumSBD::smartWait(int seconds)
             return false;
         }
 
-        usleep(1000);
+        nanosleep(SMART_WAIT_SLEEP, NULL); // sleep for 1 millisecond
     }
 
     return true;
