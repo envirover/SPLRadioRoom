@@ -31,6 +31,7 @@
 /.settings/
 /RadioRoom/bin/*
 /bin/*
+/debug/*
 /Default/
 /RemoteSystemsTempFiles/
 /CMakeFiles/

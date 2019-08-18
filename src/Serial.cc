@@ -222,9 +222,13 @@ int Serial::get_serial_devices(vector<string>& devices) {
                 continue;
 
             string device = string(SERIAL_BY_PATH_DIR) + string(dirp->d_name);
+#ifdef __CYGWIN__
+            devices.push_back(string(device.data()));   
+#else
             char real_path[PATH_MAX];
             realpath(device.data(), real_path);
-            devices.push_back(string(real_path));
+            devices.push_back(string(real_path));           
+#endif
         }
 
         closedir(dp);
