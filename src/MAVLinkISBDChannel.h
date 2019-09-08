@@ -1,9 +1,9 @@
 /*
- MAVLinkSBD.h
+ MAVLinkISBDChannel.h
 
- Iridium SBD telemetry for MAVLink autopilots.
+ Telemetry for MAVLink autopilots.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -19,27 +19,26 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  Created on: Oct 26, 2017
+  Created on: Aug 23, 2019
       Author: pbobo
  */
 
 #ifndef MAVLINKISBDCHANNEL_H_
 #define MAVLINKISBDCHANNEL_H_
 
-#include <queue>
-#include "IridiumSBD.h"
-#include "MAVLinkLib.h"
+#include "CircularBuffer.h"
 #include "MAVLinkChannel.h"
+#include "MAVLinkISBD.h"
+#include "MAVLinkLib.h"
+
+#include <atomic>
+#include <thread>
+#include <string>
 
 /**
- * MAVLinkSBD is used to send/receive MAVLink messages to/from an ISBD transceiver.
+ * MAVLinkISBDChannel asynchronously sends and receives MAVLink messages to/from an ISBD transceiver.
  */
 class MAVLinkISBDChannel : public MAVLinkChannel {
-
-    Serial stream;
-    IridiumSBD isbd;
-    queue<mavlink_message_t> received_messages;
-
 public:
     MAVLinkISBDChannel();
     ~MAVLinkISBDChannel();
@@ -51,7 +50,7 @@ public:
      *
      * Returns true if connection was successful.
      */
-    bool init(std::string path, int speed, const vector<string>& devices);
+    bool init(std::string path, int speed, const std::vector<std::string>& devices);
 
     /*
      * Closes the serial device used to connect to ISBD.
@@ -66,43 +65,40 @@ public:
     bool send_message(const mavlink_message_t& msg);
 
     /**
-     * Receives MAVLink message from ISBD.
+     * Receives MAVLink message from ISBD transceiver.
      *
      * Returns true if a message was received.
      */
     bool receive_message(mavlink_message_t& msg);
 
     /**
-     * Checks if data is available in ISBD.
+     * Checks if data is available in ISBD transceiver.
      *
      * Returns true if data is available.
      */
     bool message_available();
 
+     /**
+     * Returns time of the last successfully sent message.  
+     */
+    std::chrono::high_resolution_clock::time_point last_send_time() override;
+
+    /**
+     * Returns time of the last successfully received message.  
+     */
+    std::chrono::high_resolution_clock::time_point last_receive_time() override;   
+
 private:
     /**
-     * Retrieves ring alert flag.
-     *
-     * Returns true is the operation was successful.
+     * While running is true, executes send-receive ISBD sessions. 
      */
-    bool get_ring_alert_flag(uint16_t &raFlag);
+    void send_receive_task();
 
-    /**
-     * Returns the number of mobile terminated messages left in the queue.
-     */
-    int get_waiting_wessage_count();
-
-    /**
-     * Sends MT message to ISBD and receives MO message from the in-bound message queue if any.
-     *
-     * Returns true if the ISBD session succeeded.
-     */
-    bool send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received);
-
-    /**
-     * Returns true if ISBD transceiver detected at the specified serial device.
-     */
-    bool detect_transceiver(std::string device);
+    MAVLinkISBD                       isbd;
+    std::atomic<bool>                 running;
+    std::thread                       send_receive_thread; // Thread of send_receive_task
+    CircularBuffer<mavlink_message_t> send_queue; // Queue that buffers messages to be sent to the socket
+    CircularBuffer<mavlink_message_t> receive_queue; // Queue that buffers messages received from the socket
 };
 
 #endif /* MAVLINKISBDCHANNEL_H_ */

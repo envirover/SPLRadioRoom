@@ -26,27 +26,21 @@
 
 #include <chrono>
 
-using namespace std;
-using namespace std::chrono;
-
 /**
  * Stopwatch class is used to measure absolute elapsed time.
  */
-class Stopwatch
-{
-    high_resolution_clock::time_point start_time;
-
+class Stopwatch {
 public:
-
-    Stopwatch() : start_time(high_resolution_clock::now())
+    Stopwatch() : start_time(std::chrono::high_resolution_clock::now())
     {
     }
 
     /*
      * Get current time.
      */
-    high_resolution_clock::time_point time() {
-        return high_resolution_clock::now();
+    std::chrono::high_resolution_clock::time_point time()
+    {
+        return std::chrono::high_resolution_clock::now();
     }
 
     /*
@@ -54,13 +48,13 @@ public:
      */
     void reset()
     {
-        reset(high_resolution_clock::now());
+        reset(std::chrono::high_resolution_clock::now());
     }
 
     /*
      * Set start time.
      */
-    void reset(high_resolution_clock::time_point t)
+    void reset(std::chrono::high_resolution_clock::time_point t)
     {
         start_time = t;
     }
@@ -70,9 +64,11 @@ public:
      */
     double elapsed_time()
     {
-        return duration_cast<milliseconds>(time() - start_time).count() / 1000.0;
+        return std::chrono::duration_cast<std::chrono::milliseconds>(time() - start_time).count() / 1000.0;
     }
 
+private:
+    std::chrono::high_resolution_clock::time_point start_time;
 };
 
 #endif /* STOPWATCH_H_*/

@@ -1,9 +1,9 @@
 /*
  MAVLinkHandler.h
 
-BVLOS telemetry for MAVLink autopilots.
+Telemetry for MAVLink autopilots.
 
- (C) Copyright 2018 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -18,48 +18,32 @@ BVLOS telemetry for MAVLink autopilots.
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
- Created on: Oct 17, 2017
-     Author: Pavel Bobov
 */
 
 #ifndef MAVLINKHANDLER_H_
 #define MAVLINKHANDLER_H_
 
-#include "MAVLinkSerial.h"
-#include "MAVLinkChannel.h"
-#include "Stopwatch.h"
-#include <vector>
-#include "Config.h"
+#include "MAVLinkAutopilot.h"
 #include "MAVLinkISBDChannel.h"
 #include "MAVLinkTCPChannel.h"
-#include "MAVLinkQueue.h"
+#include "Stopwatch.h"
 
-#define HL_REPORT_PERIOD_PARAM "HL_REPORT_PERIOD"
+constexpr uint16_t max_mission_count = 1024;
 
 /**
  * Telemetry for MAVLink autopilots.
  */
 class MAVLinkHandler {
-
-    MAVLinkSerial           autopilot;
-    MAVLinkISBDChannel      isbd_channel;
-    MAVLinkTCPChannel       tcp_channel;
-    Stopwatch               report_time;
-    bool                    tcp_channel_connected;
-    bool                    isbd_channel_connected;
-
 public:
-
     /**
      * Default constructor.
      */
     MAVLinkHandler();
 
     /**
-     * Initializes enabled ISBD and TCP comm links and autopilot connections.
+     * Initializes enabled comm channels and autopilot connections.
      *
-     * Returns true if autopilot and enabled comm link connections were initialized successfully.
+     * Returns true if autopilot and enabled comm link connections were configured successfully.
      */
     bool init();
 
@@ -69,77 +53,69 @@ public:
     void close();
 
     /**
-     * Starts TCP session if report period is elapsed.
-     * Starts ISBD session if ring alert received.
+     * Single turn of the main message pump that timers, routes and processes 
+     * messages received from autopilot and comm channels.
+     * 
+     * The pump must run in a tight loop started after init(). 
      */
     void loop();
 
 private:
-
-    /**
-     * Starts TCP session if TCP channel is enabled and MAVlink message is available
-     * or TCP report period is elapsed.
+    /*
+     * Returns channel that successfully sent or received message last.
      */
-    void tcp_loop();
-
-    /**
-     * Starts ISBD session if ISBD channel is enabled and MAVlink message is available
-     * or ISBD report period is elapsed.
-     */
-    void isbd_loop();
-
-    /**
-     * If the specified message is of type PARAM_SET and the parameter name is HL_REPORT_PERIOD,
-     * the method sets report period configuration property. Otherwise the method does nothing.
-     *
-     * Returns true if the message was handled.
-     */
-    bool handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
-     * Handles writing waypoints list as described  in
-     * http://qgroundcontrol.org/mavlink/waypoint_protocol
-     *
-     * If message specified by msg parameter is of type MISSION_COUNT,
-     * the method retrieves all the mission items from the channel, sends them
-     * to the autopilot, and sends MISSION_ACK to the channel. Otherwise the
-     * method does nothing and just returns false.
-     *
-     * Returns true if waypoints list was updated in the autopilot.
-     */
-    bool handle_mission_write(MAVLinkChannel& channel, const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
-     * Sends MISSION_COUNT and MISSION_ITEM messages to the autopilot.
-     * Receives MISSION_ACK message from the autopilot.
-     *
-     * Returns true if the missions were successfully sent to the autopilot.
-     */
-    bool send_missions_to_autopilot(const mavlink_message_t& mission_count, const vector<mavlink_message_t>& missions, mavlink_message_t& ack);
-
-    /**
-     * Sends the specified HIGH_LATENCY message to the Cchannel.
-     *
-     * Receives and handles all the messages in the MT queue.
-     */
-    bool comm_session(MAVLinkChannel& channel, mavlink_message_t& mo_msg);
+    MAVLinkChannel& active_channel();
 
     /*
-     * Requests autopilot data streams required to compose HIGH_LATENCY message.
+     * Hanlde mobile-originated message received from autopilot.
+     */
+    void handle_mo_message(const mavlink_message_t& msg, MAVLinkChannel& channel);
+
+    /*
+     * Handle mobile-terminated message received from a comm channel. 
+     */
+    void handle_mt_message(const mavlink_message_t& msg, MAVLinkChannel& channel);
+
+    /**
+     * Sends report message to one of the comm channels if the channel report 
+     * period has elapsed.
+     * 
+     * returns true if report was sent.
+     */
+    bool send_report();
+
+    /*
+     * Sends heartbeat message to autopilot if hearbeat period has elapsed and
+     * the comm channels are not at faulted state (one of the channels successfuly
+     * sent a message during it's report period). 
+     * 
+     * This allows autopilots to handle lost link gracefully if heartbeats are not received.
+     */
+    bool send_heartbeat();
+
+    /*
+     * Requests autopilot data streams required to compose report message.
      */
     void request_data_streams();
 
-    /**
-     * Retrieves all the required data from the autopilot and composes HIGH_LATENCY message.
-     */
-    void get_high_latency_msg(mavlink_message_t& msg);
-
     /*
-     * Integrates the specified message into the HIGH_LATENCY message.
+     * Integrates the specified message into the report message of HIGH_LATENCY type.
      *
      * Returns true if the message was integrated.
      */
-    bool update_high_latency_msg(const mavlink_message_t& msg, mavlink_high_latency_t& high_latency, uint16_t& mask);
+    bool update_report_msg(const mavlink_message_t& msg);
+
+    MAVLinkAutopilot       autopilot;
+    MAVLinkISBDChannel     isbd_channel;
+    MAVLinkTCPChannel      tcp_channel;
+    Stopwatch              heartbeat_timer;
+    Stopwatch              primary_report_timer;
+    Stopwatch              secondary_report_timer;
+    mavlink_high_latency_t report;
+    uint16_t               report_mask;
+    mavlink_message_t      mission_count_msg;
+    mavlink_message_t      missions[max_mission_count];
+    uint16_t               missions_received;
 };
 
 #endif /* MAVLINKHANDLER_H_ */

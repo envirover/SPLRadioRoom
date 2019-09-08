@@ -28,17 +28,17 @@
 
 #include "MAVLinkLib.h"
 
+#include <string>
+#include <chrono>
+
 /*
  * Interface for send/receive channels of MAVLink messages.
  */
 class MAVLinkChannel {
-
-    std::string channel_id;
-
 public:
     MAVLinkChannel(std::string channel_id) : channel_id(channel_id) {}
 
-    virtual ~MAVLinkChannel() {};
+    virtual ~MAVLinkChannel(){};
 
     /**
      * Returns the channel ID.
@@ -70,6 +70,19 @@ public:
      * Returns true if data is available.
      */
     virtual bool message_available() = 0;
+
+    /**
+     * Returns time of the last successfully sent message.  
+     */
+    virtual std::chrono::high_resolution_clock::time_point last_send_time() = 0;
+
+    /**
+     * Returns time of the last successfully received message.  
+     */
+    virtual std::chrono::high_resolution_clock::time_point last_receive_time() = 0;
+
+private:
+    std::string channel_id;
 };
 
 #endif /* MAVLINKCHANNEL_H_ */

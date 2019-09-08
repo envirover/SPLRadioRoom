@@ -26,9 +26,6 @@
 #include "MAVLinkLogger.h"
 #include <stdio.h>
 
-
-#define MAX_LOG_MESSAGE_SIZE 1024
-
 void MAVLinkLogger::log(int priority, const char* prefix,
         const mavlink_message_t& message) {
     char buff[1024];

@@ -23,34 +23,15 @@
 #ifndef MAVLINKSERIAL_H_
 #define MAVLINKSERIAL_H_
 
-#include "Serial.h"
 #include "MAVLinkLib.h"
-#include "MAVLinkChannel.h"
-
-#define SYSTEM_ID               255
-#define COMPONENT_ID            1
-
-#define ARDUPILOT_COMPONENT_ID  0
-
-#define SEND_RETRIES            5
-#define RECEIVE_RETRIES         10
-#define RETRIES_TIMEOUT         1000
-
-#define MAX_HEARTBEAT_INTERVAL  2000 //ms
-
-const struct timespec RECEIVE_RETRY_DELAY[] = {{0, 10000000L}}; // 10 ms
+#include "Serial.h"
+#include <string>
 
 /**
  * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
  */
-class MAVLinkSerial : public MAVLinkChannel
-{
-    Serial         serial;
-    unsigned long  timeout;       // number of milliseconds to wait for the next char before aborting timed read
-    uint8_t        system_id;     // target system id
-
+class MAVLinkSerial {
 public:
-
     /**
      * Constructs MAVLinkSerial instance using the specified serial interface.
      */
@@ -59,7 +40,7 @@ public:
     /**
      * Initialize connection to the serial device.
      */
-    bool init(const string& path, int speed, const vector<string>& devices);
+    bool init(const std::string& path, int speed);
 
     /**
      * Closes connection to the serial device.
@@ -69,77 +50,24 @@ public:
     /**
      * Returns the path of serial device set by init(...) call.
      */
-    inline string get_path() const { return serial.get_path(); };
+    inline std::string get_path() const { return serial.get_path(); };
 
     /**
-     * Sends REQUEST_AUTOPILOT_CAPABILITIES message to the autopilot and
-     * reads AUTOPILOT_VERSION message replied by the autopilot.
-     *
-     * Returns true if AUTOPILOT_VERSION message was received.
-     */
-    bool request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version);
-
-    /**
-     * Retrieves firmware version string from the specified AUTOPILOT_VERSION message.
-     *
-     * Returns the  firmware version string.
-     */
-    char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size) const;
-
-
-    /**
-     * Returns the autopilot system id.
-     */
-    uint8_t get_system_id() const;
-
-    /**
-     * Send MAVLink message to autopilot.
+     * Sends MAVLink message to the serial interface.
      *
      * Returns true on success.
      */
     bool send_message(const mavlink_message_t& msg);
 
     /**
-     * Receive MAVLink message from autopilot.
+     * Receives MAVLink message from the serial interface.
      *
      * Returns true if MAVLink message was received.
      */
     bool receive_message(mavlink_message_t& msg);
 
-    /**
-     * Always returns true.
-     */
-    bool message_available();
-
-    /**
-     * Retries sending message to autopilot until ACK is received.
-     *
-     * Returns true if ACK message was received.
-     */
-    bool send_receive_message(const mavlink_message_t& msg, mavlink_message_t& ack);
-
 private:
-
-    /*
-     * Checks if MAVLink autopilot is available on the specified serial device.
-     *
-     * If an autopilot was detected, returns the autopilot's system id, otherwise returns 0.
-     */
-    uint8_t detect_autopilot(const string device);
-
-    /**
-     * Receive messages from serial several times until received
-     * COMMAND_ACK for COMMAND_LONG and COMMAND_INT or
-     * MISSION_ACK for MISSION_ITEM message.
-     */
-    bool receive_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
-     * Compose an unconfirmed COMMAND_ACK or MISSION_ACK message.
-     * Unconfirmed ACK messages are sent to GCS if ACK message was not
-     * received from autopilot.
-     */
-    bool compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
+    Serial serial;
 };
 
 #endif // MAVLINKSERIAL_H_

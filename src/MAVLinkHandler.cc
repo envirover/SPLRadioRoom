@@ -1,9 +1,9 @@
 /*
  MAVLinkHandler.cc
 
-BVLOS telemetry for MAVLink autopilots.
+ Telemetry for MAVLink autopilots.
 
- (C) Copyright 2018 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -23,217 +23,54 @@ BVLOS telemetry for MAVLink autopilots.
      Author: Pavel Bobov
  */
 
+#include "Config.h"
 #include "MAVLinkHandler.h"
-
 #include "MAVLinkLogger.h"
-#include <unistd.h>
 #include <syslog.h>
-#include <time.h>
-#include <vector>
-#include <algorithm>
 
-#define MAX_SEND_RETRIES   5
+using namespace std;
+using namespace std::chrono;
+
+constexpr int      MAX_SEND_RETRIES = 5;
+constexpr uint16_t DATA_STREAM_RATE = 2; //Hz
+
+constexpr struct timespec autopilot_send_interval[] = { { 0, 10000000L } }; // 10 milliseconds
+
+constexpr double heartbeat_period = 1.0; // seconds
 
 // Masks of MAVLink messages used to compose single HIGH_LATENCY message
-#define MAVLINK_MSG_MASK_HEARTBEAT              0x0001
-#define MAVLINK_MSG_MASK_SYS_STATUS             0x0002
-#define MAVLINK_MSG_MASK_GPS_RAW_INT            0x0004
-#define MAVLINK_MSG_MASK_ATTITUDE               0x0008
-#define MAVLINK_MSG_MASK_GLOBAL_POSITION_INT    0x0010
-#define MAVLINK_MSG_MASK_MISSION_CURRENT        0x0020
-#define MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT  0x0040
-#define MAVLINK_MSG_MASK_VFR_HUD                0x0080
-#define MAVLINK_MSG_MASK_BATTERY2               0x0100 // optional
+constexpr uint16_t MAVLINK_MSG_MASK_HEARTBEAT             = 0x0001;
+constexpr uint16_t MAVLINK_MSG_MASK_SYS_STATUS            = 0x0002;
+constexpr uint16_t MAVLINK_MSG_MASK_GPS_RAW_INT           = 0x0004;
+constexpr uint16_t MAVLINK_MSG_MASK_ATTITUDE              = 0x0008;
+constexpr uint16_t MAVLINK_MSG_MASK_GLOBAL_POSITION_INT   = 0x0010;
+constexpr uint16_t MAVLINK_MSG_MASK_MISSION_CURRENT       = 0x0020;
+constexpr uint16_t MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT = 0x0040;
+constexpr uint16_t MAVLINK_MSG_MASK_VFR_HUD               = 0x0080;
+constexpr uint16_t MAVLINK_MSG_MASK_BATTERY2              = 0x0100; // optional
 
-#define MAVLINK_MSG_MASK_HIGH_LATENCY           0x00FF
+constexpr uint16_t MAVLINK_MSG_MASK_HIGH_LATENCY = 0x00FF;
 
-#define DATA_STREAM_RATE   2 //Hz
+constexpr char hl_report_period_param[] = "HL_REPORT_PERIOD";
 
-#ifndef M_PI
-  #define M_PI 3.1415926
-#endif
+extern Config config;
 
-const struct timespec AUTOPILOT_SEND_INTERVAL[] = {{0, 10000000L}}; // 10 milliseconds
-const struct timespec ISBD_RETRY_INTERVAL[] = {{5, 0L}}; // 5 seconds
-
-inline int16_t radToCentidegrees(float rad) {
-  return rad / M_PI * 18000;
+inline int16_t rad_to_centidegrees(float rad)
+{
+    return rad * 18000.0 / 3.14159265358979323846;
 }
 
-bool missions_comp(mavlink_message_t msg1, mavlink_message_t msg2)
+// Returns elapsed time in seconds after the specified time
+inline double elapsed_time(high_resolution_clock::time_point time)
 {
-    int seq1 = mavlink_msg_mission_item_get_seq(&msg1);
-    int seq2 = mavlink_msg_mission_item_get_seq(&msg2);
-    return seq1 < seq2;
+    return duration_cast<milliseconds>(high_resolution_clock::now() - time).count() / 1000.0;
 }
 
-MAVLinkHandler::MAVLinkHandler() :
-    autopilot(), isbd_channel(), tcp_channel(), report_time(), 
-    tcp_channel_connected(false), isbd_channel_connected(false)
+MAVLinkHandler::MAVLinkHandler() : autopilot(), isbd_channel(), tcp_channel(),
+                                   heartbeat_timer(),
+                                   primary_report_timer(), secondary_report_timer(),
+                                   report_mask(0), missions_received(0)
 {
-}
-
-/**
- * Handles HL_REPORT_PERIOD_PARAM parameter setting.
- */
-bool MAVLinkHandler::handle_param_set(const mavlink_message_t& msg, mavlink_message_t& ack)
-{
-    if (msg.msgid != MAVLINK_MSG_ID_PARAM_SET)
-        return false;
-
-    char param_id[17];
-    mavlink_msg_param_set_get_param_id(&msg, param_id);
-
-    if (strncmp(param_id, HL_REPORT_PERIOD_PARAM, 16) == 0) {
-        float value = mavlink_msg_param_set_get_param_value(&msg);
-        config.set_isbd_report_period(value);
-        config.set_tcp_report_period(value);
-
-        mavlink_param_value_t paramValue;
-        paramValue.param_value = value;
-        paramValue.param_count = 0;
-        paramValue.param_index = 0;
-        mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
-        paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
-
-        mavlink_msg_param_value_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &paramValue);
-
-        syslog(LOG_INFO, "Report period changed to %f seconds.", config.get_isbd_report_period());
-        return true;
-    } else {
-        return autopilot.send_receive_message(msg, ack);
-    }
-
-    return false;
-}
-
-/**
- * Handles mission write transaction.
- */
-bool MAVLinkHandler::handle_mission_write(MAVLinkChannel& channel, const mavlink_message_t& msg, mavlink_message_t& ack)
-{
-    if (msg.msgid != MAVLINK_MSG_ID_MISSION_COUNT)
-        return false;
-
-    uint16_t count = mavlink_msg_mission_count_get_count(&msg);
-
-    vector<mavlink_message_t> missions(count);
-
-    mavlink_message_t mt_msg;
-
-    syslog(LOG_INFO, "Receiving %d mission items from the comm link.", count);
-
-    uint16_t idx = 0;
-
-    for (uint16_t i = 0; i < count * MAX_SEND_RETRIES && idx < count; i++) {
-        if (channel.receive_message(mt_msg)) {
-            if (mt_msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
-                //syslog(LOG_DEBUG, "MISSION_ITEM MT message received.");
-                missions[idx++] = mt_msg;
-            }
-        } else {
-            nanosleep(ISBD_RETRY_INTERVAL, NULL);
-        }
-    }
-
-    if (idx != count) {
-        syslog(LOG_WARNING, "Not all mission items received.");
-
-        mavlink_mission_ack_t mission_ack;
-        mission_ack.target_system = msg.sysid;
-        mission_ack.target_component = msg.compid;
-        mission_ack.type = MAV_MISSION_ERROR;
-        mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-
-        return true;
-    }
-
-    std::sort(missions.begin(), missions.end(), missions_comp);
-
-    return send_missions_to_autopilot(msg, missions, ack);
-}
-
-/**
- * Sends the specified missions to autopilot.
- */
-bool MAVLinkHandler::send_missions_to_autopilot(const mavlink_message_t& mission_count, const vector<mavlink_message_t>& missions, mavlink_message_t& ack)
-{
-    if (mission_count.msgid != MAVLINK_MSG_ID_MISSION_COUNT)
-        return false;
-
-    syslog(LOG_INFO, "Sending mission items to autopilot...");
-
-    for (int i = 0; i < MAX_SEND_RETRIES; i++) {
-        if (autopilot.send_message(mission_count)) {
-            break;
-        }
-
-        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
-    }
-
-    for (uint16_t i = 0; i < missions.size(); i++) {
-        autopilot.send_receive_message(missions[i], ack);
-
-        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
-    }
-
-    if (mavlink_msg_mission_ack_get_type(&ack) == MAV_MISSION_ACCEPTED) {
-        syslog(LOG_INFO, "Missions accepted by autopilot.");
-    } else {
-        syslog(LOG_WARNING, "Missions not accepted by autopilot: %d", mavlink_msg_mission_ack_get_type(&ack));
-    }
-
-    return true;
-}
-
-/**
- * Send the specified mo_msg to the specified channel.
- * Receive and handle all messages waiting in the MT queue.
- * Send ACKs for received messages from autopilot to ISBD.
- */
-bool MAVLinkHandler::comm_session(MAVLinkChannel& channel, mavlink_message_t& mo_msg)
-{
-    syslog(LOG_INFO, "Comm session started for %s channel.", channel.get_channel_id().data());
-
-    if (!channel.send_message(mo_msg)) {
-        return false;
-    }
-
-    while (channel.message_available()) {
-        mavlink_message_t mt_msg;
-
-        if (channel.receive_message(mt_msg)) {
-            mo_msg.len = mo_msg.msgid = 0;
-            bool ack_received = false;
-
-            switch(mt_msg.msgid) {
-                case MAVLINK_MSG_ID_PARAM_SET:
-                    ack_received = handle_param_set(mt_msg, mo_msg);
-                    break;
-                case MAVLINK_MSG_ID_MISSION_COUNT:
-                    ack_received = handle_mission_write(channel, mt_msg, mo_msg);
-                    break;
-                default:
-                    /*
-                     * Send a heartbeat first
-                     */
-                    mavlink_message_t heartbeat;
-                    mavlink_msg_heartbeat_pack(mt_msg.sysid, mt_msg.compid, &heartbeat, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
-                    autopilot.send_message(heartbeat);
-
-                    //Forward unhandled messages to the autopilot.
-                    ack_received = autopilot.send_receive_message(mt_msg, mo_msg);
-            }
-
-            if (ack_received) {
-                channel.send_message(mo_msg);
-            }
-        }
-    }
-
-    syslog(LOG_INFO, "Comm session ended.");
-
-    return true;
 }
 
 /**
@@ -256,7 +93,7 @@ bool MAVLinkHandler::init()
         Serial::get_serial_devices(devices);
     }
 
-    if (!autopilot.init(config.get_autopilot_serial(),  config.get_autopilot_serial_speed(), devices)) {
+    if (!autopilot.init(config.get_autopilot_serial(), config.get_autopilot_serial_speed(), devices)) {
         syslog(LOG_ERR, "UV Radio Room initialization failed: cannot connect to autopilot.");
         return false;
     }
@@ -274,7 +111,6 @@ bool MAVLinkHandler::init()
 
     if (config.get_tcp_enabled()) {
         if (tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
-            tcp_channel_connected = true;
             syslog(LOG_INFO, "TCP channel initialized.");
         } else {
             syslog(LOG_WARNING, "TCP channel initialization failed.");
@@ -286,23 +122,17 @@ bool MAVLinkHandler::init()
 
         if (isbd_serial == autopilot.get_path() && devices.size() > 0) {
             syslog(LOG_WARNING,
-                   "Autopilot detected at serial device '%s' that was assigned to ISBD transceiver by the configuration settings.",
-                   autopilot.get_path().data());
+                "Autopilot detected at serial device '%s' that was assigned to ISBD transceiver by the configuration settings.",
+                autopilot.get_path().data());
 
             isbd_serial = devices[0];
         }
 
         if (isbd_channel.init(isbd_serial, config.get_isbd_serial_speed(), devices)) {
-            isbd_channel_connected = true;
             syslog(LOG_INFO, "ISBD channel initialized.");
         } else {
             syslog(LOG_WARNING, "ISBD channel initialization failed.");
         }
-    }
-
-    if (!tcp_channel_connected && !isbd_channel_connected) {
-        syslog(LOG_ERR, "UV Radio Room initialization failed. No connected comm channels.");
-        return false;
     }
 
     syslog(LOG_INFO, "UV Radio Room initialization succeeded.");
@@ -315,102 +145,268 @@ bool MAVLinkHandler::init()
 void MAVLinkHandler::close()
 {
     tcp_channel.close();
-    tcp_channel_connected = false;
-
     isbd_channel.close();
-    isbd_channel_connected = false;
-    
     autopilot.close();
 }
 
 /**
  * One iteration of the message handler.
+ * 
+ * NOTE: Must not use blocking calls.
  */
 void MAVLinkHandler::loop()
 {
-    if (config.get_tcp_report_period() <= config.get_isbd_report_period()) {
-        tcp_loop();
-        isbd_loop();
-    } else {
-        isbd_loop();
-        tcp_loop();
+    MAVLinkChannel&   channel = active_channel();
+    mavlink_message_t msg;
+
+    if (autopilot.receive_message(msg)) {
+        handle_mo_message(msg, channel);
     }
+
+    // Handle messages received from the comm channels
+    if (config.get_tcp_enabled()) {
+        if (tcp_channel.receive_message(msg)) {
+            handle_mt_message(msg, channel);
+        }
+    }
+
+    if (config.get_isbd_enabled()) {
+        if (isbd_channel.receive_message(msg)) {
+            handle_mt_message(msg, channel);
+        }
+    }
+
+    send_report();
+
+    send_heartbeat();
 }
 
-// Start TCP comm session first if the TCP channel is connected and
-// either data is available to receive or TCP report period is elapsed.
-void MAVLinkHandler::tcp_loop() {
-    // Initialize TCP channel if it was not initialized in init().
-    if (config.get_tcp_enabled() && !tcp_channel_connected) {
-        if (tcp_channel.init(config.get_tcp_host(), config.get_tcp_port())) {
-            tcp_channel_connected = true;
-            syslog(LOG_INFO, "TCP channel initialized.");
+MAVLinkChannel& MAVLinkHandler::active_channel()
+{
+    if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
+        return tcp_channel;
+    }
+
+    if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+        return isbd_channel;
+    }
+
+    // Both TCP and ISBD channels are enabled.
+    // Select channel that successfully sent or received message the last.
+    high_resolution_clock::time_point tcp_last_transmit  = max<high_resolution_clock::time_point>(tcp_channel.last_send_time(),
+        tcp_channel.last_receive_time());
+    high_resolution_clock::time_point isbd_last_transmit = max<high_resolution_clock::time_point>(isbd_channel.last_send_time(),
+        isbd_channel.last_receive_time());
+
+    if (tcp_last_transmit >= isbd_last_transmit) {
+        return tcp_channel;
+    }
+
+    return isbd_channel;
+}
+
+void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg, MAVLinkChannel& channel)
+{
+    switch (msg.msgid) {
+    case MAVLINK_MSG_ID_COMMAND_ACK:
+    case MAVLINK_MSG_ID_PARAM_VALUE: {
+        channel.send_message(msg);
+        break;
+    }
+    case MAVLINK_MSG_ID_MISSION_REQUEST: {
+        uint16_t seq = mavlink_msg_mission_request_get_seq(&msg);
+
+        if (0 < seq && seq <= missions_received) {
+            autopilot.send_message(missions[seq - 1]);
         } else {
-            syslog(LOG_WARNING, "TCP channel initialization failed.");
-        }        
-    }
-
-    if (!tcp_channel_connected) {
-        return;
-    }
-
-    bool message_available = tcp_channel.message_available();
-
-    if (message_available) {
-        mavlink_message_t msg;
-        msg.len   = 0;
-        msg.msgid = 0;
-
-        comm_session(tcp_channel, msg);
-    }
-
-    if (message_available || report_time.elapsed_time() >= config.get_tcp_report_period()) {
-        high_resolution_clock::time_point period_start_time = report_time.time();
-
-        mavlink_message_t msg;
-
-        get_high_latency_msg(msg);
-
-        if (comm_session(tcp_channel, msg)) {
-            // Reset the stopwatch if the comm session succeeded.
-            report_time.reset(period_start_time);
+            syslog(LOG_ERR, "Mission request seq=%d is out of bounds.", seq);
         }
+
+        break;
+    }
+    case MAVLINK_MSG_ID_MISSION_ACK: {
+        uint8_t mission_result = mavlink_msg_mission_ack_get_type(&msg);
+
+        if (mission_result == MAV_MISSION_ACCEPTED) {
+            syslog(LOG_INFO, "Mission accepted by autopilot.");
+        } else {
+            syslog(LOG_WARNING, "Mission not accepted by autopilot (result=%d).", mission_result);
+        }
+
+        channel.send_message(msg);
+        break;
+    }
+    default: {
+        update_report_msg(msg);
+        break;
+    }
+    } // switch
+}
+
+/**
+ * Handles writing waypoints list as described  in
+ * http://qgroundcontrol.org/mavlink/waypoint_protocol
+ *
+ * If message specified by msg parameter is of type MISSION_COUNT,
+ * the method retrieves all the mission items from the channel, sends them
+ * to the autopilot, and sends MISSION_ACK to the channel. Otherwise the
+ * method does nothing and just returns false.
+ */
+void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg, MAVLinkChannel& channel)
+{
+    switch (msg.msgid) {
+    case MAVLINK_MSG_ID_MISSION_COUNT: {
+        uint16_t mission_count = mavlink_msg_mission_count_get_count(&msg);
+        if (mission_count <= max_mission_count) {
+            mission_count_msg = msg;
+            // Set seq of all mission items to 0 to flag non-initialized items
+            for (size_t i = 0; i < mission_count; i++) {
+                missions[i].seq = 0;
+            }
+        } else { // Too many mission items - reject the mission
+            mavlink_mission_ack_t mission_ack;
+            mission_ack.target_system    = msg.sysid;
+            mission_ack.target_component = msg.compid;
+            mission_ack.type             = MAV_MISSION_NO_SPACE;
+
+            mavlink_message_t ack_msg;
+            mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack_msg, &mission_ack);
+            channel.send_message(ack_msg);
+        }
+
+        missions_received = 0;
+        break;
+    }
+    case MAVLINK_MSG_ID_MISSION_ITEM: {
+        uint16_t mission_count = mavlink_msg_mission_count_get_count(&mission_count_msg);
+        uint16_t seq           = mavlink_msg_mission_item_get_seq(&msg);
+        if (0 < seq && seq <= mission_count) {
+            if (missions[seq - 1].seq == 0) { // new item
+                missions_received++;
+            }
+
+            missions[seq - 1] = msg;
+
+            if (missions_received == mission_count) {
+                // All mission items received
+                syslog(LOG_INFO, "Sending mission items to autopilot...");
+                autopilot.send_message(mission_count_msg);
+            }
+        } else {
+            syslog(LOG_WARNING, "Ignored mission item from rejected mission.");
+        }
+        break;
+    }
+    case MAVLINK_MSG_ID_PARAM_SET: {
+        char param_id[17];
+        mavlink_msg_param_set_get_param_id(&msg, param_id);
+
+        if (strncmp(param_id, hl_report_period_param, 16) == 0) {
+            float value = mavlink_msg_param_set_get_param_value(&msg);
+            config.set_isbd_report_period(value);
+
+            mavlink_param_value_t paramValue;
+            paramValue.param_value = value;
+            paramValue.param_count = 0;
+            paramValue.param_index = 0;
+            mavlink_msg_param_set_get_param_id(&msg, paramValue.param_id);
+            paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
+
+            mavlink_message_t param_value_msg;
+            mavlink_msg_param_value_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &param_value_msg, &paramValue);
+            channel.send_message(param_value_msg);
+
+            syslog(LOG_INFO, "Report period changed to %f seconds.", value);
+            break;
+        } else {
+            autopilot.send_message(msg);
+        }
+    }
+    default: {
+        autopilot.send_message(msg);
+        break;
+    }
     }
 }
 
-/*
- * Start ISBD comm session if the ISBD channel is connected and
- * either data is available to receive or ISBD report period is elapsed.
- * Typically, configuration ISBD report period should be greater than
- * TCP report period, so ISBD report period will elapse only when
- * TCP sessions failed.
- */
-void MAVLinkHandler::isbd_loop() {
-    if (!isbd_channel_connected) {
-        return;
+bool MAVLinkHandler::send_report()
+{
+    double report_period = config.get_tcp_report_period();
+
+    if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
+        report_period = config.get_tcp_report_period();
+    } else if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+        report_period = config.get_isbd_report_period();
+    } else if (config.get_tcp_report_period() > config.get_isbd_report_period()) {
+        report_period = config.get_isbd_report_period();
     }
 
-    bool message_available = isbd_channel.message_available();
+    if (primary_report_timer.elapsed_time() >= report_period) {
+        primary_report_timer.reset();
 
-    if (message_available) {
-        mavlink_message_t msg;
-        msg.len   = 0;
-        msg.msgid = 0;
-        comm_session(isbd_channel, msg);
+        if ((report_mask & MAVLINK_MSG_MASK_HIGH_LATENCY) != MAVLINK_MSG_MASK_HIGH_LATENCY) {
+            syslog(LOG_WARNING, "Report message is incomplete. Mask = %x.", report_mask);
+        }
+
+        mavlink_message_t report_msg;
+        mavlink_msg_high_latency_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &report_msg, &report);
+
+        // Select the channel to send report
+        if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
+            return tcp_channel.send_message(report_msg);
+        }
+
+        if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+            return isbd_channel.send_message(report_msg);
+        }
+
+        // Both channels are enabled.
+        // Select primary and secondary channels and secondary report period.
+        MAVLinkChannel& primary_channel         = tcp_channel;
+        MAVLinkChannel& secondary_channel       = isbd_channel;
+        double          secondary_report_period = config.get_isbd_report_period();
+
+        if (config.get_tcp_report_period() > config.get_isbd_report_period()) {
+            primary_channel         = isbd_channel;
+            secondary_channel       = tcp_channel;
+            secondary_report_period = config.get_tcp_report_period();
+        }
+
+        // Send report to secondary channel if secondary report period elapsed
+        // and messages were not successfully sent over the primary channel
+        // over that period.
+        if (secondary_report_timer.elapsed_time() >= secondary_report_period) {
+            if (elapsed_time(primary_channel.last_send_time()) >= secondary_report_period) {
+                secondary_report_timer.reset();
+                return secondary_channel.send_message(report_msg);
+            }
+        }
+
+        return primary_channel.send_message(report_msg);
     }
 
-    if (message_available || report_time.elapsed_time() >= config.get_isbd_report_period()) {
-        high_resolution_clock::time_point period_start_time = report_time.time();
+    return false;
+}
 
-        mavlink_message_t msg;
+bool MAVLinkHandler::send_heartbeat()
+{
+    if (heartbeat_timer.elapsed_time() >= heartbeat_period) {
+        heartbeat_timer.reset();
 
-        get_high_latency_msg(msg);
+        // Channel is healthy if it is enabled and succesfully sent report or
+        // another MO message within its report period times 2.
+        bool tcp_healthy  = config.get_tcp_enabled() && (elapsed_time(tcp_channel.last_send_time()) <= 2 * config.get_tcp_report_period());
+        bool isbd_healthy = config.get_isbd_enabled() && (elapsed_time(isbd_channel.last_send_time()) <= 2 * config.get_isbd_report_period());
 
-        if (comm_session(isbd_channel, msg)) {
-            // Reset the stopwatch if the comm session succeeded.
-            report_time.reset(period_start_time);
+        if (tcp_healthy || isbd_healthy) {
+            mavlink_message_t heartbeat_msg;
+            mavlink_msg_heartbeat_pack(SYSTEM_ID, COMPONENT_ID, &heartbeat_msg,
+                MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+            return autopilot.send_message(heartbeat_msg);
         }
     }
+
+    return false;
 }
 
 void MAVLinkHandler::request_data_streams()
@@ -421,7 +417,7 @@ void MAVLinkHandler::request_data_streams()
      * Send a heartbeat first
      */
     mavlink_msg_heartbeat_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg, MAV_TYPE_GCS,
-                               MAV_AUTOPILOT_INVALID, 0, 0, 0);
+        MAV_AUTOPILOT_INVALID, 0, 0, 0);
     autopilot.send_message(mt_msg);
 
     /*
@@ -429,124 +425,86 @@ void MAVLinkHandler::request_data_streams()
      */
     uint8_t req_stream_ids[] = {
         MAV_DATA_STREAM_EXTENDED_STATUS, // SYS_STATUS, NAV_CONTROLLER_OUTPUT, GPS_RAW, MISSION_CURRENT
-        MAV_DATA_STREAM_POSITION,        // GLOBAL_POSITION_INT
+        MAV_DATA_STREAM_POSITION, // GLOBAL_POSITION_INT
         //MAV_DATA_STREAM_RAW_CONTROLLER,
-        MAV_DATA_STREAM_RAW_SENSORS,     //
-        MAV_DATA_STREAM_EXTRA1,          // ATTITUDE
-        MAV_DATA_STREAM_EXTRA2,          // VFR_HUD
-        MAV_DATA_STREAM_EXTRA3           // MSG_BATTERY2
+        MAV_DATA_STREAM_RAW_SENSORS, //
+        MAV_DATA_STREAM_EXTRA1, // ATTITUDE
+        MAV_DATA_STREAM_EXTRA2, // VFR_HUD
+        MAV_DATA_STREAM_EXTRA3 // MSG_BATTERY2
     };
 
-    for (size_t i = 0; i < sizeof(req_stream_ids)/sizeof(req_stream_ids[0]); i++) {
+    for (size_t i = 0; i < sizeof(req_stream_ids) / sizeof(req_stream_ids[0]); i++) {
         mavlink_msg_request_data_stream_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg,
-                                             autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID,
-                                             req_stream_ids[i], DATA_STREAM_RATE, 1);
+            autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID,
+            req_stream_ids[i], DATA_STREAM_RATE, 1);
 
         autopilot.send_message(mt_msg);
 
-        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
+        nanosleep(autopilot_send_interval, NULL);
     }
-}
-
-/*
- * Retrieves MAVLink messages from autopilot and composes a HIGH_LATENCY message from them.
- */
-void MAVLinkHandler::get_high_latency_msg(mavlink_message_t& msg)
-{
-    syslog(LOG_INFO, "Preparing HIGH_LATENCY message...");
-
-    /**
-     * Reads and processes MAVLink messages from autopilot.
-     */
-    mavlink_high_latency_t high_latency;
-    uint16_t mask = 0;
-
-    memset(&high_latency, 0, sizeof(high_latency));
-
-    // Rate of HEARTBEAT message cannot be requested. Usually it's 1 Hz.
-    // So at least 1 second is required to compose HIGH_LATENCY message.
-    double data_stream_period = 1.0;
-
-    Stopwatch stopwatch;
-
-    for (int i = 0; stopwatch.elapsed_time() < data_stream_period; i++) {
-        mavlink_message_t mt_msg;
-
-        if (autopilot.receive_message(mt_msg)) {
-            update_high_latency_msg(mt_msg, high_latency, mask);
-        }
-    }
-
-    if ((mask & MAVLINK_MSG_MASK_HIGH_LATENCY) == MAVLINK_MSG_MASK_HIGH_LATENCY) {
-      syslog(LOG_INFO, "HIGH_LATENCY message prepared.");
-    } else {
-      syslog(LOG_WARNING, "HIGH_LATENCY message is incomplete. Mask = %x.", mask);
-    }
-
-    mavlink_msg_high_latency_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &msg, &high_latency);
 }
 
 /**
  * Integrates data from the specified MAVLink message into the HIGH_LATENCY message.
  */
-bool MAVLinkHandler::update_high_latency_msg(const mavlink_message_t& msg, mavlink_high_latency_t& high_latency, uint16_t& mask)
+bool MAVLinkHandler::update_report_msg(const mavlink_message_t& msg)
 {
-  switch (msg.msgid) {
-  case MAVLINK_MSG_ID_HEARTBEAT:    //0
-    high_latency.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
-    high_latency.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
-    mask |= MAVLINK_MSG_MASK_HEARTBEAT;
-    return true;
-  case MAVLINK_MSG_ID_SYS_STATUS:   //1
-    high_latency.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
-    high_latency.temperature = mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000;
-    mask |= MAVLINK_MSG_MASK_SYS_STATUS;
-    return true;
-  case MAVLINK_MSG_ID_GPS_RAW_INT:    //24
-    //high_latency.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
-    //high_latency.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
-    //high_latency.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
-    high_latency.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
-    high_latency.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
-    high_latency.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
-    mask |= MAVLINK_MSG_MASK_GPS_RAW_INT;
-    return true;
-  case MAVLINK_MSG_ID_ATTITUDE:   //30
-    high_latency.heading = (radToCentidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 36000) % 36000;
-    high_latency.roll = radToCentidegrees(mavlink_msg_attitude_get_roll(&msg));
-    high_latency.pitch = radToCentidegrees(mavlink_msg_attitude_get_pitch(&msg));
-    mask |= MAVLINK_MSG_MASK_ATTITUDE;
-    return true;
-  case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:    //33
-    high_latency.latitude = mavlink_msg_global_position_int_get_lat(&msg);
-    high_latency.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-    high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
-    high_latency.altitude_sp = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
-    mask |= MAVLINK_MSG_MASK_GLOBAL_POSITION_INT;
-    return true;
-  case MAVLINK_MSG_ID_MISSION_CURRENT:    //42
-    high_latency.wp_num = mavlink_msg_mission_current_get_seq(&msg);
-    mask |= MAVLINK_MSG_MASK_MISSION_CURRENT;
-    return true;
-  case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT:    //62
-    high_latency.wp_distance = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
-    high_latency.heading_sp = mavlink_msg_nav_controller_output_get_nav_bearing(&msg) * 100;
-    mask |= MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT;
-    return true;
-  case MAVLINK_MSG_ID_VFR_HUD:    //74
-    high_latency.airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
-    high_latency.groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
-    //high_latency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
-    high_latency.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
-    high_latency.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
-    mask |= MAVLINK_MSG_MASK_VFR_HUD;
-    return true;
-  case MAVLINK_MSG_ID_BATTERY2:    //147
-    uint16_t batt2_voltage = mavlink_msg_battery2_get_voltage(&msg);
-    high_latency.temperature_air = batt2_voltage / 1000;
-    mask |= MAVLINK_MSG_MASK_BATTERY2;
-    return true;
-  }
+    switch (msg.msgid) {
+    case MAVLINK_MSG_ID_HEARTBEAT: //0
+        report.base_mode   = mavlink_msg_heartbeat_get_base_mode(&msg);
+        report.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
+        report_mask |= MAVLINK_MSG_MASK_HEARTBEAT;
+        return true;
+    case MAVLINK_MSG_ID_SYS_STATUS: //1
+        report.battery_remaining = mavlink_msg_sys_status_get_battery_remaining(&msg);
+        report.temperature       = mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000;
+        report_mask |= MAVLINK_MSG_MASK_SYS_STATUS;
+        return true;
+    case MAVLINK_MSG_ID_GPS_RAW_INT: //24
+        //report_msg.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
+        //report_msg.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
+        //report_msg.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
+        report.groundspeed  = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
+        report.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
+        report.gps_nsat     = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
+        report_mask |= MAVLINK_MSG_MASK_GPS_RAW_INT;
+        return true;
+    case MAVLINK_MSG_ID_ATTITUDE: //30
+        report.heading = (rad_to_centidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 36000) % 36000;
+        report.roll    = rad_to_centidegrees(mavlink_msg_attitude_get_roll(&msg));
+        report.pitch   = rad_to_centidegrees(mavlink_msg_attitude_get_pitch(&msg));
+        report_mask |= MAVLINK_MSG_MASK_ATTITUDE;
+        return true;
+    case MAVLINK_MSG_ID_GLOBAL_POSITION_INT: //33
+        report.latitude      = mavlink_msg_global_position_int_get_lat(&msg);
+        report.longitude     = mavlink_msg_global_position_int_get_lon(&msg);
+        report.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
+        report.altitude_sp   = mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
+        report_mask |= MAVLINK_MSG_MASK_GLOBAL_POSITION_INT;
+        return true;
+    case MAVLINK_MSG_ID_MISSION_CURRENT: //42
+        report.wp_num = mavlink_msg_mission_current_get_seq(&msg);
+        report_mask |= MAVLINK_MSG_MASK_MISSION_CURRENT;
+        return true;
+    case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT: //62
+        report.wp_distance = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
+        report.heading_sp  = mavlink_msg_nav_controller_output_get_nav_bearing(&msg) * 100;
+        report_mask |= MAVLINK_MSG_MASK_NAV_CONTROLLER_OUTPUT;
+        return true;
+    case MAVLINK_MSG_ID_VFR_HUD: //74
+        report.airspeed    = mavlink_msg_vfr_hud_get_airspeed(&msg);
+        report.groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
+        //high_latency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
+        report.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
+        report.throttle   = mavlink_msg_vfr_hud_get_throttle(&msg);
+        report_mask |= MAVLINK_MSG_MASK_VFR_HUD;
+        return true;
+    case MAVLINK_MSG_ID_BATTERY2: //147
+        uint16_t batt2_voltage = mavlink_msg_battery2_get_voltage(&msg);
+        report.temperature_air = batt2_voltage / 1000;
+        report_mask |= MAVLINK_MSG_MASK_BATTERY2;
+        return true;
+    }
 
-  return false;
+    return false;
 }

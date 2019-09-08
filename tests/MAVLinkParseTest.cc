@@ -1,19 +1,20 @@
 #include "mavlink.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
     printf("started\n");
 
-    mavlink_high_latency_t  high_latency;
+    mavlink_high_latency_t high_latency;
     memset(&high_latency, 0, sizeof(high_latency));
     mavlink_message_t hl_msg;
     mavlink_msg_high_latency_encode(1, 0, &hl_msg, &high_latency);
 
     uint8_t buf[250];
-    int buf_size = mavlink_msg_to_send_buffer(buf, &hl_msg);
+    int     buf_size = mavlink_msg_to_send_buffer(buf, &hl_msg);
 
-   // char str[] = "fe28000100ea1300000000000000000000009f0032fdc83a983aefffffff0000510000000000000001ff00000000394b";
+    // char str[] = "fe28000100ea1300000000000000000000009f0032fdc83a983aefffffff0000510000000000000001ff00000000394b";
     //  char str[] = "fe28010101ea04000000242c4f14d4f32cbac1fe78fe527d6829d301d4e5010081001700000000090400000000018099";
     /*
     int i = 0;
@@ -31,7 +32,7 @@ int main(int argc, char** argv) {
 
     printf("n=%d\n", buf_size);
 
-    mavlink_status_t mavlink_status;
+    mavlink_status_t  mavlink_status;
     mavlink_message_t msg;
 
     for (size_t j = 0; j < buf_size; j++) {
@@ -45,7 +46,7 @@ int main(int argc, char** argv) {
 
     printf("\n");
 
-    uint8_t buf2[250];
+    uint8_t  buf2[250];
     uint16_t len = mavlink_msg_to_send_buffer(buf2, &msg);
 
     for (size_t j = 0; j < len; j++) {

@@ -1,9 +1,9 @@
 /*
- MAVLinkSBD.cc
+ MAVLinkISBDChannel.cc
 
- Iridium SBD telemetry for MAVLink autopilots.
+ Telemetry for MAVLink autopilots.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -19,18 +19,24 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  Created on: Oct 26, 2017
+  Created on: Aug 23, 2019
       Author: pbobo
  */
 
-
 #include "MAVLinkISBDChannel.h"
 
-#include "MAVLinkLogger.h"
-#include <stdio.h>
-#include <syslog.h>
+using namespace std;
 
-MAVLinkISBDChannel::MAVLinkISBDChannel() : MAVLinkChannel("ISBD"), stream(), isbd(stream), received_messages()
+constexpr size_t max_isbd_channel_queue_size = 10;
+
+constexpr struct timespec isbd_channel_poll_interval[] = { { 0, 10000000L } }; // 10 milliseconds
+
+MAVLinkISBDChannel::MAVLinkISBDChannel() : MAVLinkChannel("isbd"),
+                                           isbd(),
+                                           running(false),
+                                           send_receive_thread(),
+                                           send_queue(max_isbd_channel_queue_size),
+                                           receive_queue(max_isbd_channel_queue_size)
 {
 }
 
@@ -38,202 +44,83 @@ MAVLinkISBDChannel::~MAVLinkISBDChannel()
 {
 }
 
-bool MAVLinkISBDChannel::get_ring_alert_flag(uint16_t &ra_flag)
+bool MAVLinkISBDChannel::init(std::string path, int speed, const vector<string>& devices)
 {
-    uint16_t mo_flag = 0, mo_msn = 0, mt_flag = 0, mt_msn = 0, msg_waiting = 0;
+    bool ret = !isbd.init(path, speed, devices);
 
-    ra_flag = 0;
+    if (!running) {
+        running = true;
 
-    int err = isbd.getStatusExtended(mo_flag, mo_msn, mt_flag, mt_msn, ra_flag, msg_waiting);
-
-    if (err != ISBD_SUCCESS) {
-        syslog(LOG_WARNING, "Failed to get ISBD status. Error  = %d", err);
-    } else if (ra_flag) {
-        syslog(LOG_INFO, "Ring alert received.");
-    }
-
-    return err == ISBD_SUCCESS;
-}
-
-int MAVLinkISBDChannel::get_waiting_wessage_count()
-{
-    return isbd.getWaitingMessageCount();
-}
-
-bool MAVLinkISBDChannel::detect_transceiver(string device) {
-    int ret = isbd.begin();
-
-    if (ret == ISBD_SUCCESS || ret == ISBD_ALREADY_AWAKE) {
-        char model[256], imea[256];
-        imea[0] = model[0] = 0;
-        ret = isbd.getTransceiverModel(model, sizeof(model));
-        if (ret == ISBD_SUCCESS) {
-            ret = isbd.getTransceiverSerialNumber(imea, sizeof(imea));
-            if (ret == ISBD_SUCCESS) {
-                syslog(LOG_NOTICE, "%s (IMEA %s) detected at serial device '%s'.", model, imea, device.data());
-                return true;
-            }
-        }
-    }
-
-    syslog(LOG_DEBUG, "ISBD transceiver not detected at serial device '%s'. Error code = %d.", device.data(), ret);
-    return false;
-}
-
-bool MAVLinkISBDChannel::init(string path, int speed, const vector<string>& devices)
-{
-    syslog(LOG_INFO, "Connecting to ISBD transceiver (%s %d)...", path.data(), speed);
-
-    isbd.setPowerProfile(1);
-
-    if (stream.open(path, speed) == 0) {
-        if (detect_transceiver(path)) {
-            return true;
-        }
-
-        stream.close();
-    } else {
-        syslog(LOG_INFO, "Failed to open serial device '%s'.", path.data());
-    }
-
-    if (devices.size() > 0) {
-        syslog(LOG_INFO, "Attempting to detect ISBD transceiver at the available serial devices...");
-
-        for (size_t i = 0; i < devices.size(); i++) {
-            if (devices[i] == path)
-                continue;
-
-            if (stream.open(devices[i].data(), speed) == 0) {
-                if (detect_transceiver(devices[i])) {
-                    return true;
-                } else {
-                    stream.close();
-                }
-            } else {
-                syslog(LOG_DEBUG, "Failed to open serial device '%s'.", devices[i].data());
-            }
-        }
-    }
-
-    stream.open(path, speed);
-    syslog(LOG_ERR, "ISBD transceiver was not detected on any of the serial devices.");
-
-    return false;
-}
-
-void MAVLinkISBDChannel::close()
-{
-    stream.close();
-    syslog(LOG_DEBUG, "ISBD connection closed.");
-}
-
-/**
- * Sends the specified MAVLink message to ISBD.
- *
- * Returns true if the message was sent successfully.
- */
-bool MAVLinkISBDChannel::send_message(const mavlink_message_t& msg)
-{
-    if (msg.len == 0 && msg.msgid == 0) {
-       return true;
-    }
-
-    mavlink_message_t mt_msg;
-    bool received;
-    bool ret = send_receive_message(msg, mt_msg, received);
-
-    if (received) {
-        received_messages.push(mt_msg);
+        std::thread send_receive_th(&MAVLinkISBDChannel::send_receive_task, this);
+        send_receive_thread.swap(send_receive_th);
     }
 
     return ret;
 }
 
-/**
- * Receives MAVLink message from ISBD.
- *
- * Returns true if a message was received.
- */
+void MAVLinkISBDChannel::close()
+{
+    if (running) {
+        running = false;
+
+        send_receive_thread.join();
+    }
+
+    isbd.close();
+}
+
+bool MAVLinkISBDChannel::send_message(const mavlink_message_t& msg)
+{
+    if (msg.len == 0 && msg.msgid == 0) {
+        return true;
+    }
+
+    send_queue.push(msg);
+
+    return true;
+}
+
 bool MAVLinkISBDChannel::receive_message(mavlink_message_t& msg)
 {
-    if (!received_messages.empty()) {
-        msg = received_messages.front();
-        received_messages.pop();
-        return true;
-    }
+    return receive_queue.pop(msg);
+}
 
-    mavlink_message_t mo_msg;
-    mo_msg.len   = 0;
-    mo_msg.msgid = 0;
+bool MAVLinkISBDChannel::message_available()
+{
+    return !receive_queue.empty();
+}
 
-    bool received = false;
-    send_receive_message(mo_msg, msg, received);
+std::chrono::high_resolution_clock::time_point MAVLinkISBDChannel::last_send_time() {
+    return send_queue.last_push_time();
+}
 
-    return received;
+std::chrono::high_resolution_clock::time_point MAVLinkISBDChannel::last_receive_time() {
+    return receive_queue.last_push_time();
 }
 
 /**
- * Checks if data is available in ISBD.
- *
- * Returns true if data is available.
+ * If there are messages in send_queue or ring alert flag of  ISBD transceiver
+ * is up, pop send_queue, run send-receive session, and push received messages
+ * to receive_queue.
  */
-bool MAVLinkISBDChannel::message_available()
+void MAVLinkISBDChannel::send_receive_task()
 {
-    if (!received_messages.empty() || isbd.getWaitingMessageCount() > 0) {
-        return true;
-    }
+    while (running) {
+        if (!send_queue.empty() || isbd.message_available()) {
+            mavlink_message_t mo_msg, mt_msg;
+            if (!send_queue.pop(mo_msg)) {
+                mo_msg.len   = 0;
+                mo_msg.msgid = 0;
+            }
 
-    uint16_t ra_flag = 0;
-
-    get_ring_alert_flag(ra_flag);
-
-    return ra_flag != 0;
-}
-
-bool MAVLinkISBDChannel::send_receive_message(const mavlink_message_t& mo_msg, mavlink_message_t& mt_msg, bool& received)
-{
-    uint8_t buf[ISBD_MAX_MT_MGS_SIZE];
-    size_t buf_size = sizeof(buf);
-    uint16_t len = 0;
-
-    if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-        len = mavlink_msg_to_send_buffer(buf, &mo_msg);
-    }
-
-    received = false;
-
-    int ret = isbd.sendReceiveSBDBinary(buf, len, buf, buf_size);
-
-    if (ret != ISBD_SUCCESS) {
-        if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-            char prefix[32];
-            snprintf(prefix, 32, "SBD << FAILED(%d)", ret);
-            MAVLinkLogger::log(LOG_WARNING, prefix, mo_msg);
-        } else {
-            syslog(LOG_WARNING, "SBD >> FAILED(%d)", ret); //Failed to receive MT message from ISBD
-        }
-
-        return false;
-    }
-
-    if (buf_size > 0) {
-        mavlink_status_t mavlink_status;
-
-        for (size_t i = 0; i < buf_size; i++) {
-            if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg, &mavlink_status)) {
-                received = true;
-
-                MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
-                break;
+            bool received = false;
+            if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
+                if (received) {
+                    receive_queue.push(mt_msg);
+                }
             }
         }
 
-        if (!received) {
-            syslog(LOG_WARNING, "Failed to parse MAVLink message received from ISBD.");
-        }
+        nanosleep(isbd_channel_poll_interval, NULL);
     }
-
-    MAVLinkLogger::log(LOG_INFO, "SBD <<", mo_msg);
-
-    return true;
 }

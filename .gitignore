@@ -36,5 +36,8 @@
 /RemoteSystemsTempFiles/
 /CMakeFiles/
 CMakeCache.txt
+CMakeSettings.json
 .cproject
 /.vscode
+/.vs
+/out

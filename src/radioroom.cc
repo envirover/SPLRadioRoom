@@ -1,9 +1,9 @@
 /*
  radioroom.cpp
 
- BVLOS telemetry for MAVLink autopilots.
+ Telemetry for MAVLink autopilots.
 
- (C) Copyright 2018 Envirover.
+ (C) Copyright 2018-2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -20,23 +20,22 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <syslog.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include "MAVLinkHandler.h"
+#include "Config.h"
+#include "build.h"
+
 #include <signal.h>
 #include <stdio.h>
-#include <time.h>
+#include <syslog.h>
+#include <unistd.h>
 
-#include "build.h"
-#include "MAVLinkHandler.h"
+constexpr char log_identity[] = "radioroom";
 
-#define LOG_IDENTITY     "radioroom"
-
-const struct timespec MSG_HANDLER_LOOP_PERIOD[] = {{0, 100000000L}}; // 100 ms
-
-MAVLinkHandler msg_handler;
+constexpr struct timespec msg_handler_loop_period[] = { { 0, 100000000L } }; // 100 ms
 
 static int running = 0;
+
+extern Config config;
 
 void print_help()
 {
@@ -68,8 +67,10 @@ void handle_signal(int sig)
     }
 }
 
-int main(int argc, char** argv) {
-    std::string config_file = DEFAULT_CONFIG_FILE;
+int main(int argc, char** argv)
+{
+    MAVLinkHandler msg_handler;
+    std::string    config_file = default_config_file;
 
     int c;
     while ((c = getopt(argc, argv, "c:hvV")) != -1) {
@@ -98,7 +99,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    openlog(LOG_IDENTITY, LOG_CONS | LOG_NDELAY, LOG_USER);
+    openlog(log_identity, LOG_CONS | LOG_NDELAY, LOG_USER);
     setlogmask(config.get_debug_mode() ? LOG_UPTO(LOG_DEBUG) : LOG_UPTO(LOG_INFO));
 
     syslog(LOG_INFO, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
@@ -120,7 +121,7 @@ int main(int argc, char** argv) {
 
     while (running) {
         msg_handler.loop();
-        nanosleep(MSG_HANDLER_LOOP_PERIOD, NULL);
+        nanosleep(msg_handler_loop_period, NULL);
     }
 
     syslog(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);

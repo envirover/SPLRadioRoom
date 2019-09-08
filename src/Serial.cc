@@ -23,25 +23,31 @@
      Author: Pavel Bobov
  */
 #include "Serial.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <termios.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <istream>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <syslog.h>
-#include <errno.h>
-#include <istream>
-#include <dirent.h>
-#include <sys/select.h>
+#include <termios.h>
+#include <unistd.h>
 
-#define SERIAL_READ_TIMEOUT 250000 // microseconds
+using namespace std;
 
-speed_t baud_rate_to_speed_t(int baud_rate) {
+constexpr suseconds_t serial_read_timeout = 250000; // microseconds
+
+constexpr char serial_by_id_dir[]   = "/dev/serial/by-id/";
+constexpr char serial_by_path_dir[] = "/dev/serial/by-path/";
+constexpr char standard_serials[]   = "/dev/ttyS0,/dev/ttyAMA0";
+
+speed_t baud_rate_to_speed_t(int baud_rate)
+{
     switch (baud_rate) {
     case 0:
         return B0;
@@ -144,7 +150,7 @@ int Serial::open(const string& path, int baud_rate)
     cfsetospeed(&tio, speed);
     cfsetispeed(&tio, speed);
 
-    tcgetattr (tty_fd, &old_tio);
+    tcgetattr(tty_fd, &old_tio);
 
     tcsetattr(tty_fd, TCSANOW, &tio);
 
@@ -179,16 +185,16 @@ int Serial::read(void* buffer, size_t size)
     FD_SET(tty_fd, &set); /* add our file descriptor to the set */
 
     timeout.tv_sec = 0;
-    timeout.tv_usec = SERIAL_READ_TIMEOUT;
+    timeout.tv_usec = serial_read_timeout;
 
     int rv = ::select(tty_fd + 1, &set, NULL, NULL, &timeout);
 
     if (rv < 0) {
-      return -1; /* an error accured */
+        return -1; /* an error accured */
     }
 
     if (rv == 0) {
-      return 0; /* a timeout occured */
+        return 0; /* a timeout occured */
     }
 
     return ::read(tty_fd, buffer, size);
@@ -212,22 +218,23 @@ int Serial::write(const void* buffer, size_t n)
     return ret;
 }
 
-int Serial::get_serial_devices(vector<string>& devices) {
-    DIR *dp;
-    struct dirent *dirp;
+int Serial::get_serial_devices(vector<string>& devices)
+{
+    DIR* dp;
+    struct dirent* dirp;
 
-    if ((dp = opendir(SERIAL_BY_PATH_DIR)) != NULL) {
+    if ((dp = opendir(serial_by_path_dir)) != NULL) {
         while ((dirp = readdir(dp)) != NULL) {
             if (string(dirp->d_name) == "." || string(dirp->d_name) == "..")
                 continue;
 
-            string device = string(SERIAL_BY_PATH_DIR) + string(dirp->d_name);
+            string device = string(serial_by_path_dir) + string(dirp->d_name);
 #ifdef __CYGWIN__
-            devices.push_back(string(device.data()));   
+            devices.push_back(string(device.data()));
 #else
             char real_path[PATH_MAX];
             realpath(device.data(), real_path);
-            devices.push_back(string(real_path));           
+            devices.push_back(string(real_path));
 #endif
         }
 
@@ -236,7 +243,7 @@ int Serial::get_serial_devices(vector<string>& devices) {
 
     // Add the default list of serial devices
 
-    string s(STANDARD_SERIALS);
+    string s(standard_serials);
     size_t pos = 0;
     while ((pos = s.find(",")) != string::npos) {
         string device = s.substr(0, pos);

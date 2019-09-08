@@ -20,20 +20,20 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include "MAVLinkSerial.h"
 #include "HighLatencyMsg.h"
 #include "IridiumSBD.h"
+#include "MAVLinkSerial.h"
+#include <stdio.h>
+#include <unistd.h>
 
-#define ISBD_BAUD_RATE     B19200
+#define ISBD_BAUD_RATE B19200
 
 Serial sbdSerial;
 
 HighLatencyMsg highLatencyMsg(ARDUPILOT_SYSTEM_ID, ARDUPILOT_COMPONENT_ID);
 
-
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
 
     sbdSerial.open("/dev/ttyUSB1", ISBD_BAUD_RATE);
 
@@ -55,20 +55,19 @@ int main(int argc, char** argv) {
         uint16_t msgWaiting = 0;
         ret = isbd.getStatusExtended(moFlag, moMSN, mtFlag, mtMSN, raFlag, msgWaiting);
         printf("Status extended: moFlag=%d, moMSN=%d, mtFlag=%d, mtMSN=%d, raFlag=%d, msgWaiting=%d, ret=%d\n",
-                moFlag, moMSN, mtFlag, mtMSN, raFlag, msgWaiting, ret);
-
+            moFlag, moMSN, mtFlag, mtMSN, raFlag, msgWaiting, ret);
 
         ret = isbd.getWaitingMessageCount();
         printf("Waiting message count = %d\n", ret);
 
         printf("Is asleep = %d\n", isbd.isAsleep());
 
-        int sri =0;
+        int sri = 0;
         ret = isbd.queryRingIndicationStatus(sri);
         printf("Ring indication status = %d\n", sri);
 
         uint8_t txData[340];
-        int txDataSize = snprintf((char *)txData, 340, "MSG%d", i);
+        int txDataSize = snprintf((char*)txData, 340, "MSG%d", i);
 
         uint8_t rxBuffer[340];
         size_t rxSize = 340;
@@ -76,13 +75,13 @@ int main(int argc, char** argv) {
         ret = isbd.sendReceiveSBDBinary(txData, txDataSize, rxBuffer, rxSize);
 
         if (ret == ISBD_SUCCESS) {
-          rxBuffer[rxSize] = 0;
-          for (int i = 0; i < rxSize; i++)
-              printf("%d\n", rxBuffer[i]);
-          printf("SendReceive SBD Binary: ret = %d, data = %s, rxSize = %d\n", ret, rxBuffer, rxSize);
+            rxBuffer[rxSize] = 0;
+            for (int i = 0; i < rxSize; i++)
+                printf("%d\n", rxBuffer[i]);
+            printf("SendReceive SBD Binary: ret = %d, data = %s, rxSize = %d\n", ret, rxBuffer, rxSize);
 
         } else {
-          printf("SendReceive SBD Binary: ret = %d\n", ret);
+            printf("SendReceive SBD Binary: ret = %d\n", ret);
         }
 
         //ret = isbd.sendReceiveSBDText("Hello!", rxBuffer, rxBufferSize);
@@ -96,5 +95,4 @@ int main(int argc, char** argv) {
     }
 
     return 0;
-
 }
