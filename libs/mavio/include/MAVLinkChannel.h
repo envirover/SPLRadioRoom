@@ -1,9 +1,9 @@
 /*
- MAVLinkTCP.h
+ MAVLinkChannel.h
 
- BVLOS telemetry for MAVLink autopilots.
+ This file is a part of UV Radio Room project.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2018 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -19,70 +19,74 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
- Created on: Mar 5, 2018
+ Created on: Mar 26, 2018
      Author: Pavel Bobov
-*/
+ */
 
-#ifndef MAVLINKTCP_H_
-#define MAVLINKTCP_H_
+#ifndef MAVLINKCHANNEL_H_
+#define MAVLINKCHANNEL_H_
 
 #include "MAVLinkLib.h"
+
+#include <chrono>
 #include <string>
 
-/**
- * Sends/receives MAVLink messages to/from a TCP/IP socket.
+namespace mavio {
+
+/*
+ * Interface for send/receive channels of MAVLink messages.
  */
-class MAVLinkTCP {
+class MAVLinkChannel {
 public:
-    /**
-     * Constructs an instance of MAVLinkTcpClient.
-     */
-    MAVLinkTCP();
+    MAVLinkChannel(std::string channel_id) : channel_id(channel_id) {}
+
+    virtual ~MAVLinkChannel(){};
 
     /**
-     * Closes connection and frees the resources.
+     * Returns the channel ID.
      */
-    virtual ~MAVLinkTCP();
-
-    /**
-     * Connects to the TCP/IP socket at the specified address and port.
-     *
-     * Returns true if the connection was successful.
-     */
-    bool init(const std::string address, uint16_t port);
+    virtual std::string get_channel_id() const { return channel_id; }
 
     /**
      * Closes the connection if it was open.
      */
-    void close();
+    virtual void close() = 0;
 
     /**
      * Sends the specified MAVLink message to the socket.
      *
      * Returns true if the message was sent successfully.
      */
-    bool send_message(const mavlink_message_t& msg);
+    virtual bool send_message(const mavlink_message_t& msg) = 0;
 
     /**
      * Receives MAVLink message from the socket.
      *
      * Returns true if a message was received.
      */
-    bool receive_message(mavlink_message_t& msg);
+    virtual bool receive_message(mavlink_message_t& msg) = 0;
 
     /**
      * Checks if data is available in the socket input buffer.
      *
      * Returns true if data is available.
      */
-    bool message_available();
+    virtual bool message_available() = 0;
+
+    /**
+     * Returns time of the last successfully sent message.  
+     */
+    virtual std::chrono::high_resolution_clock::time_point last_send_time() = 0;
+
+    /**
+     * Returns time of the last successfully received message.  
+     */
+    virtual std::chrono::high_resolution_clock::time_point last_receive_time() = 0;
 
 private:
-    std::string   address; // UV Hub IP address
-    uint16_t      port; // UV Hub port
-    int           socket_fd; // Socket file descriptor
-    unsigned long timeout; // number of milliseconds to wait for the next char before aborting timed read
-    clock_t       start_millis; // used for timeout measurement
+    std::string channel_id;
 };
 
-#endif /* MAVLINKTCP_H_ */
+} // namespace mavio
+
+#endif /* MAVLINKCHANNEL_H_ */

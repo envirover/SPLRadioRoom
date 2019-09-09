@@ -23,11 +23,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -std=c++11" )
 configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/build.h")
 
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include")
+include_directories("${PROJECT_SOURCE_DIR}/libs/mavio/include")
 include_directories("${PROJECT_BINARY_DIR}")
 
+file(GLOB mavio_sources libs/mavio/src/*.cc)
 file(GLOB sources src/*.c src/*.cc)
 
+add_library(mavio STATIC ${mavio_sources})
 add_executable(radioroom ${sources})
+target_link_libraries(radioroom mavio)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 

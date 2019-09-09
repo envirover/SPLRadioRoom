@@ -30,6 +30,7 @@
 #include <syslog.h>
 
 using namespace std;
+using namespace mavio;
 
 MAVLinkISBD::MAVLinkISBD() : stream(), isbd(stream)
 {

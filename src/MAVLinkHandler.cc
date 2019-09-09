@@ -30,6 +30,7 @@
 
 using namespace std;
 using namespace std::chrono;
+using namespace mavio;
 
 constexpr int      MAX_SEND_RETRIES = 5;
 constexpr uint16_t DATA_STREAM_RATE = 2; //Hz

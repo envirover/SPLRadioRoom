@@ -27,6 +27,8 @@
 #include <syslog.h>
 #include <time.h>
 
+using namespace mavio;
+
 constexpr int     SEND_RETRIES           = 5;
 constexpr int     RECEIVE_RETRIES        = 10;
 constexpr int64_t MAX_HEARTBEAT_INTERVAL = 2000; //ms

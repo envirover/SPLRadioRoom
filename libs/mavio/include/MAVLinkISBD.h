@@ -29,6 +29,7 @@
 #include "IridiumSBD.h"
 #include "MAVLinkLib.h"
 
+namespace mavio {
 /**
  * MAVLinkSBD is used to send/receive MAVLink messages to/from an ISBD transceiver.
  */
@@ -86,5 +87,7 @@ private:
     Serial     stream;
     IridiumSBD isbd;
 };
+
+} // namespace mavio
 
 #endif /* MAVLINKISBD_H_ */

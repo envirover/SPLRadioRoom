@@ -35,6 +35,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <syslog.h>
+
+using namespace mavio;
 
 constexpr int poll_timeout = 100; // milliseconds
 

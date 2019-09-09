@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <iostream>
 
 constexpr char log_identity[] = "radioroom";
 

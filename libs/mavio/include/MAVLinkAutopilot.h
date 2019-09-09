@@ -24,17 +24,19 @@
 #ifndef MAVLINK_AUTOPILOT_
 #define MAVLINK_AUTOPILOT_
 
+#include "CircularBuffer.h"
 #include "MAVLinkChannel.h"
 #include "MAVLinkLib.h"
-#include "CircularBuffer.h"
 #include "MAVLinkSerial.h"
 
 #include <atomic>
 #include <thread>
 #include <vector>
 
+namespace mavio {
+
 constexpr uint8_t SYSTEM_ID              = 255; // GCS system Id
-constexpr uint8_t COMPONENT_ID           = 1;   // GCS component Id
+constexpr uint8_t COMPONENT_ID           = 1; // GCS component Id
 constexpr uint8_t ARDUPILOT_COMPONENT_ID = 0;
 
 /**
@@ -162,13 +164,15 @@ private:
      */
     static char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size);
 
-    std::atomic<bool> running;
-    std::thread send_thread; // Thread of send_task
-    std::thread receive_thread; // Thread of receive_task
-    MAVLinkSerial serial; // Serial interface
+    std::atomic<bool>                 running;
+    std::thread                       send_thread; // Thread of send_task
+    std::thread                       receive_thread; // Thread of receive_task
+    MAVLinkSerial                     serial; // Serial interface
     CircularBuffer<mavlink_message_t> send_queue; // Queue that buffers messages sent to autopilot
     CircularBuffer<mavlink_message_t> receive_queue; // Queue that buffers messages received from autopilot
-    uint8_t system_id; // Autopilot system Id
+    uint8_t                           system_id; // Autopilot system Id
 };
+
+} // namespace mavio
 
 #endif /* MAVLINK_AUTOPILOT_ */

@@ -64,17 +64,17 @@ private:
     /*
      * Returns channel that successfully sent or received message last.
      */
-    MAVLinkChannel& active_channel();
+    mavio::MAVLinkChannel& active_channel();
 
     /*
      * Hanlde mobile-originated message received from autopilot.
      */
-    void handle_mo_message(const mavlink_message_t& msg, MAVLinkChannel& channel);
+    void handle_mo_message(const mavlink_message_t& msg, mavio::MAVLinkChannel& channel);
 
     /*
      * Handle mobile-terminated message received from a comm channel. 
      */
-    void handle_mt_message(const mavlink_message_t& msg, MAVLinkChannel& channel);
+    void handle_mt_message(const mavlink_message_t& msg, mavio::MAVLinkChannel& channel);
 
     /**
      * Sends report message to one of the comm channels if the channel report 
@@ -105,9 +105,9 @@ private:
      */
     bool update_report_msg(const mavlink_message_t& msg);
 
-    MAVLinkAutopilot       autopilot;
-    MAVLinkISBDChannel     isbd_channel;
-    MAVLinkTCPChannel      tcp_channel;
+    mavio::MAVLinkAutopilot       autopilot;
+    mavio::MAVLinkISBDChannel     isbd_channel;
+    mavio::MAVLinkTCPChannel      tcp_channel;
     Stopwatch              heartbeat_timer;
     Stopwatch              primary_report_timer;
     Stopwatch              secondary_report_timer;

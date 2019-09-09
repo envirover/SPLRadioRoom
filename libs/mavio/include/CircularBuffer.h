@@ -12,6 +12,8 @@
 #include <memory>
 #include <mutex>
 
+namespace mavio {
+
 /**
  * Thread-safe fixed-size queue.
  */
@@ -114,5 +116,7 @@ private:
 
     std::chrono::high_resolution_clock::time_point last_push_time_;
 };
+
+} // namespace mavio
 
 #endif /* CIRCULARBUFFER_H_ */
