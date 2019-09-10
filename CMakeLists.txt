@@ -24,14 +24,19 @@ configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/bui
 
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include")
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavio/include")
+include_directories("${PROJECT_SOURCE_DIR}/libs/inih/include")
 include_directories("${PROJECT_BINARY_DIR}")
 
 file(GLOB mavio_sources libs/mavio/src/*.cc)
+file(GLOB inih_sources libs/inih/src/*.cc libs/inih/src/*.c)
 file(GLOB sources src/*.c src/*.cc)
 
 add_library(mavio STATIC ${mavio_sources})
+add_library(inih STATIC ${inih_sources})
+
 add_executable(radioroom ${sources})
 target_link_libraries(radioroom mavio)
+target_link_libraries(radioroom inih)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 
