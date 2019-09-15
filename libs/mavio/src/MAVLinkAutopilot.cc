@@ -29,12 +29,12 @@
 
 using namespace mavio;
 
-constexpr int     SEND_RETRIES           = 5;
-constexpr int     RECEIVE_RETRIES        = 10;
-constexpr int64_t MAX_HEARTBEAT_INTERVAL = 2000; //ms
+constexpr int     send_retries           = 5;
+constexpr int     receive_retries        = 10;
+constexpr int64_t max_heartbeat_interval = 2000; //ms
 
-constexpr struct timespec AUTOPILOT_SEND_INTERVAL[] = { { 0, 10000000L } }; // 10 milliseconds
-constexpr struct timespec RECEIVE_RETRY_DELAY[]     = { { 0, 10000000L } }; // 10 ms
+constexpr struct timespec autopilot_send_interval[] = { { 0, 10000000L } }; // 10 milliseconds
+constexpr struct timespec receive_retry_delay[]     = { { 0, 10000000L } }; // 10 ms
 
 constexpr size_t max_autopilot_queue_size = 10;
 
@@ -88,7 +88,7 @@ bool MAVLinkAutopilot::request_autopilot_version(uint8_t& autopilot, uint8_t& ma
     memset(&autopilot_version, 0, sizeof(autopilot_version));
 
     for (high_resolution_clock::time_point start = high_resolution_clock::now();
-         duration_cast<milliseconds>(high_resolution_clock::now() - start).count() < MAX_HEARTBEAT_INTERVAL;) {
+         duration_cast<milliseconds>(high_resolution_clock::now() - start).count() < max_heartbeat_interval;) {
         if (serial.receive_message(msg)) {
             if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
                 autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
@@ -100,7 +100,7 @@ bool MAVLinkAutopilot::request_autopilot_version(uint8_t& autopilot, uint8_t& ma
             }
         }
 
-        nanosleep(RECEIVE_RETRY_DELAY, NULL);
+        nanosleep(receive_retry_delay, NULL);
     }
 
     //Return false if heartbeat message was not received
@@ -109,13 +109,13 @@ bool MAVLinkAutopilot::request_autopilot_version(uint8_t& autopilot, uint8_t& ma
         return false;
     }
 
-    for (int i = 0; i < SEND_RETRIES; i++) {
-        mavlink_msg_command_long_pack(SYSTEM_ID, COMPONENT_ID, &msg_command_long,
-            sys_id, ARDUPILOT_COMPONENT_ID,
+    for (int i = 0; i < send_retries; i++) {
+        mavlink_msg_command_long_pack(system_id, component_id, &msg_command_long,
+            sys_id, ardupilot_component_id,
             MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES,
             i, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         if (serial.send_message(msg_command_long)) {
-            for (int j = 0; j < RECEIVE_RETRIES; j++) {
+            for (int j = 0; j < receive_retries; j++) {
                 if (serial.receive_message(msg)) {
                     //printf("**** msg.msgid = %d\n", msg.msgid);
                     if (msg.msgid == MAVLINK_MSG_ID_AUTOPILOT_VERSION) {
@@ -129,7 +129,7 @@ bool MAVLinkAutopilot::request_autopilot_version(uint8_t& autopilot, uint8_t& ma
             syslog(LOG_DEBUG, "Failed to send message to autopilot.\n");
         }
 
-        nanosleep(RECEIVE_RETRY_DELAY, NULL);
+        nanosleep(receive_retry_delay, NULL);
     }
 
     return true;
@@ -180,30 +180,13 @@ std::chrono::high_resolution_clock::time_point MAVLinkAutopilot::last_receive_ti
     return receive_queue.last_push_time();
 }
 
-bool MAVLinkAutopilot::send_receive_message(const mavlink_message_t& msg, mavlink_message_t& ack)
-{
-    for (int i = 0; i < SEND_RETRIES; i++) {
-        if (send_message(msg)) {
-            if (msg.msgid != MAVLINK_MSG_ID_COMMAND_LONG && msg.msgid != MAVLINK_MSG_ID_COMMAND_INT && msg.msgid != MAVLINK_MSG_ID_MISSION_ITEM && msg.msgid != MAVLINK_MSG_ID_PARAM_SET) {
-                return false;
-            }
-
-            if (receive_ack(msg, ack)) {
-                return true;
-            }
-        }
-    }
-
-    return compose_failed_ack(msg, ack);
-}
-
 bool MAVLinkAutopilot::connect(const string& path, int speed, const vector<string>& devices)
 {
     syslog(LOG_NOTICE, "Connecting to autopilot (%s %d)...", path.data(), speed);
 
     system_id = 0;
 
-    if (serial.init(path, speed) == 0) {
+    if (serial.init(path, speed)) {
         system_id = detect_autopilot(path);
 
         if (system_id) {
@@ -260,72 +243,6 @@ uint8_t MAVLinkAutopilot::detect_autopilot(const string device)
     return sys_id;
 }
 
-bool MAVLinkAutopilot::receive_ack(const mavlink_message_t& msg, mavlink_message_t& ack)
-{
-    for (int i = 0; i < RECEIVE_RETRIES; i++) {
-        switch (msg.msgid) {
-        case MAVLINK_MSG_ID_COMMAND_LONG:
-        case MAVLINK_MSG_ID_COMMAND_INT:
-            if (receive_message(ack) && ack.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
-                return true;
-            }
-            break;
-        case MAVLINK_MSG_ID_MISSION_ITEM:
-            if (receive_message(ack) && (ack.msgid == MAVLINK_MSG_ID_MISSION_ACK || ack.msgid == MAVLINK_MSG_ID_MISSION_REQUEST)) {
-                return true;
-            }
-            break;
-        case MAVLINK_MSG_ID_PARAM_SET:
-            if (receive_message(ack) && ack.msgid == MAVLINK_MSG_ID_PARAM_VALUE) {
-                return true;
-            }
-            break;
-        default:
-            return false;
-        }
-
-        nanosleep(RECEIVE_RETRY_DELAY, NULL);
-    }
-
-    return false;
-}
-
-bool MAVLinkAutopilot::compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack)
-{
-    switch (msg.msgid) {
-    case MAVLINK_MSG_ID_COMMAND_LONG:
-        mavlink_command_ack_t command_ack;
-        command_ack.command = mavlink_msg_command_long_get_command(&msg);
-        command_ack.result  = MAV_RESULT_FAILED;
-        mavlink_msg_command_ack_encode(system_id, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-        return true;
-    case MAVLINK_MSG_ID_COMMAND_INT:
-        command_ack.command = mavlink_msg_command_int_get_command(&msg);
-        command_ack.result  = MAV_RESULT_FAILED;
-        mavlink_msg_command_ack_encode(system_id, ARDUPILOT_COMPONENT_ID, &ack, &command_ack);
-        return true;
-    case MAVLINK_MSG_ID_MISSION_ITEM:
-        mavlink_mission_ack_t mission_ack;
-        mission_ack.target_system    = msg.sysid;
-        mission_ack.target_component = msg.compid;
-        mission_ack.type             = MAV_MISSION_ERROR;
-        mavlink_msg_mission_ack_encode(system_id, ARDUPILOT_COMPONENT_ID, &ack, &mission_ack);
-        return true;
-    case MAVLINK_MSG_ID_PARAM_SET:
-        mavlink_param_value_t param_value;
-        param_value.param_count = 0;
-        param_value.param_index = 0;
-        param_value.param_type  = mavlink_msg_param_value_get_param_type(&msg);
-        mavlink_msg_param_value_get_param_id(&msg, param_value.param_id);
-        param_value.param_value = mavlink_msg_param_set_get_param_value(&msg);
-        mavlink_msg_param_value_encode(system_id, ARDUPILOT_COMPONENT_ID, &ack, &param_value);
-        return true;
-    default:
-        ack.len = ack.msgid = 0;
-        return false;
-    }
-}
-
 void MAVLinkAutopilot::send_task()
 {
     while (running) {
@@ -335,7 +252,7 @@ void MAVLinkAutopilot::send_task()
             serial.send_message(msg);
         }
 
-        nanosleep(AUTOPILOT_SEND_INTERVAL, NULL);
+        nanosleep(autopilot_send_interval, NULL);
     }
 }
 

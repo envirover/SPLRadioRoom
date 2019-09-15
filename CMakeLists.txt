@@ -38,6 +38,9 @@ add_executable(radioroom ${sources})
 target_link_libraries(radioroom mavio)
 target_link_libraries(radioroom inih)
 
+add_executable(aptest tests/MAVLinkAutopilotTest.cc)
+target_link_libraries(aptest mavio)
+
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 
         FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)

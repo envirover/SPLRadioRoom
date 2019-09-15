@@ -1,7 +1,7 @@
 /*
  MAVLinkSerial.cc
 
- MAVLinkSerial class sends and receives MAVLink messages to/from serial device.
+ MAVIO MAVLink I/O library.
 
  (C) Copyright 2017-2019 Envirover.
 

@@ -1,9 +1,9 @@
 /*
  MAVLinkSBD.cc
 
- Iridium SBD telemetry for MAVLink autopilots.
+MAVIO MAVLink I/O library.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public

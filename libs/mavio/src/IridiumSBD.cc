@@ -1,8 +1,6 @@
 /*
 IridiumSBD.cc
 
-POSIX version of IridiumSBD library for Iridium SBD ("Short Burst Data") Communications.
-
 Original work Copyright (C) 2013-4 Mikal Hart
 Modified work Copyright (C) 2017   Envirover
 

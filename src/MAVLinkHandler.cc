@@ -271,7 +271,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg, MAVLinkChan
             mission_ack.type             = MAV_MISSION_NO_SPACE;
 
             mavlink_message_t ack_msg;
-            mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &ack_msg, &mission_ack);
+            mavlink_msg_mission_ack_encode(autopilot.get_system_id(), ardupilot_component_id, &ack_msg, &mission_ack);
             channel.send_message(ack_msg);
         }
 
@@ -314,7 +314,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg, MAVLinkChan
             paramValue.param_type = mavlink_msg_param_set_get_param_type(&msg);
 
             mavlink_message_t param_value_msg;
-            mavlink_msg_param_value_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &param_value_msg, &paramValue);
+            mavlink_msg_param_value_encode(autopilot.get_system_id(), ardupilot_component_id, &param_value_msg, &paramValue);
             channel.send_message(param_value_msg);
 
             syslog(LOG_INFO, "Report period changed to %f seconds.", value);
@@ -350,7 +350,7 @@ bool MAVLinkHandler::send_report()
         }
 
         mavlink_message_t report_msg;
-        mavlink_msg_high_latency_encode(autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID, &report_msg, &report);
+        mavlink_msg_high_latency_encode(autopilot.get_system_id(), ardupilot_component_id, &report_msg, &report);
 
         // Select the channel to send report
         if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
@@ -401,7 +401,7 @@ bool MAVLinkHandler::send_heartbeat()
 
         if (tcp_healthy || isbd_healthy) {
             mavlink_message_t heartbeat_msg;
-            mavlink_msg_heartbeat_pack(SYSTEM_ID, COMPONENT_ID, &heartbeat_msg,
+            mavlink_msg_heartbeat_pack(system_id, component_id, &heartbeat_msg,
                 MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
             return autopilot.send_message(heartbeat_msg);
         }
@@ -417,7 +417,7 @@ void MAVLinkHandler::request_data_streams()
     /*
      * Send a heartbeat first
      */
-    mavlink_msg_heartbeat_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg, MAV_TYPE_GCS,
+    mavlink_msg_heartbeat_pack(system_id, component_id, &mt_msg, MAV_TYPE_GCS,
         MAV_AUTOPILOT_INVALID, 0, 0, 0);
     autopilot.send_message(mt_msg);
 
@@ -435,8 +435,8 @@ void MAVLinkHandler::request_data_streams()
     };
 
     for (size_t i = 0; i < sizeof(req_stream_ids) / sizeof(req_stream_ids[0]); i++) {
-        mavlink_msg_request_data_stream_pack(SYSTEM_ID, COMPONENT_ID, &mt_msg,
-            autopilot.get_system_id(), ARDUPILOT_COMPONENT_ID,
+        mavlink_msg_request_data_stream_pack(system_id, component_id, &mt_msg,
+            autopilot.get_system_id(), ardupilot_component_id,
             req_stream_ids[i], DATA_STREAM_RATE, 1);
 
         autopilot.send_message(mt_msg);

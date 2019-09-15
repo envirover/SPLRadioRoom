@@ -1,7 +1,7 @@
 /*
 IridiumSBD.h
 
-POSIX version of IridiumSBD library for Iridium SBD ("Short Burst Data") Communications.
+MAVIO MAVLink I/O library.
 
 Original work Copyright (C) 2013-4 Mikal Hart
 Modified work Copyright (C) 2017   Envirover

@@ -1,6 +1,8 @@
 /*
  MAVLinkAutopilot.h
  
+ MAVIO MAVLink I/O library.
+ 
  (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
@@ -35,9 +37,9 @@
 
 namespace mavio {
 
-constexpr uint8_t SYSTEM_ID              = 255; // GCS system Id
-constexpr uint8_t COMPONENT_ID           = 1; // GCS component Id
-constexpr uint8_t ARDUPILOT_COMPONENT_ID = 0;
+constexpr uint8_t system_id              = 255; // GCS system Id
+constexpr uint8_t component_id           = 1; // GCS component Id
+constexpr uint8_t ardupilot_component_id = 0;
 
 /**
  * Asynchronously sends and receivs MAVLink messages to autopilot over serial interface. 
@@ -107,13 +109,6 @@ public:
 
 private:
     /**
-     * Retries sending message to autopilot until ACK is received.
-     *
-     * Returns true if ACK message was received.
-     */
-    bool send_receive_message(const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
      * Connects to the serial device.
      */
     bool connect(const std::string& path, int speed, const std::vector<std::string>& devices);
@@ -134,18 +129,11 @@ private:
     bool request_autopilot_version(uint8_t& autopilot, uint8_t& mav_type, uint8_t& sys_id, mavlink_autopilot_version_t& autopilot_version);
 
     /**
-     * Receive messages from serial several times until received
-     * COMMAND_ACK for COMMAND_LONG and COMMAND_INT or
-     * MISSION_ACK for MISSION_ITEM message.
+     * Retrieves firmware version string from the specified AUTOPILOT_VERSION message.
+     *
+     * Returns the firmware version string.
      */
-    bool receive_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
-
-    /**
-     * Compose an unconfirmed COMMAND_ACK or MISSION_ACK message.
-     * Unconfirmed ACK messages are sent to GCS if ACK message was not
-     * received from autopilot.
-     */
-    bool compose_failed_ack(const mavlink_message_t& msg, mavlink_message_t& ack);
+    static char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size);
 
     /**
      * While running is true, retrieves messages from send_queue and sends them to serial. 
@@ -156,13 +144,6 @@ private:
      *  While running is true, receives messages from serial and pushes them to receive_queue.
      */
     void receive_task();
-
-    /**
-     * Retrieves firmware version string from the specified AUTOPILOT_VERSION message.
-     *
-     * Returns the firmware version string.
-     */
-    static char* get_firmware_version(const mavlink_autopilot_version_t& autopilot_version, char* buff, size_t buff_size);
 
     std::atomic<bool>                 running;
     std::thread                       send_thread; // Thread of send_task

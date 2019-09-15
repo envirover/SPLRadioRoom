@@ -1,9 +1,9 @@
 /*
  MAVLinkSerial.h
 
- Iridium SBD telemetry for ArduPilot.
+ MAVIO MAVLink I/O library.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,9 @@ public:
     MAVLinkSerial();
 
     /**
-     * Initialize connection to the serial device.
+     * Initialize connection to the serial device with the specified baud rate.
+     * 
+     * Returns true if serial device connection succeeded.
      */
     bool init(const std::string& path, int speed);
 

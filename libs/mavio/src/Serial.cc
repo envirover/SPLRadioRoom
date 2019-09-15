@@ -1,9 +1,9 @@
 /*
  Serial.cc
 
- This file is a part of UV Radio Room project.
+ MAVIO MAVLink I/O library.
 
- (C) Copyright 2017 Envirover.
+ (C) Copyright 2017-2019 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -118,7 +118,7 @@ speed_t baud_rate_to_speed_t(int baud_rate)
     return B57600;
 }
 
-Serial::Serial() : tty_fd(0), path()
+Serial::Serial() : tty_fd(-1), path()
 {
 }
 
@@ -140,11 +140,11 @@ int Serial::open(const string& path, int baud_rate)
     struct termios tio;
 
     memset(&tio, 0, sizeof(tio));
-    tio.c_iflag = 0;
-    tio.c_oflag = 0;
-    tio.c_cflag = CS8 | CREAD | CLOCAL;
-    tio.c_lflag = 0;
-    tio.c_cc[VMIN] = 1;
+    tio.c_iflag     = 0;
+    tio.c_oflag     = 0;
+    tio.c_cflag     = CS8 | CREAD | CLOCAL;
+    tio.c_lflag     = 0;
+    tio.c_cc[VMIN]  = 1;
     tio.c_cc[VTIME] = 5;
 
     speed_t speed = baud_rate_to_speed_t(baud_rate);
@@ -160,8 +160,12 @@ int Serial::open(const string& path, int baud_rate)
 
 int Serial::close()
 {
-    tcsetattr(tty_fd, TCSANOW, &old_tio);
-    return ::close(tty_fd);
+    if (tty_fd >= 0) {
+        tcsetattr(tty_fd, TCSANOW, &old_tio);
+        return ::close(tty_fd);
+    }
+
+    return 0;
 }
 
 int Serial::read()
@@ -179,13 +183,17 @@ int Serial::read()
 
 int Serial::read(void* buffer, size_t size)
 {
-    fd_set set;
+    if (tty_fd < 0) {
+        return -1;
+    }
+
+    fd_set         set;
     struct timeval timeout;
 
     FD_ZERO(&set); /* clear the set */
     FD_SET(tty_fd, &set); /* add our file descriptor to the set */
 
-    timeout.tv_sec = 0;
+    timeout.tv_sec  = 0;
     timeout.tv_usec = serial_read_timeout;
 
     int rv = ::select(tty_fd + 1, &set, NULL, NULL, &timeout);
@@ -208,6 +216,10 @@ int Serial::write(int c)
 
 int Serial::write(const void* buffer, size_t n)
 {
+    if (tty_fd < 0) {
+        return -1;
+    }
+
     int ret = ::write(tty_fd, buffer, n);
 
     if (ret < 0)
@@ -221,7 +233,7 @@ int Serial::write(const void* buffer, size_t n)
 
 int Serial::get_serial_devices(vector<string>& devices)
 {
-    DIR* dp;
+    DIR*           dp;
     struct dirent* dirp;
 
     if ((dp = opendir(serial_by_path_dir)) != NULL) {

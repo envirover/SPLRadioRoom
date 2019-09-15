@@ -1,7 +1,7 @@
 /*
  MAVLinkISBDChannel.h
 
- Telemetry for MAVLink autopilots.
+MAVIO MAVLink I/O library.
 
  (C) Copyright 2019 Envirover.
 
