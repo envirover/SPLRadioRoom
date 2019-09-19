@@ -21,8 +21,8 @@
      Author: Pavel Bobov
 */
 
-#ifndef STOPWATCH_H_
-#define STOPWATCH_H_
+#ifndef SRC_STOPWATCH_H_
+#define SRC_STOPWATCH_H_
 
 #include <chrono>
 
@@ -30,45 +30,40 @@
  * Stopwatch class is used to measure absolute elapsed time.
  */
 class Stopwatch {
-public:
-    Stopwatch() : start_time(std::chrono::high_resolution_clock::now())
-    {
-    }
+ public:
+  Stopwatch() : start_time(std::chrono::high_resolution_clock::now()) {}
 
-    /*
-     * Get current time.
-     */
-    std::chrono::high_resolution_clock::time_point time()
-    {
-        return std::chrono::high_resolution_clock::now();
-    }
+  /*
+   * Get current time.
+   */
+  std::chrono::high_resolution_clock::time_point time() {
+    return std::chrono::high_resolution_clock::now();
+  }
 
-    /*
-     * Reset stopwatch.
-     */
-    void reset()
-    {
-        reset(std::chrono::high_resolution_clock::now());
-    }
+  /*
+   * Reset stopwatch.
+   */
+  void reset() { reset(std::chrono::high_resolution_clock::now()); }
 
-    /*
-     * Set start time.
-     */
-    void reset(std::chrono::high_resolution_clock::time_point t)
-    {
-        start_time = t;
-    }
+  /*
+   * Set start time.
+   */
+  void reset(std::chrono::high_resolution_clock::time_point t) {
+    start_time = t;
+  }
 
-    /**
-     * Returns number of seconds elapsed from the start of the stopwatch.
-     */
-    double elapsed_time()
-    {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(time() - start_time).count() / 1000.0;
-    }
+  /**
+   * Returns number of seconds elapsed from the start of the stopwatch.
+   */
+  double elapsed_time() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(time() -
+                                                                 start_time)
+               .count() /
+           1000.0;
+  }
 
-private:
-    std::chrono::high_resolution_clock::time_point start_time;
+ private:
+  std::chrono::high_resolution_clock::time_point start_time;
 };
 
-#endif /* STOPWATCH_H_*/
+#endif  // SRC_STOPWATCH_H_

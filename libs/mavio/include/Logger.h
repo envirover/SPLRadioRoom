@@ -1,8 +1,8 @@
 /*
- MAVLinkLib.h
-
+ Logger.h
+ 
  MAVIO MAVLink I/O library.
-
+ 
  (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
@@ -20,11 +20,35 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef LIBS_MAVIO_INCLUDE_MAVLINKLIB_H_
-#define LIBS_MAVIO_INCLUDE_MAVLINKLIB_H_
+#ifndef LIBS_MAVIO_INCLUDE_LOGGER_H_
+#define LIBS_MAVIO_INCLUDE_LOGGER_H_
 
-// MAVLink profile used by RadioRoom
+// Log priorities
+#define LOG_EMERG 0
+#define LOG_ALERT 1
+#define LOG_CRIT 2
+#define LOG_ERR 3
+#define LOG_WARNING 4
+#define LOG_NOTICE 5
+#define LOG_INFO 6
+#define LOG_DEBUG 7
 
-#include "ardupilotmega/mavlink.h"
+// Log mask up to priority
+#define LOG_UPTO(pri) ((1 << ((pri) + 1)) - 1)
 
-#endif  // LIBS_MAVIO_INCLUDE_MAVLINKLIB_H_
+namespace mavio {
+
+// Initializes global logger.
+// Mask determines which future log() calls shall be ignored.
+void openlog(const char* identity, int mask);
+
+// Closes logger
+void closelog();
+
+// Logs message with given priority
+// Interface matches ::syslog() method.
+void log(int priority, const char* format, ...);
+
+}  // namespace mavio
+
+#endif  // LIBS_MAVIO_INCLUDE_LOGGER_H_

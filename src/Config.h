@@ -19,8 +19,8 @@
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef SRC_CONFIG_H_
+#define SRC_CONFIG_H_
 
 #include <string>
 
@@ -30,76 +30,77 @@ constexpr char default_config_file[] = "/etc/radioroom.conf";
  * RadioRoom configuration properties.
  */
 class Config {
-public:
-    Config();
+ public:
+  Config();
 
-    /*
-     * Loads configuration from the specified config file.
-     *
-     * Returns 0 in case of success and exit code in case of invalid configuration.
-     */
-    int init(const std::string& config_file);
+  /*
+   * Loads configuration from the specified config file.
+   *
+   * Returns 0 in case of success and exit code in case of invalid
+   * configuration.
+   */
+  int init(const std::string& config_file);
 
-    /* Autopilot configuration properties */
+  /* Autopilot configuration properties */
 
-    std::string get_autopilot_serial() const;
-    void        set_autopilot_serial(const std::string& path);
+  std::string get_autopilot_serial() const;
+  void set_autopilot_serial(const std::string& path);
 
-    int  get_autopilot_serial_speed() const;
-    void set_autopilot_serial_speed(int speed);
+  int get_autopilot_serial_speed() const;
+  void set_autopilot_serial_speed(int speed);
 
-    /* RadioRoom configuration properties */
+  /* RadioRoom configuration properties */
 
-    bool get_auto_detect_serials() const;
-    void set_auto_detect_serials(bool a);
+  bool get_auto_detect_serials() const;
+  void set_auto_detect_serials(bool a);
 
-    bool get_debug_mode() const;
-    void set_debug_mode(bool debug);
+  bool get_debug_mode() const;
+  void set_debug_mode(bool debug);
 
-    /* ISBD comm link configuration properties */
+  /* ISBD comm link configuration properties */
 
-    bool get_isbd_enabled() const;
-    void set_isbd_enabled(bool enabled);
+  bool get_isbd_enabled() const;
+  void set_isbd_enabled(bool enabled);
 
-    std::string get_isbd_serial() const;
-    void        set_isbd_serial(const std::string& path);
+  std::string get_isbd_serial() const;
+  void set_isbd_serial(const std::string& path);
 
-    int  get_isbd_serial_speed() const;
-    void set_isbd_serial_speed(int speed);
+  int get_isbd_serial_speed() const;
+  void set_isbd_serial_speed(int speed);
 
-    double get_isbd_report_period() const;
-    void   set_isbd_report_period(double period);
+  double get_isbd_report_period() const;
+  void set_isbd_report_period(double period);
 
-    /* TCP/IP comm link configuration properties */
+  /* TCP/IP comm link configuration properties */
 
-    bool get_tcp_enabled() const;
-    void set_tcp_enabled(bool enabled);
+  bool get_tcp_enabled() const;
+  void set_tcp_enabled(bool enabled);
 
-    std::string get_tcp_host() const;
-    void        set_tcp_host(const std::string& host);
+  std::string get_tcp_host() const;
+  void set_tcp_host(const std::string& host);
 
-    int  get_tcp_port() const;
-    void set_tcp_port(int port);
+  int get_tcp_port() const;
+  void set_tcp_port(int port);
 
-    double get_tcp_report_period() const;
-    void   set_tcp_report_period(double period);
+  double get_tcp_report_period() const;
+  void set_tcp_report_period(double period);
 
-private:
-    std::string autopilot_serial;
-    int         autopilot_serial_speed;
+ private:
+  std::string autopilot_serial;
+  int autopilot_serial_speed;
 
-    bool auto_detect_serials;
-    bool debug_mode;
+  bool auto_detect_serials;
+  bool debug_mode;
 
-    bool          isbd_enabled;
-    std::string   isbd_serial;
-    int           isbd_serial_speed;
-    unsigned long isbd_report_period;
+  bool isbd_enabled;
+  std::string isbd_serial;
+  int isbd_serial_speed;
+  unsigned long isbd_report_period;
 
-    bool          tcp_enabled;
-    std::string   tcp_host;
-    int           tcp_port;
-    unsigned long tcp_report_period;
+  bool tcp_enabled;
+  std::string tcp_host;
+  int tcp_port;
+  unsigned long tcp_report_period;
 };
 
-#endif /* CONFIG_H_ */
+#endif  // SRC_CONFIG_H_

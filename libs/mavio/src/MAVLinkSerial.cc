@@ -18,82 +18,78 @@
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
+*/
 
 #include "MAVLinkSerial.h"
-#include "MAVLinkLogger.h"
-#include <chrono>
-#include <unistd.h>
-#include <stdio.h>
-#include <syslog.h>
+
 #include <limits.h>
+#include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
-using namespace std;
-using namespace std::chrono;
-using namespace mavio;
+#include <chrono>
 
-MAVLinkSerial::MAVLinkSerial() : serial()
-{
+#include "MAVLinkLogger.h"
+
+namespace mavio {
+
+using std::string;
+
+MAVLinkSerial::MAVLinkSerial() : serial() {}
+
+bool MAVLinkSerial::init(const string& path, int speed) {
+  if (serial.open(path, speed) == 0) {
+    return true;
+  }
+
+  mavio::log(LOG_WARNING, "Failed to open serial device '%s'.", path.data());
+
+  return false;
 }
 
-bool MAVLinkSerial::init(const string& path, int speed)
-{
-    if (serial.open(path, speed) == 0) {
-        return true;
-    }
-    
-    syslog(LOG_WARNING, "Failed to open serial device '%s'.", path.data());
+void MAVLinkSerial::close() { serial.close(); }
 
-    return false;
+bool MAVLinkSerial::send_message(const mavlink_message_t& msg) {
+  if (msg.len == 0 && msg.msgid == 0) {
+    return true;
+  }
+
+  uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+  // Copy the message to send buffer
+  uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+
+  uint16_t n = serial.write(buf, len);
+
+  if (n == len) {
+    MAVLinkLogger::log(LOG_INFO, "MAV <<", msg);
+  } else {
+    MAVLinkLogger::log(LOG_WARNING, "MAV << FAILED", msg);
+  }
+
+  return n == len;
 }
 
-void MAVLinkSerial::close()
-{
-    serial.close();
-}
+bool MAVLinkSerial::receive_message(mavlink_message_t& msg) {
+  mavlink_status_t mavlink_status;
 
-bool MAVLinkSerial::send_message(const mavlink_message_t& msg)
-{
-    if (msg.len == 0 && msg.msgid == 0) {
-       return true;
-    }
+  // Receive data from stream
+  // serial.listen();
 
-    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+  int c = serial.read();
 
-    //Copy the message to send buffer
-    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+  while (c >= 0) {
+    // Serial.println(c);
 
-    uint16_t n = serial.write(buf, len);
-
-    if (n == len) {
-        MAVLinkLogger::log(LOG_INFO, "MAV <<", msg);
-    } else {
-        MAVLinkLogger::log(LOG_WARNING, "MAV << FAILED", msg);
-    }
-
-    return n == len;
-}
-
-bool MAVLinkSerial::receive_message(mavlink_message_t& msg)
-{
-    mavlink_status_t mavlink_status;
-
-    // Receive data from stream
-    //serial.listen();
-
-    int c = serial.read();
-
-    while (c >= 0) {
-        //Serial.println(c);
-
-        if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) {
-            MAVLinkLogger::log(LOG_DEBUG, "MAV >>", msg);
-            return true;
-        }
-
-        c = serial.read();
+    if (mavlink_parse_char(MAVLINK_COMM_0, c, &msg, &mavlink_status)) {
+      MAVLinkLogger::log(LOG_DEBUG, "MAV >>", msg);
+      return true;
     }
 
-    return false;
+    c = serial.read();
+  }
+
+  return false;
 }
+
+}  // namespace mavio

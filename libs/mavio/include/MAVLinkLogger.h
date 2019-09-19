@@ -18,38 +18,39 @@ MAVIO MAVLink I/O library.
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 
- Created on: Oct 22, 2017
-     Author: Pavel Bobov
- */
+#ifndef LIBS_MAVIO_INCLUDE_MAVLINKLOGGER_H_
+#define LIBS_MAVIO_INCLUDE_MAVLINKLOGGER_H_
 
-#ifndef MAVLINKLOGGER_H_
-#define MAVLINKLOGGER_H_
-
+#include "Logger.h"
 #include "MAVLinkLib.h"
 
 namespace mavio {
 
 /**
- * Class MAVLinkLogger provides static methos for logging MAVLink messages to syslog.
+ * Class MAVLinkLogger provides static methos for logging MAVLink messages to
+ * syslog.
  */
 class MAVLinkLogger {
-public:
-    /**
-     * Logs MAVLink message to syslog at the specified priority with the specified text prefix.
-     *
-     * Depending on inportance and frequency of the message, 'priority' parameter should be set to
-     * LOG_ERR, LOG_NOTICE, LOG_INFO, or LOG_DEBUG.
-     *
-     * Example prefixes:
-     * "MAV >>" - message received form the autopilot.
-     * "MAV <<" - message sent to the autopilot.
-     * "SBD >>" - message received from SBD transceiver
-     * "SBD <<" - message sent to the SBD transceiver
-     */
-    static void log(int priority, const char* prefix, const mavlink_message_t& message);
+ public:
+  /**
+   * Logs MAVLink message to syslog at the specified priority with the
+   * specified text prefix.
+   *
+   * Depending on inportance and frequency of the message, 'priority'
+   * parameter should be set to LOG_ERR, LOG_NOTICE, LOG_INFO, or LOG_DEBUG.
+   *
+   * Example prefixes:
+   * "MAV >>" - message received form the autopilot.
+   * "MAV <<" - message sent to the autopilot.
+   * "SBD >>" - message received from SBD transceiver
+   * "SBD <<" - message sent to the SBD transceiver
+   */
+  static void log(int priority, const char* prefix,
+                  const mavlink_message_t& message);
 };
 
-} // namespace mavio
+}  // namespace mavio
 
-#endif /* MAVLINKLOGGER_H_ */
+#endif  // LIBS_MAVIO_INCLUDE_MAVLINKLOGGER_H_

@@ -23,8 +23,8 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef IRIDIUMSBD_H_
-#define IRIDIUMSBD_H_
+#ifndef LIBS_MAVIO_INCLUDE_IRIDIUMSBD_H_
+#define LIBS_MAVIO_INCLUDE_IRIDIUMSBD_H_
 
 #include "Serial.h"
 
@@ -49,77 +49,91 @@ namespace mavio {
  * POSIX implementation for Iridium SBD transceiver communication.
  */
 class IridiumSBD {
-public:
-    IridiumSBD(Serial& serial);
+ public:
+  IridiumSBD(Serial& serial);
 
-    int begin();
+  int begin();
 
-    int getTransceiverModel(char* buffer, size_t bufferSize);
-    int getTransceiverSerialNumber(char* buffer, size_t bufferSize);
-    int sendSBDText(const char* message);
-    int sendSBDBinary(const uint8_t* txData, size_t txDataSize);
-    int sendReceiveSBDText(const char* message, uint8_t* rxBuffer, size_t& rxBufferSize);
-    int sendReceiveSBDBinary(const uint8_t* txData, size_t txDataSize, uint8_t* rxBuffer, size_t& rxBufferSize);
-    int getSignalQuality(int& quality);
-    int queryRingIndicationStatus(int& sri);
+  int getTransceiverModel(char* buffer, size_t bufferSize);
+  int getTransceiverSerialNumber(char* buffer, size_t bufferSize);
+  int sendSBDText(const char* message);
+  int sendSBDBinary(const uint8_t* txData, size_t txDataSize);
+  int sendReceiveSBDText(const char* message, uint8_t* rxBuffer,
+                         size_t& rxBufferSize);
+  int sendReceiveSBDBinary(const uint8_t* txData, size_t txDataSize,
+                           uint8_t* rxBuffer, size_t& rxBufferSize);
+  int getSignalQuality(int& quality);
+  int queryRingIndicationStatus(int& sri);
 
-    //This command returns current state of the mobile originated and mobile terminated buffers,
-    //and the SBD ring alert status.
-    int getStatusExtended(uint16_t& moFlag, uint16_t& moMSN, uint16_t& mtFlag, uint16_t& mtMSN, uint16_t& raFlag, uint16_t& msgWaiting);
+  // This command returns current state of the mobile originated and mobile
+  // terminated buffers, and the SBD ring alert status.
+  int getStatusExtended(uint16_t& moFlag, uint16_t& moMSN, uint16_t& mtFlag,
+                        uint16_t& mtMSN, uint16_t& raFlag,
+                        uint16_t& msgWaiting);
 
-    int  getWaitingMessageCount();
-    int  sleep();
-    bool isAsleep();
+  int getWaitingMessageCount();
+  int sleep();
+  bool isAsleep();
 
-    void setPowerProfile(int profile); // 0 = direct connect (default), 1 = USB
-    void adjustATTimeout(int seconds); // default value = 20 seconds
-    void adjustSendReceiveTimeout(int seconds); // default value = 300 seconds
-    void setMinimumSignalQuality(int quality); // a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
-    void useMSSTMWorkaround(bool useWorkAround); // true to use workaround from Iridium Alert 5/7
+  void setPowerProfile(int profile);  // 0 = direct connect (default), 1 = USB
+  void adjustATTimeout(int seconds);  // default value = 20 seconds
+  void adjustSendReceiveTimeout(int seconds);  // default value = 300 seconds
+  void setMinimumSignalQuality(
+      int quality);  // a number between 1 and 5, default
+                     // ISBD_DEFAULT_CSQ_MINIMUM
+  void useMSSTMWorkaround(
+      bool useWorkAround);  // true to use workaround from Iridium Alert 5/7
 
-private:
-    // Internal utilities
-    bool smartWait(int seconds);
-    bool waitForATResponse(char* response = NULL, int responseSize = 0, const char* prompt = NULL, const char* terminator = "OK\r\n");
+ private:
+  // Internal utilities
+  bool smartWait(int seconds);
+  bool waitForATResponse(char* response = NULL, int responseSize = 0,
+                         const char* prompt = NULL,
+                         const char* terminator = "OK\r\n");
 
-    int internalBegin();
-    int internalGetTransceiverModel(char* buffer, size_t bufferSize);
-    int internalGetTransceiverSerialNumber(char* buffer, size_t bufferSize);
-    int internalSendReceiveSBD(const char* txTxtMessage, const uint8_t* txData, size_t txDataSize, uint8_t* rxBuffer, size_t* prxBufferSize);
-    int internalQueryRingIndicationStatus(int& sri);
-    int internalGetStatusExtended(uint16_t& moFlag, uint16_t& moMSN, uint16_t& mtFlag, uint16_t& mtMSN, uint16_t& raFlag, uint16_t& msgWaiting);
-    int internalGetSignalQuality(int& quality);
-    int internalMSSTMWorkaround(bool& okToProceed);
-    int internalSleep();
+  int internalBegin();
+  int internalGetTransceiverModel(char* buffer, size_t bufferSize);
+  int internalGetTransceiverSerialNumber(char* buffer, size_t bufferSize);
+  int internalSendReceiveSBD(const char* txTxtMessage, const uint8_t* txData,
+                             size_t txDataSize, uint8_t* rxBuffer,
+                             size_t* prxBufferSize);
+  int internalQueryRingIndicationStatus(int& sri);
+  int internalGetStatusExtended(uint16_t& moFlag, uint16_t& moMSN,
+                                uint16_t& mtFlag, uint16_t& mtMSN,
+                                uint16_t& raFlag, uint16_t& msgWaiting);
+  int internalGetSignalQuality(int& quality);
+  int internalMSSTMWorkaround(bool& okToProceed);
+  int internalSleep();
 
-    int  doSBDIX(uint16_t& moCode, uint16_t& moMSN, uint16_t& mtCode, uint16_t& mtMSN, uint16_t& mtLen, uint16_t& mtRemaining);
-    int  doSBDRB(uint8_t* rxBuffer, size_t* prxBufferSize); // in/out
-    int  readUInt(uint16_t& u);
-    void power(bool on);
+  int doSBDIX(uint16_t& moCode, uint16_t& moMSN, uint16_t& mtCode,
+              uint16_t& mtMSN, uint16_t& mtLen, uint16_t& mtRemaining);
+  int doSBDRB(uint8_t* rxBuffer, size_t* prxBufferSize);  // in/out
+  int readUInt(uint16_t& u);
+  void power(bool on);
 
-    void send(const char* str);
-    void send(uint16_t n);
+  void send(const char* str);
+  void send(uint16_t n);
 
-    bool cancelled();
+  bool cancelled();
 
-    Serial& stream; // Communicating with the Iridium
+  Serial& stream;  // Communicating with the Iridium
 
-    // Timings
-    int csqInterval;
-    int sbdixInterval;
-    int atTimeout; //seconds
-    int sendReceiveTimeout;
+  // Timings
+  int csqInterval;
+  int sbdixInterval;
+  int atTimeout;  // seconds
+  int sendReceiveTimeout;
 
-    // State variables
-    int           remainingMessages;
-    int           sleepPin;
-    bool          asleep;
-    bool          reentrant;
-    int           minimumCSQ;
-    bool          useWorkaround;
-    unsigned long lastPowerOnTime;
+  // State variables
+  int remainingMessages;
+  int sleepPin;
+  bool asleep;
+  bool reentrant;
+  int minimumCSQ;
+  bool useWorkaround;
+  unsigned long lastPowerOnTime;
 };
 
-}
+}  // namespace mavio
 
-#endif /* IRIDIUMSBD_H_ */
+#endif  // LIBS_MAVIO_INCLUDE_IRIDIUMSBD_H_

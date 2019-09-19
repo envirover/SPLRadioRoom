@@ -18,62 +18,63 @@
  You should have received a copy of the GNU Lesser General Public
  License along with this library; if not, write to the Free Software
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
+*/
 
-#ifndef MAVLINKSERIAL_H_
-#define MAVLINKSERIAL_H_
+#ifndef LIBS_MAVIO_INCLUDE_MAVLINKSERIAL_H_
+#define LIBS_MAVIO_INCLUDE_MAVLINKSERIAL_H_
 
+#include <string>
 #include "MAVLinkLib.h"
 #include "Serial.h"
-#include <string>
 
 namespace mavio {
 
 /**
- * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial interface.
+ * MAVLinkSerial is used to send and receive MAVLink messages to/from a serial
+ * interface.
  */
 class MAVLinkSerial {
-public:
-    /**
-     * Constructs MAVLinkSerial instance using the specified serial interface.
-     */
-    MAVLinkSerial();
+ public:
+  /**
+   * Constructs MAVLinkSerial instance using the specified serial interface.
+   */
+  MAVLinkSerial();
 
-    /**
-     * Initialize connection to the serial device with the specified baud rate.
-     * 
-     * Returns true if serial device connection succeeded.
-     */
-    bool init(const std::string& path, int speed);
+  /**
+   * Initialize connection to the serial device with the specified baud rate.
+   *
+   * Returns true if serial device connection succeeded.
+   */
+  bool init(const std::string& path, int speed);
 
-    /**
-     * Closes connection to the serial device.
-     */
-    void close();
+  /**
+   * Closes connection to the serial device.
+   */
+  void close();
 
-    /**
-     * Returns the path of serial device set by init(...) call.
-     */
-    inline std::string get_path() const { return serial.get_path(); };
+  /**
+   * Returns the path of serial device set by init(...) call.
+   */
+  inline std::string get_path() const { return serial.get_path(); }
 
-    /**
-     * Sends MAVLink message to the serial interface.
-     *
-     * Returns true on success.
-     */
-    bool send_message(const mavlink_message_t& msg);
+  /**
+   * Sends MAVLink message to the serial interface.
+   *
+   * Returns true on success.
+   */
+  bool send_message(const mavlink_message_t& msg);
 
-    /**
-     * Receives MAVLink message from the serial interface.
-     *
-     * Returns true if MAVLink message was received.
-     */
-    bool receive_message(mavlink_message_t& msg);
+  /**
+   * Receives MAVLink message from the serial interface.
+   *
+   * Returns true if MAVLink message was received.
+   */
+  bool receive_message(mavlink_message_t& msg);
 
-private:
-    Serial serial;
+ private:
+  Serial serial;
 };
 
-} // namespace mavio
+}  // namespace mavio
 
-#endif // MAVLINKSERIAL_H_
+#endif  // LIBS_MAVIO_INCLUDE_MAVLINKSERIAL_H_
