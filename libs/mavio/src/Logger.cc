@@ -24,6 +24,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <syslog.h>
 
 #include <atomic>
 #include <chrono>
