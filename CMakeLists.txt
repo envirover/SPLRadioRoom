@@ -25,6 +25,7 @@ configure_file("${PROJECT_SOURCE_DIR}/src/build.h.in" "${PROJECT_BINARY_DIR}/bui
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavlink/include")
 include_directories("${PROJECT_SOURCE_DIR}/libs/mavio/include")
 include_directories("${PROJECT_SOURCE_DIR}/libs/inih/include")
+include_directories("${PROJECT_SOURCE_DIR}/libs/timelib/include")
 include_directories("${PROJECT_BINARY_DIR}")
 
 file(GLOB mavio_sources libs/mavio/src/*.cc)
@@ -39,6 +40,7 @@ target_link_libraries(radioroom mavio)
 target_link_libraries(radioroom inih)
 
 add_executable(aptest tests/MAVLinkAutopilotTest.cc)
+add_executable(tltest tests/TimeLibTest.cc)
 target_link_libraries(aptest mavio)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")

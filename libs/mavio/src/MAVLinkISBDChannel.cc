@@ -22,16 +22,17 @@
 
 #include "MAVLinkISBDChannel.h"
 
+#include "timelib.h"
+
 namespace mavio {
 
 using std::string;
 using std::vector;
-using std::chrono::high_resolution_clock;
+using timelib::sleep;
 
 constexpr size_t max_isbd_channel_queue_size = 10;
 
-constexpr struct timespec isbd_channel_poll_interval[] = {
-    {0, 10000000L}};  // 10 ms
+constexpr int64_t isbd_channel_poll_interval = 10L;  // 10 ms
 
 MAVLinkISBDChannel::MAVLinkISBDChannel()
     : MAVLinkChannel("isbd"),
@@ -83,11 +84,11 @@ bool MAVLinkISBDChannel::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkISBDChannel::message_available() { return !receive_queue.empty(); }
 
-high_resolution_clock::time_point MAVLinkISBDChannel::last_send_time() {
+int64_t MAVLinkISBDChannel::last_send_time() {
   return send_queue.last_push_time();
 }
 
-high_resolution_clock::time_point MAVLinkISBDChannel::last_receive_time() {
+int64_t MAVLinkISBDChannel::last_receive_time() {
   return receive_queue.last_push_time();
 }
 
@@ -113,7 +114,7 @@ void MAVLinkISBDChannel::send_receive_task() {
       }
     }
 
-    nanosleep(isbd_channel_poll_interval, NULL);
+    sleep(isbd_channel_poll_interval);
   }
 }
 

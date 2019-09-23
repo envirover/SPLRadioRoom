@@ -83,12 +83,12 @@ class MAVLinkISBDChannel : public MAVLinkChannel {
   /**
    * Returns time of the last successfully sent message.
    */
-  std::chrono::high_resolution_clock::time_point last_send_time() override;
+  int64_t last_send_time() override;
 
   /**
    * Returns time of the last successfully received message.
    */
-  std::chrono::high_resolution_clock::time_point last_receive_time() override;
+  int64_t last_receive_time() override;
 
  private:
   /**

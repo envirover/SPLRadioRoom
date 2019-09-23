@@ -23,46 +23,52 @@
 #include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include <atomic>
 #include <iostream>
 
 #include "Config.h"
 #include "MAVLinkHandler.h"
 #include "MAVLinkLogger.h"
 #include "build.h"
+#include "timelib.h"
+
+using mavio::log;
+using std::cout;
+using std::endl;
 
 constexpr char log_identity[] = "radioroom";
 
-constexpr struct timespec msg_handler_loop_period[] = {
-    {0, 100000000L}};  // 100 ms
+constexpr int64_t msg_handler_loop_period = 100;  // 100 ms
 
-static int running = 0;
+std::atomic<bool> running(false);
 
 extern Config config;
 
 void print_help() {
-  std::cout << "Usage: radioroom [options]" << std::endl;
-  std::cout << "options:" << std::endl;
-  std::cout << "    -c <config file>" << std::endl;
-  std::cout << "          Alternative configuration file instead of "
-               "/etc/radioroom.conf."
-            << std::endl;
-  std::cout << std::endl;
-  std::cout << "    -h    Print this help and exit." << std::endl;
-  std::cout << std::endl;
-  std::cout << "    -v    Verbose logging." << std::endl;
-  std::cout << std::endl;
-  std::cout << "    -V    Print version and exit." << std::endl;
+  cout << "Usage: radioroom [options]" << endl;
+  cout << "options:" << endl;
+  cout << "    -c <config file>" << endl;
+  cout << "          Alternative configuration file instead of "
+          "/etc/radioroom.conf."
+       << endl;
+  cout << endl;
+  cout << "    -h    Print this help and exit." << endl;
+  cout << endl;
+  cout << "    -v    Verbose logging." << endl;
+  cout << endl;
+  cout << "    -V    Print version and exit." << endl;
 }
 
 void print_version() {
-  std::cout << RADIO_ROOM_VERSION << "." << BUILD_NUM << std::endl;
-  std::cout << "MAVLink wire protocol version " << MAVLINK_WIRE_PROTOCOL_VERSION
-            << std::endl;
+  cout << RADIO_ROOM_VERSION << "." << BUILD_NUM << endl;
+  cout << "MAVLink wire protocol version " << MAVLINK_WIRE_PROTOCOL_VERSION
+       << endl;
 }
 
 void handle_signal(int sig) {
   if (sig == SIGTERM) {
-    running = 0;
+    running = false;
 
     /* Reset signal handling to default behavior */
     signal(SIGTERM, SIG_DFL);
@@ -90,13 +96,12 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
       case '?':
         if (optopt == 'c') {
-          std::cout << "Option -c requires an argument." << std::endl;
+          cout << "Option -c requires an argument." << endl;
         } else if (isprint(optopt)) {
-          std::cout << "Unknown option '-" << std::string(1, optopt) << "'."
-                    << std::endl;
+          cout << "Unknown option '-" << std::string(1, optopt) << "'." << endl;
         } else {
-          std::cout << "Unknown option character '" << std::string(1, optopt)
-                    << "'." << std::endl;
+          cout << "Unknown option character '" << std::string(1, optopt) << "'."
+               << endl;
         }
         return EXIT_FAILURE;
     }
@@ -105,35 +110,34 @@ int main(int argc, char** argv) {
   mavio::openlog(log_identity, config.get_debug_mode() ? LOG_UPTO(LOG_DEBUG)
                                                        : LOG_UPTO(LOG_INFO));
 
-  mavio::log(LOG_INFO, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
+  log(LOG_INFO, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
   if (config.init(config_file) < 0) {
-    mavio::log(LOG_ERR, "Can't load configuration file '%s'",
-               config_file.data());
+    log(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
   }
 
   if (msg_handler.init()) {
-    mavio::log(LOG_NOTICE, "%s.%s started.", RADIO_ROOM_VERSION, BUILD_NUM);
+    log(LOG_NOTICE, "%s.%s started.", RADIO_ROOM_VERSION, BUILD_NUM);
   } else {
-    mavio::log(LOG_CRIT, "%s.%s initialization failed.", RADIO_ROOM_VERSION,
-               BUILD_NUM);
+    log(LOG_CRIT, "%s.%s initialization failed.", RADIO_ROOM_VERSION,
+        BUILD_NUM);
     return EXIT_FAILURE;
   }
 
   signal(SIGTERM, handle_signal);
 
-  running = 1;
+  running = true;
 
   while (running) {
     msg_handler.loop();
-    nanosleep(msg_handler_loop_period, NULL);
+    timelib::sleep(msg_handler_loop_period);
   }
 
-  mavio::log(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
+  log(LOG_INFO, "Stopping %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
   msg_handler.close();
 
-  mavio::log(LOG_NOTICE, "%s.%s stopped.", RADIO_ROOM_VERSION, BUILD_NUM);
+  log(LOG_NOTICE, "%s.%s stopped.", RADIO_ROOM_VERSION, BUILD_NUM);
 
   mavio::closelog();
 

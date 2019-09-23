@@ -20,7 +20,7 @@
 
 #include "MAVLinkAutopilot.h"
 
-#include <chrono>
+#include "timelib.h"
 
 #include "MAVLinkLogger.h"
 
@@ -28,16 +28,14 @@ namespace mavio {
 
 using std::string;
 using std::vector;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+using timelib::sleep;
+using timelib::Stopwatch;
 
 constexpr int send_retries = 5;
 constexpr int receive_retries = 10;
-constexpr int64_t max_heartbeat_interval = 2000;  // ms
-
-constexpr struct timespec autopilot_send_interval[] = {{0, 10000000L}};  // 10ms
-constexpr struct timespec receive_retry_delay[] = {{0, 10000000L}};      // 10ms
+constexpr int64_t max_heartbeat_interval = 2000;
+constexpr int64_t autopilot_send_interval = 10L;  // 10ms
+constexpr int64_t receive_retry_delay = 10L;      // 10ms
 
 constexpr size_t max_autopilot_queue_size = 10;
 
@@ -86,9 +84,9 @@ bool MAVLinkAutopilot::request_autopilot_version(
   autopilot = mav_type = sys_id = 0;
   memset(&autopilot_version, 0, sizeof(autopilot_version));
 
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<milliseconds>(high_resolution_clock::now() - start)
-           .count() < max_heartbeat_interval;) {
+  Stopwatch timer;
+
+  while (timer.elapsed_time() < max_heartbeat_interval) {
     if (serial.receive_message(msg)) {
       if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
         autopilot = mavlink_msg_heartbeat_get_autopilot(&msg);
@@ -101,7 +99,7 @@ bool MAVLinkAutopilot::request_autopilot_version(
       }
     }
 
-    nanosleep(receive_retry_delay, NULL);
+    sleep(receive_retry_delay);
   }
 
   // Return false if heartbeat message was not received
@@ -130,7 +128,7 @@ bool MAVLinkAutopilot::request_autopilot_version(
       mavio::log(LOG_DEBUG, "Failed to send message to autopilot.\n");
     }
 
-    nanosleep(receive_retry_delay, NULL);
+    sleep(receive_retry_delay);
   }
 
   return true;
@@ -169,13 +167,11 @@ bool MAVLinkAutopilot::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkAutopilot::message_available() { return !receive_queue.empty(); }
 
-std::chrono::high_resolution_clock::time_point
-MAVLinkAutopilot::last_send_time() {
+int64_t MAVLinkAutopilot::last_send_time() {
   return send_queue.last_push_time();
 }
 
-std::chrono::high_resolution_clock::time_point
-MAVLinkAutopilot::last_receive_time() {
+int64_t MAVLinkAutopilot::last_receive_time() {
   return receive_queue.last_push_time();
 }
 
@@ -260,7 +256,7 @@ void MAVLinkAutopilot::send_task() {
       serial.send_message(msg);
     }
 
-    nanosleep(autopilot_send_interval, NULL);
+    timelib::sleep(autopilot_send_interval);
   }
 }
 

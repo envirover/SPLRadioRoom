@@ -25,9 +25,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef LIBS_MAVIO_INCLUDE_CIRCULARBUFFER_H_
 #define LIBS_MAVIO_INCLUDE_CIRCULARBUFFER_H_
 
-#include <chrono>
 #include <memory>
 #include <mutex>
+
+#include "timelib.h"
 
 namespace mavio {
 
@@ -40,11 +41,10 @@ class CircularBuffer {
   explicit CircularBuffer(size_t size)
       : buf_(std::unique_ptr<T[]>(new T[size])),
         max_size_(size),
-        last_push_time_(std::chrono::high_resolution_clock::now()) {}
+        last_push_time_(timelib::time_since_epoch()) {}
 
   void push(T item) {
-    std::chrono::high_resolution_clock::time_point push_time =
-        std::chrono::high_resolution_clock::now();
+    int64_t push_time = timelib::time_since_epoch();
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -108,7 +108,7 @@ class CircularBuffer {
     return size;
   }
 
-  std::chrono::high_resolution_clock::time_point last_push_time() {
+  int64_t last_push_time() {
     std::lock_guard<std::mutex> lock(mutex_);
     return last_push_time_;
   }
@@ -121,9 +121,9 @@ class CircularBuffer {
   const size_t max_size_;
   bool full_ = 0;
 
-  std::chrono::high_resolution_clock::time_point last_push_time_;
+  int64_t last_push_time_;
 };
 
 }  // namespace mavio
 
-#endif // LIBS_MAVIO_INCLUDE_CIRCULARBUFFER_H_ 
+#endif // LIBS_MAVIO_INCLUDE_CIRCULARBUFFER_H_

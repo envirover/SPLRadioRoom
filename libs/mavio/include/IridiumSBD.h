@@ -4,7 +4,7 @@ IridiumSBD.h
 MAVIO MAVLink I/O library.
 
 Original work Copyright (C) 2013-4 Mikal Hart
-Modified work Copyright (C) 2017   Envirover
+Modified work Copyright (C) 2017-9 Envirover
 
 All rights reserved.
 
@@ -86,7 +86,7 @@ class IridiumSBD {
 
  private:
   // Internal utilities
-  bool smartWait(int seconds);
+  bool smartWait(int milliseconds);
   bool waitForATResponse(char* response = NULL, int responseSize = 0,
                          const char* prompt = NULL,
                          const char* terminator = "OK\r\n");
@@ -118,11 +118,11 @@ class IridiumSBD {
 
   Serial& stream;  // Communicating with the Iridium
 
-  // Timings
-  int csqInterval;
-  int sbdixInterval;
-  int atTimeout;  // seconds
-  int sendReceiveTimeout;
+  // Timings milliseconds
+  int64_t csqInterval;
+  int64_t sbdixInterval;
+  int64_t atTimeout;
+  int64_t sendReceiveTimeout;
 
   // State variables
   int remainingMessages;

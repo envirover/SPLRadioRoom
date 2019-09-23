@@ -24,10 +24,11 @@ MAVIO MAVLink I/O library.
 
 namespace mavio {
 
+using timelib::sleep;
+
 constexpr size_t max_tcp_channnel_queue_size = 10;
 
-constexpr struct timespec tcp_channel_send_interval[] = {
-    {0, 10000000L}};  // 10 ms
+constexpr int64_t tcp_channel_send_interval = 10L;  // 10 ms
 
 MAVLinkTCPChannel::MAVLinkTCPChannel()
     : MAVLinkChannel("tcp"),
@@ -79,13 +80,11 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkTCPChannel::message_available() { return !receive_queue.empty(); }
 
-std::chrono::high_resolution_clock::time_point
-MAVLinkTCPChannel::last_send_time() {
+int64_t MAVLinkTCPChannel::last_send_time() {
   return send_queue.last_push_time();
 }
 
-std::chrono::high_resolution_clock::time_point
-MAVLinkTCPChannel::last_receive_time() {
+int64_t MAVLinkTCPChannel::last_receive_time() {
   return receive_queue.last_push_time();
 }
 
@@ -97,7 +96,7 @@ void MAVLinkTCPChannel::send_task() {
       socket.send_message(msg);
     }
 
-    nanosleep(tcp_channel_send_interval, NULL);
+    sleep(tcp_channel_send_interval);
   }
 }
 

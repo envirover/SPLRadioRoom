@@ -27,15 +27,11 @@
 #include <syslog.h>
 
 #include <atomic>
-#include <chrono>
 #include <ctime>
 
-namespace mavio {
+#include "timelib.h"
 
-using std::chrono::duration_cast;
-using std::chrono::milliseconds;
-using std::chrono::system_clock;
-using std::chrono::time_point;
+namespace mavio {
 
 std::atomic_int log_mask(LOG_UPTO(LOG_INFO));
 
@@ -81,15 +77,9 @@ void closelog() {
 void vlog(int priority, const char* format, va_list args) {
 #ifdef __CYGWIN__
   if (log_mask & priority) {
-    time_point<system_clock> now = system_clock::now();
-    int64_t millis =
-        duration_cast<milliseconds>(now.time_since_epoch()).count();
-    std::time_t time_now_t = system_clock::to_time_t(now);
-    std::tm* t = std::localtime(&time_now_t);
-
-    printf("%04d-%02d-%02d %02d:%02d:%02d:%03d ", t->tm_year, t->tm_mon,
-           t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (int)(millis % 1000));
-    printf("%s ", priority2str(priority));
+    char str[64];
+    timelib::timestamp(str, sizeof(str));
+    printf("%s %s ", str, priority2str(priority));
     vprintf(format, args);
     printf("\n");
   }

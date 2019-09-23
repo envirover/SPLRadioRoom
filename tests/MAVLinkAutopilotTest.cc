@@ -21,19 +21,20 @@ Telemetry for MAVLink autopilots.
 */
 
 #include <cassert>
-#include <chrono>
 #include <iostream>
 
 #include "Logger.h"
 #include "MAVLinkAutopilot.h"
+#include "timelib.h"
+
+using std::cout;
+using std::endl;
 
 using mavio::MAVLinkAutopilot;
 using mavio::Serial;
-using std::cout;
-using std::endl;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
+using timelib::sleep;
+using timelib::sec2ms;
+using timelib::Stopwatch;
 
 void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate);
 
@@ -42,10 +43,7 @@ constexpr int autopilot_serial_baud_rate = 57600;
 
 constexpr uint16_t DATA_STREAM_RATE = 2;  // Hz
 
-constexpr struct timespec autopilot_send_interval[] = {
-    {0, 10000000L}};  // 10 milliseconds
-// constexpr struct timespec heart_interval[] = { { 0, 10000000L } }; // 10
-// milliseconds
+constexpr int64_t autopilot_send_interval = 10L;  // 10 milliseconds
 
 int main(int argc, char** argv) {
   cout << "MAVLinkAutopilot class test." << endl;
@@ -78,17 +76,14 @@ int main(int argc, char** argv) {
 
   request_data_streams(autopilot, DATA_STREAM_RATE);
 
-  high_resolution_clock::time_point start_time = high_resolution_clock::now();
-  high_resolution_clock::time_point heartbeat_time =
-      high_resolution_clock::now();
+  Stopwatch start_time;
+  Stopwatch heartbeat_time;
 
   int count = 0;
-  const double period = 10.0;
+  const int64_t period = sec2ms(10.0);
+  const int64_t heartbeat_interval = sec2ms(1.0);
 
-  while (duration_cast<milliseconds>(high_resolution_clock::now() - start_time)
-                 .count() /
-             1000.0 <=
-         period) {
+  while (start_time.elapsed_time() <= period) {
     mavlink_message_t msg;
     if (autopilot.receive_message(msg)) {
       cout << "Message reseived. msgid = " << static_cast<int>(msg.msgid)
@@ -96,12 +91,8 @@ int main(int argc, char** argv) {
       count++;
     }
 
-    if (duration_cast<milliseconds>(high_resolution_clock::now() -
-                                    heartbeat_time)
-                .count() /
-            1000.0 >=
-        1.0) {
-      heartbeat_time = high_resolution_clock::now();
+    if (heartbeat_time.elapsed_time() >= heartbeat_interval) {
+      heartbeat_time.reset();
 
       mavlink_message_t mt_msg;
       mavlink_msg_heartbeat_pack(mavio::system_id, mavio::component_id, &mt_msg,
@@ -109,7 +100,7 @@ int main(int argc, char** argv) {
       autopilot.send_message(mt_msg);
     }
 
-    nanosleep(autopilot_send_interval, NULL);
+    sleep(autopilot_send_interval);
   }
 
   cout << count << " messages received in " << period << " seconds." << endl;
@@ -148,7 +139,7 @@ void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate) {
   };
 
   constexpr size_t n = sizeof(req_stream_ids) / sizeof(req_stream_ids[0]);
-  
+
   for (size_t i = 0; i < n; ++i) {
     mavlink_msg_request_data_stream_pack(mavio::system_id, mavio::component_id,
                                          &mt_msg, autopilot.get_system_id(),
@@ -156,6 +147,6 @@ void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate) {
                                          req_stream_ids[i], rate, 1);
     autopilot.send_message(mt_msg);
 
-    nanosleep(autopilot_send_interval, NULL);
+    sleep(autopilot_send_interval);
   }
 }

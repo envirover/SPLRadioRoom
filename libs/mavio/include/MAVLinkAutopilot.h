@@ -3,6 +3,7 @@
  
  MAVIO MAVLink I/O library.
  
+
  (C) Copyright 2019 Envirover.
 
  This library is free software; you can redistribute it and/or
@@ -100,12 +101,12 @@ class MAVLinkAutopilot : public MAVLinkChannel {
   /**
    * Returns time of the last successfully sent message.
    */
-  std::chrono::high_resolution_clock::time_point last_send_time() override;
+  int64_t last_send_time() override;
 
   /**
    * Returns time of the last successfully received message.
    */
-  std::chrono::high_resolution_clock::time_point last_receive_time() override;
+  int64_t last_receive_time() override;
 
  private:
   /**
@@ -167,4 +168,4 @@ class MAVLinkAutopilot : public MAVLinkChannel {
 
 }  // namespace mavio
 
-#endif // LIBS_MAVIO_INCLUDE_MAVLINKAUTOPILOT_H_
+#endif  // LIBS_MAVIO_INCLUDE_MAVLINKAUTOPILOT_H_

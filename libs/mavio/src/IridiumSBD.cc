@@ -30,44 +30,40 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <string.h>
 #include <unistd.h>
 
-#include <chrono>
 #include <iostream>
 
 #include <Logger.h>
+#include "timelib.h"
+
+using timelib::Stopwatch;
 
 namespace mavio {
 
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-using std::chrono::seconds;
-
 #define ISBD_LIBRARY_REVISION 2
-
-#define ISBD_DEFAULT_AT_TIMEOUT 30
-#define ISBD_DEFAULT_CSQ_INTERVAL 10
-#define ISBD_DEFAULT_CSQ_INTERVAL_USB 20
-#define ISBD_DEFAULT_SBDIX_INTERVAL 30
-#define ISBD_DEFAULT_SBDIX_INTERVAL_USB 30
-// #define ISBD_DEFAULT_SENDRECEIVE_TIME   300
-#define ISBD_DEFAULT_SENDRECEIVE_TIME 30
-#define ISBD_STARTUP_MAX_TIME 240
 #define ISBD_DEFAULT_CSQ_MINIMUM 2
+
+constexpr int64_t isbd_startup_timeout = 500L;               // 0.5 seconds
+constexpr int64_t isbd_default_at_timeout = 30000L;          // 30 seconds
+constexpr int64_t isbd_default_csq_interval = 10000L;        // 10 seconds
+constexpr int64_t isbd_default_csq_interval_usb = 20000L;    // 20 seconds
+constexpr int64_t isbd_default_sbdix_interval = 30000L;      // 30 seconds
+constexpr int64_t isbd_default_sbdix_interval_usb = 30000L;  // 30 seconds
+constexpr int64_t isbd_default_sendreceive_time = 30000L;    // 30 seconds
+constexpr int64_t isbd_startup_max_time = 240000L;           // 240 seconds
+constexpr int64_t smart_wait_sleep = 1L;                     // 1ms
 
 extern bool isbdCallback() __attribute__((weak));
 
 #define UNUSED(x) (void)(x)
 
-const struct timespec SMART_WAIT_SLEEP[] = {{0, 1000000L}};  // 1ms
-
 bool isbdCallback() { return true; }
 
 IridiumSBD::IridiumSBD(Serial& serial)
     : stream(serial),
-      csqInterval(ISBD_DEFAULT_CSQ_INTERVAL),
-      sbdixInterval(ISBD_DEFAULT_SBDIX_INTERVAL),
-      atTimeout(ISBD_DEFAULT_AT_TIMEOUT),
-      sendReceiveTimeout(ISBD_DEFAULT_SENDRECEIVE_TIME),
+      csqInterval(isbd_default_csq_interval),
+      sbdixInterval(isbd_default_sbdix_interval),
+      atTimeout(isbd_default_at_timeout),
+      sendReceiveTimeout(isbd_default_sendreceive_time),
       remainingMessages(-1),
       sleepPin(-1),
       asleep(false),
@@ -239,13 +235,13 @@ int IridiumSBD::getWaitingMessageCount() { return this->remainingMessages; }
 void IridiumSBD::setPowerProfile(int profile) {
   switch (profile) {
     case 0:
-      this->csqInterval = ISBD_DEFAULT_CSQ_INTERVAL;
-      this->sbdixInterval = ISBD_DEFAULT_SBDIX_INTERVAL;
+      this->csqInterval = isbd_default_csq_interval;
+      this->sbdixInterval = isbd_default_sbdix_interval;
       break;
 
     case 1:
-      this->csqInterval = ISBD_DEFAULT_CSQ_INTERVAL_USB;
-      this->sbdixInterval = ISBD_DEFAULT_SBDIX_INTERVAL_USB;
+      this->csqInterval = isbd_default_csq_interval_usb;
+      this->sbdixInterval = isbd_default_sbdix_interval_usb;
       break;
   }
 }
@@ -258,17 +254,15 @@ void IridiumSBD::adjustSendReceiveTimeout(int seconds) {
   this->sendReceiveTimeout = seconds;
 }
 
-void IridiumSBD::setMinimumSignalQuality(
-    int quality)  // a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
-{
+// a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
+void IridiumSBD::setMinimumSignalQuality(int quality) {
   if (quality >= 1 && quality <= 5) {
     this->minimumCSQ = quality;
   }
 }
 
-void IridiumSBD::useMSSTMWorkaround(
-    bool useWorkAround)  // true to use workaround from Iridium Alert 5/7
-{
+// true to use workaround from Iridium Alert 5/7
+void IridiumSBD::useMSSTMWorkaround(bool useWorkAround) {
   this->useWorkaround = useWorkAround;
 }
 
@@ -287,19 +281,15 @@ int IridiumSBD::internalBegin() {
 
   bool modemAlive = false;
 
-  long startupTime = 500;  // ms
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<milliseconds>(high_resolution_clock::now() - start)
-           .count() < startupTime;)
+  Stopwatch timer;
+  while (timer.elapsed_time() < isbd_startup_timeout)
     if (cancelled()) {
       return ISBD_CANCELLED;
     }
 
   // Turn on modem and wait for a response from "AT" command to begin
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<seconds>(high_resolution_clock::now() - start).count() <
-           ISBD_STARTUP_MAX_TIME &&
-       !modemAlive;) {
+  timer.reset();
+  while (timer.elapsed_time() < isbd_startup_max_time && !modemAlive) {
     send("AT\r");
     modemAlive = waitForATResponse();
     if (cancelled()) {
@@ -405,9 +395,8 @@ int IridiumSBD::internalSendReceiveSBD(const char* txTxtMessage,
   }
 
   // Long SBDIX loop begins here
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<seconds>(high_resolution_clock::now() - start).count() <
-       ISBD_DEFAULT_SENDRECEIVE_TIME;) {
+  Stopwatch timer;
+  while (timer.elapsed_time() < isbd_default_sendreceive_time) {
     int strength = 0;
     bool okToProceed = true;
     int ret = internalGetSignalQuality(strength);
@@ -597,15 +586,14 @@ int IridiumSBD::internalSleep() {
   return ISBD_SUCCESS;
 }
 
-bool IridiumSBD::smartWait(int seconds) {
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<std::chrono::seconds>(high_resolution_clock::now() - start)
-           .count() < seconds;) {
+bool IridiumSBD::smartWait(int milliseconds) {
+  Stopwatch timer;
+  while (timer.elapsed_time() < milliseconds) {
     if (cancelled()) {
       return false;
     }
 
-    nanosleep(SMART_WAIT_SLEEP, NULL);  // sleep for 1 millisecond
+    timelib::sleep(smart_wait_sleep);  // sleep for 1 millisecond
   }
 
   return true;
@@ -631,9 +619,8 @@ bool IridiumSBD::waitForATResponse(char* response, int responseSize,
 
   int promptState = prompt ? LOOKING_FOR_PROMPT : LOOKING_FOR_TERMINATOR;
 
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<seconds>(high_resolution_clock::now() - start).count() <
-       atTimeout;) {
+  Stopwatch timer;
+  while (timer.elapsed_time() < atTimeout) {
     if (cancelled()) {
       return false;
     }
@@ -733,7 +720,7 @@ int IridiumSBD::doSBDRB(uint8_t* rxBuffer, size_t* prxBufferSize) {
 
   // cons << "[Binary size:" << size << "]";
 
-  high_resolution_clock::time_point start = high_resolution_clock::now();
+  Stopwatch timer;
 
   for (uint16_t bytesRead = 0; bytesRead < size;) {
     if (cancelled()) {
@@ -756,8 +743,7 @@ int IridiumSBD::doSBDRB(uint8_t* rxBuffer, size_t* prxBufferSize) {
       }
     }
 
-    if (duration_cast<seconds>(high_resolution_clock::now() - start).count() >=
-        atTimeout) {
+    if (timer.elapsed_time() >= atTimeout) {
       return ISBD_SENDRECEIVE_TIMEOUT;
     }
   }
@@ -783,10 +769,8 @@ int IridiumSBD::readUInt(uint16_t& u) {
   int n = 0;
   u = 0;
 
-  for (high_resolution_clock::time_point start = high_resolution_clock::now();
-       duration_cast<seconds>(high_resolution_clock::now() - start).count() <
-           atTimeout &&
-       n < 2;) {
+  Stopwatch timer;
+  while (timer.elapsed_time() < atTimeout && n < 2) {
     if (cancelled()) {
       return ISBD_CANCELLED;
     }

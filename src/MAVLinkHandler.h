@@ -26,9 +26,9 @@
 #include "MAVLinkAutopilot.h"
 #include "MAVLinkISBDChannel.h"
 #include "MAVLinkTCPChannel.h"
-#include "Stopwatch.h"
+#include "timelib.h"
 
-constexpr uint16_t max_mission_count = 1024;
+constexpr size_t max_mission_count = 1024;
 
 /**
  * Telemetry for MAVLink autopilots.
@@ -71,13 +71,13 @@ class MAVLinkHandler {
    * Hanlde mobile-originated message received from autopilot.
    */
   void handle_mo_message(const mavlink_message_t& msg,
-                         mavio::MAVLinkChannel& channel);
+                         mavio::MAVLinkChannel* channel);
 
   /*
    * Handle mobile-terminated message received from a comm channel.
    */
   void handle_mt_message(const mavlink_message_t& msg,
-                         mavio::MAVLinkChannel& channel);
+                         mavio::MAVLinkChannel* channel);
 
   /**
    * Sends report message to one of the comm channels if the channel report
@@ -113,14 +113,14 @@ class MAVLinkHandler {
   mavio::MAVLinkAutopilot autopilot;
   mavio::MAVLinkISBDChannel isbd_channel;
   mavio::MAVLinkTCPChannel tcp_channel;
-  Stopwatch heartbeat_timer;
-  Stopwatch primary_report_timer;
-  Stopwatch secondary_report_timer;
+  timelib::Stopwatch heartbeat_timer;
+  timelib::Stopwatch primary_report_timer;
+  timelib::Stopwatch secondary_report_timer;
   mavlink_high_latency_t report;
   uint16_t report_mask;
   mavlink_message_t mission_count_msg;
   mavlink_message_t missions[max_mission_count];
-  uint16_t missions_received;
+  size_t missions_received;
 };
 
 #endif  // SRC_MAVLINKHANDLER_H_
