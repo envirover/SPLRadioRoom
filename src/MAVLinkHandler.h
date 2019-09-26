@@ -71,13 +71,13 @@ class MAVLinkHandler {
    * Hanlde mobile-originated message received from autopilot.
    */
   void handle_mo_message(const mavlink_message_t& msg,
-                         mavio::MAVLinkChannel* channel);
+                         mavio::MAVLinkChannel& channel);
 
   /*
    * Handle mobile-terminated message received from a comm channel.
    */
   void handle_mt_message(const mavlink_message_t& msg,
-                         mavio::MAVLinkChannel* channel);
+                         mavio::MAVLinkChannel& channel);
 
   /**
    * Sends report message to one of the comm channels if the channel report

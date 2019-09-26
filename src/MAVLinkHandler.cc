@@ -160,19 +160,19 @@ void MAVLinkHandler::loop() {
   mavlink_message_t msg;
 
   if (autopilot.receive_message(msg)) {
-    handle_mo_message(msg, &active_channel());
+    handle_mo_message(msg, active_channel());
   }
 
   // Handle messages received from the comm channels
   if (config.get_tcp_enabled()) {
     if (tcp_channel.receive_message(msg)) {
-      handle_mt_message(msg, &tcp_channel);
+      handle_mt_message(msg, tcp_channel);
     }
   }
 
   if (config.get_isbd_enabled()) {
     if (isbd_channel.receive_message(msg)) {
-      handle_mt_message(msg, &isbd_channel);
+      handle_mt_message(msg, isbd_channel);
     }
   }
 
@@ -208,11 +208,11 @@ MAVLinkChannel& MAVLinkHandler::active_channel() {
 // Use missions array to get mission items on MISSION_REQUEST.
 // Pass all other messages to update_report_msg().
 void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
-                                       MAVLinkChannel* channel) {
+                                       MAVLinkChannel& channel) {
   switch (msg.msgid) {
     case MAVLINK_MSG_ID_COMMAND_ACK:
     case MAVLINK_MSG_ID_PARAM_VALUE: {
-      channel->send_message(msg);
+      channel.send_message(msg);
       break;
     }
     case MAVLINK_MSG_ID_MISSION_REQUEST: {
@@ -236,7 +236,7 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
             mission_result);
       }
 
-      channel->send_message(msg);
+      channel.send_message(msg);
       break;
     }
     default: {
@@ -256,7 +256,7 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
  * method does nothing and just returns false.
  */
 void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
-                                       MAVLinkChannel* channel) {
+                                       MAVLinkChannel& channel) {
   switch (msg.msgid) {
     case MAVLINK_MSG_ID_MISSION_COUNT: {
       uint16_t mission_count = mavlink_msg_mission_count_get_count(&msg);
@@ -276,7 +276,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
         mavlink_msg_mission_ack_encode(autopilot.get_system_id(),
                                        mavio::ardupilot_component_id, &ack_msg,
                                        &mission_ack);
-        channel->send_message(ack_msg);
+        channel.send_message(ack_msg);
       }
 
       missions_received = 0;
@@ -322,7 +322,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
         mavlink_msg_param_value_encode(autopilot.get_system_id(),
                                        mavio::ardupilot_component_id,
                                        &param_value_msg, &paramValue);
-        channel->send_message(param_value_msg);
+        channel.send_message(param_value_msg);
 
         log(LOG_INFO, "Report period changed to %f seconds.", value);
         break;

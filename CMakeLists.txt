@@ -41,7 +41,10 @@ target_link_libraries(radioroom inih)
 
 add_executable(aptest tests/MAVLinkAutopilotTest.cc)
 add_executable(tltest tests/TimeLibTest.cc)
+add_executable(cbtest tests/CircularBufferTest.cc)
+
 target_link_libraries(aptest mavio)
+target_link_libraries(cbtest mavio)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 
