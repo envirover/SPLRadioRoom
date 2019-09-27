@@ -38,8 +38,8 @@ using mavio::Serial;
 constexpr int max_send_retries = 5;
 constexpr uint16_t data_stream_rate = 2;  // Hz
 
-constexpr int64_t autopilot_send_interval = 10;  // 10 ms
-constexpr int64_t heartbeat_period = 1000;       // 1 second
+const std::chrono::milliseconds autopilot_send_interval(10);
+const std::chrono::milliseconds heartbeat_period(1000);
 
 // Masks of MAVLink messages used to compose single HIGH_LATENCY message
 constexpr uint16_t mavlink_msg_mask_heartbeat = 0x0001;
@@ -192,10 +192,10 @@ MAVLinkChannel& MAVLinkHandler::active_channel() {
 
   // Both TCP and ISBD channels are enabled.
   // Select channel that successfully sent or received message the last.
-  int64_t tcp_last_transmit = std::max<int64_t>(
-      tcp_channel.last_send_time(), tcp_channel.last_receive_time());
-  int64_t isbd_last_transmit = std::max<int64_t>(
-      isbd_channel.last_send_time(), isbd_channel.last_receive_time());
+  std::chrono::milliseconds tcp_last_transmit =
+      std::max(tcp_channel.last_send_time(), tcp_channel.last_receive_time());
+  std::chrono::milliseconds isbd_last_transmit =
+      std::max(isbd_channel.last_send_time(), isbd_channel.last_receive_time());
 
   if (tcp_last_transmit >= isbd_last_transmit) {
     return tcp_channel;
@@ -338,7 +338,8 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
 }
 
 bool MAVLinkHandler::send_report() {
-  int64_t report_period = timelib::sec2ms(config.get_tcp_report_period());
+  std::chrono::milliseconds report_period =
+      timelib::sec2ms(config.get_tcp_report_period());
 
   if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
     report_period = timelib::sec2ms(config.get_tcp_report_period());
@@ -374,7 +375,7 @@ bool MAVLinkHandler::send_report() {
     // Select primary and secondary channels and secondary report period.
     MAVLinkChannel& primary_channel = tcp_channel;
     MAVLinkChannel& secondary_channel = isbd_channel;
-    int64_t secondary_report_period =
+    std::chrono::milliseconds secondary_report_period =
         timelib::sec2ms(config.get_isbd_report_period());
 
     if (config.get_tcp_report_period() > config.get_isbd_report_period()) {

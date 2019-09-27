@@ -32,8 +32,8 @@ using std::endl;
 
 using mavio::MAVLinkAutopilot;
 using mavio::Serial;
-using timelib::sleep;
 using timelib::sec2ms;
+using timelib::sleep;
 using timelib::Stopwatch;
 
 void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate);
@@ -43,7 +43,7 @@ constexpr int autopilot_serial_baud_rate = 57600;
 
 constexpr uint16_t DATA_STREAM_RATE = 2;  // Hz
 
-constexpr int64_t autopilot_send_interval = 10L;  // 10 milliseconds
+const std::chrono::milliseconds autopilot_send_interval(10);
 
 int main(int argc, char** argv) {
   cout << "MAVLinkAutopilot class test." << endl;
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
   Stopwatch heartbeat_time;
 
   int count = 0;
-  const int64_t period = sec2ms(10.0);
-  const int64_t heartbeat_interval = sec2ms(1.0);
+  const std::chrono::milliseconds period = sec2ms(10.0);
+  const std::chrono::milliseconds heartbeat_interval = sec2ms(1.0);
 
   while (start_time.elapsed_time() <= period) {
     mavlink_message_t msg;
@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     sleep(autopilot_send_interval);
   }
 
-  cout << count << " messages received in " << period << " seconds." << endl;
+  cout << count << " messages received in " << period.count() << " ms." << endl;
 
   autopilot.close();
 

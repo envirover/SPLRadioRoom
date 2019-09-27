@@ -32,7 +32,7 @@ using timelib::sleep;
 
 constexpr size_t max_isbd_channel_queue_size = 10;
 
-constexpr int64_t isbd_channel_poll_interval = 10L;  // 10 ms
+const std::chrono::milliseconds isbd_channel_poll_interval(10); 
 
 MAVLinkISBDChannel::MAVLinkISBDChannel()
     : MAVLinkChannel("isbd"),
@@ -84,11 +84,11 @@ bool MAVLinkISBDChannel::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkISBDChannel::message_available() { return !receive_queue.empty(); }
 
-int64_t MAVLinkISBDChannel::last_send_time() {
+std::chrono::milliseconds MAVLinkISBDChannel::last_send_time() {
   return send_queue.last_push_time();
 }
 
-int64_t MAVLinkISBDChannel::last_receive_time() {
+std::chrono::milliseconds MAVLinkISBDChannel::last_receive_time() {
   return receive_queue.last_push_time();
 }
 

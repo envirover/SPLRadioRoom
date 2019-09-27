@@ -42,10 +42,9 @@ class Stopwatch {
   }
 
   // Returns number of milliseconds elapsed from the start of the stopwatch.
-  int64_t elapsed_time() const {
+  std::chrono::milliseconds elapsed_time() const {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::chrono::high_resolution_clock::now() - start_time)
-        .count();
+        std::chrono::high_resolution_clock::now() - start_time);
   }
 
  private:
@@ -53,17 +52,16 @@ class Stopwatch {
 };
 
 // Returns number of milliseconds since epoch from the system clock.
-inline int64_t time_since_epoch() {
+inline std::chrono::milliseconds time_since_epoch() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::high_resolution_clock::now().time_since_epoch())
-      .count();
+      std::chrono::high_resolution_clock::now().time_since_epoch());
 }
 
 // Sleeps for the specified time in milliseconds.
-inline void sleep(int64_t milliseconds) {
+inline void sleep(const std::chrono::milliseconds& ms) {
   struct timespec t;
-  t.tv_sec = milliseconds / 1000;
-  t.tv_nsec = (milliseconds % 1000) * 1000000L;
+  t.tv_sec = ms.count() / 1000;
+  t.tv_nsec = (ms.count() % 1000) * 1000000L;
   ::nanosleep(&t, nullptr);
 }
 
@@ -83,7 +81,9 @@ inline void timestamp(char* str, size_t n) {
 }
 
 // Convert seconds to milliseconds
-inline constexpr int64_t sec2ms(double seconds) { return seconds * 1000; }
+inline constexpr std::chrono::milliseconds sec2ms(double seconds) {
+  return std::chrono::milliseconds(static_cast<int64_t>(seconds * 1000));
+}
 
 }  // namespace timelib
 

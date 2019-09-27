@@ -31,6 +31,7 @@ MAVIO MAVLink I/O library.
 #include <atomic>
 #include <string>
 #include <thread>
+#include <chrono>
 
 namespace mavio {
 
@@ -85,12 +86,12 @@ class MAVLinkTCPChannel : public MAVLinkChannel {
   /**
    * Returns time of the last successfully sent message.
    */
-  int64_t last_send_time() override;
+  std::chrono::milliseconds last_send_time();
 
   /**
    * Returns time of the last successfully received message.
    */
-  int64_t last_receive_time() override;
+  std::chrono::milliseconds last_receive_time();
 
  private:
   /**

@@ -42,15 +42,15 @@ namespace mavio {
 #define ISBD_LIBRARY_REVISION 2
 #define ISBD_DEFAULT_CSQ_MINIMUM 2
 
-constexpr int64_t isbd_startup_timeout = 500L;               // 0.5 seconds
-constexpr int64_t isbd_default_at_timeout = 30000L;          // 30 seconds
-constexpr int64_t isbd_default_csq_interval = 10000L;        // 10 seconds
-constexpr int64_t isbd_default_csq_interval_usb = 20000L;    // 20 seconds
-constexpr int64_t isbd_default_sbdix_interval = 30000L;      // 30 seconds
-constexpr int64_t isbd_default_sbdix_interval_usb = 30000L;  // 30 seconds
-constexpr int64_t isbd_default_sendreceive_time = 30000L;    // 30 seconds
-constexpr int64_t isbd_startup_max_time = 240000L;           // 240 seconds
-constexpr int64_t smart_wait_sleep = 1L;                     // 1ms
+const std::chrono::milliseconds isbd_startup_timeout(500);
+const std::chrono::milliseconds isbd_default_at_timeout(30000);
+const std::chrono::milliseconds isbd_default_csq_interval(10000);
+const std::chrono::milliseconds isbd_default_csq_interval_usb(20000);
+const std::chrono::milliseconds isbd_default_sbdix_interval(30000);
+const std::chrono::milliseconds isbd_default_sbdix_interval_usb(30000);
+const std::chrono::milliseconds isbd_default_sendreceive_time(30000);
+const std::chrono::milliseconds isbd_startup_max_time(240000);
+const std::chrono::milliseconds smart_wait_sleep(1);
 
 extern bool isbdCallback() __attribute__((weak));
 
@@ -247,11 +247,13 @@ void IridiumSBD::setPowerProfile(int profile) {
 }
 
 // Tweak AT timeout
-void IridiumSBD::adjustATTimeout(int seconds) { this->atTimeout = seconds; }
+void IridiumSBD::adjustATTimeout(std::chrono::milliseconds ms) {
+  this->atTimeout = ms;
+}
 
 // Tweak Send/Receive SBDIX process timeout
-void IridiumSBD::adjustSendReceiveTimeout(int seconds) {
-  this->sendReceiveTimeout = seconds;
+void IridiumSBD::adjustSendReceiveTimeout(std::chrono::milliseconds ms) {
+  this->sendReceiveTimeout = ms;
 }
 
 // a number between 1 and 5, default ISBD_DEFAULT_CSQ_MINIMUM
@@ -586,9 +588,9 @@ int IridiumSBD::internalSleep() {
   return ISBD_SUCCESS;
 }
 
-bool IridiumSBD::smartWait(int milliseconds) {
+bool IridiumSBD::smartWait(std::chrono::milliseconds ms) {
   Stopwatch timer;
-  while (timer.elapsed_time() < milliseconds) {
+  while (timer.elapsed_time() < ms) {
     if (cancelled()) {
       return false;
     }

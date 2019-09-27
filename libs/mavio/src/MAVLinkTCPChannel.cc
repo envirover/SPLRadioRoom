@@ -28,7 +28,7 @@ using timelib::sleep;
 
 constexpr size_t max_tcp_channnel_queue_size = 10;
 
-constexpr int64_t tcp_channel_send_interval = 10L;  // 10 ms
+const std::chrono::milliseconds tcp_channel_send_interval(10);
 
 MAVLinkTCPChannel::MAVLinkTCPChannel()
     : MAVLinkChannel("tcp"),
@@ -80,11 +80,11 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkTCPChannel::message_available() { return !receive_queue.empty(); }
 
-int64_t MAVLinkTCPChannel::last_send_time() {
+std::chrono::milliseconds MAVLinkTCPChannel::last_send_time() {
   return send_queue.last_push_time();
 }
 
-int64_t MAVLinkTCPChannel::last_receive_time() {
+std::chrono::milliseconds MAVLinkTCPChannel::last_receive_time() {
   return receive_queue.last_push_time();
 }
 

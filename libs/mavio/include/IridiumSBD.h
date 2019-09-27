@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "Serial.h"
 
+#include <chrono>
+
 #define ISBD_SUCCESS 0
 #define ISBD_ALREADY_AWAKE 1
 #define ISBD_SERIAL_FAILURE 2
@@ -76,8 +78,8 @@ class IridiumSBD {
   bool isAsleep();
 
   void setPowerProfile(int profile);  // 0 = direct connect (default), 1 = USB
-  void adjustATTimeout(int seconds);  // default value = 20 seconds
-  void adjustSendReceiveTimeout(int seconds);  // default value = 300 seconds
+  void adjustATTimeout(std::chrono::milliseconds ms);  // default value = 20 seconds
+  void adjustSendReceiveTimeout(std::chrono::milliseconds ms);  // default value = 300 seconds
   void setMinimumSignalQuality(
       int quality);  // a number between 1 and 5, default
                      // ISBD_DEFAULT_CSQ_MINIMUM
@@ -86,7 +88,7 @@ class IridiumSBD {
 
  private:
   // Internal utilities
-  bool smartWait(int milliseconds);
+  bool smartWait(std::chrono::milliseconds ms);
   bool waitForATResponse(char* response = NULL, int responseSize = 0,
                          const char* prompt = NULL,
                          const char* terminator = "OK\r\n");
@@ -119,10 +121,10 @@ class IridiumSBD {
   Serial& stream;  // Communicating with the Iridium
 
   // Timings milliseconds
-  int64_t csqInterval;
-  int64_t sbdixInterval;
-  int64_t atTimeout;
-  int64_t sendReceiveTimeout;
+  std::chrono::milliseconds csqInterval;
+  std::chrono::milliseconds sbdixInterval;
+  std::chrono::milliseconds atTimeout;
+  std::chrono::milliseconds sendReceiveTimeout;
 
   // State variables
   int remainingMessages;

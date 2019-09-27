@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <memory>
 #include <mutex>
+#include <chrono>
 
 #include "timelib.h"
 
@@ -44,7 +45,7 @@ class CircularBuffer {
         last_push_time_(timelib::time_since_epoch()) {}
 
   void push(T item) {
-    int64_t push_time = timelib::time_since_epoch();
+    std::chrono::milliseconds push_time = timelib::time_since_epoch();
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -108,7 +109,7 @@ class CircularBuffer {
     return size;
   }
 
-  int64_t last_push_time() {
+  std::chrono::milliseconds last_push_time() {
     std::lock_guard<std::mutex> lock(mutex_);
     return last_push_time_;
   }
@@ -121,7 +122,7 @@ class CircularBuffer {
   const size_t max_size_;
   bool full_ = 0;
 
-  int64_t last_push_time_;
+  std::chrono::milliseconds last_push_time_;
 };
 
 }  // namespace mavio

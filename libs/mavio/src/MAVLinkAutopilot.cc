@@ -33,9 +33,10 @@ using timelib::Stopwatch;
 
 constexpr int send_retries = 5;
 constexpr int receive_retries = 10;
-constexpr int64_t max_heartbeat_interval = 2000;
-constexpr int64_t autopilot_send_interval = 10L;  // 10ms
-constexpr int64_t receive_retry_delay = 10L;      // 10ms
+
+const std::chrono::milliseconds max_heartbeat_interval(2000);
+const std::chrono::milliseconds autopilot_send_interval(10);
+const std::chrono::milliseconds receive_retry_delay(10);
 
 constexpr size_t max_autopilot_queue_size = 10;
 
@@ -167,11 +168,11 @@ bool MAVLinkAutopilot::receive_message(mavlink_message_t& msg) {
 
 bool MAVLinkAutopilot::message_available() { return !receive_queue.empty(); }
 
-int64_t MAVLinkAutopilot::last_send_time() {
+std::chrono::milliseconds MAVLinkAutopilot::last_send_time() {
   return send_queue.last_push_time();
 }
 
-int64_t MAVLinkAutopilot::last_receive_time() {
+std::chrono::milliseconds MAVLinkAutopilot::last_receive_time() {
   return receive_queue.last_push_time();
 }
 

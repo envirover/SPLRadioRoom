@@ -35,28 +35,28 @@ using timelib::timestamp;
 
 int main() {
   cout << "TimeLib test started." << endl;
-  int64_t start_time = time_since_epoch();
-  cout << "Time since epoch = " << start_time << " ms" << endl;
+  std::chrono::milliseconds start_time = time_since_epoch();
+  cout << "Time since epoch = " << start_time.count() << " ms" << endl;
 
-  int64_t interval = sec2ms(1.0);
+  std::chrono::milliseconds interval = sec2ms(1.0);
 
-  while (interval > 0) {
+  while (interval.count() > 0) {
     Stopwatch timer;
     sleep(interval);
-    int64_t elapsed_time = timer.elapsed_time();
+    std::chrono::milliseconds elapsed_time = timer.elapsed_time();
     char str[32];
     timestamp(str, sizeof(str));
     cout << str << " ";
-    cout << "sleep time = " << static_cast<int>(interval) << " ms, "
-         << "elapsed time = " << static_cast<int>(elapsed_time) << " ms, "
-         << "difference = " << static_cast<int>(elapsed_time - interval)
-         << " ms" << endl;
+    cout << "sleep time = " << interval.count() << " ms, "
+         << "elapsed time = " << elapsed_time.count() << " ms, "
+         << "difference = " << (elapsed_time - interval).count() << " ms"
+         << endl;
     interval /= 2;
   }
 
-  int64_t end_time = time_since_epoch();
-  cout << "Total test time = " << static_cast<int>(end_time - start_time)
-       << " ms" << endl;
+  std::chrono::milliseconds end_time = time_since_epoch();
+  cout << "Total test time = " << (end_time - start_time).count() << " ms"
+       << endl;
   cout << "TimeLib test completed." << endl;
 
   return 0;

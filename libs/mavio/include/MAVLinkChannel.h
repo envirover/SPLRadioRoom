@@ -26,6 +26,7 @@
 #include "MAVLinkLib.h"
 
 #include <string>
+#include <chrono>
 
 namespace mavio {
 
@@ -72,12 +73,12 @@ class MAVLinkChannel {
   /**
    * Returns time of the last successfully sent message.
    */
-  virtual int64_t last_send_time() = 0;
+  virtual std::chrono::milliseconds last_send_time() = 0;
 
   /**
    * Returns time of the last successfully received message.
    */
-  virtual int64_t last_receive_time() = 0;
+  virtual std::chrono::milliseconds last_receive_time() = 0;
 
  private:
   std::string channel_id;
