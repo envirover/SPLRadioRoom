@@ -95,8 +95,9 @@ int main(int argc, char** argv) {
       heartbeat_time.reset();
 
       mavlink_message_t mt_msg;
-      mavlink_msg_heartbeat_pack(mavio::system_id, mavio::component_id, &mt_msg,
-                                 MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+      mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id,
+                                 &mt_msg, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID,
+                                 0, 0, 0);
       autopilot.send_message(mt_msg);
     }
 
@@ -120,8 +121,9 @@ void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate) {
   /*
    * Send a heartbeat first
    */
-  mavlink_msg_heartbeat_pack(mavio::system_id, mavio::component_id, &mt_msg,
-                             MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+  mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id,
+                             &mt_msg, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0,
+                             0);
   autopilot.send_message(mt_msg);
 
   /*
@@ -141,10 +143,10 @@ void request_data_streams(MAVLinkAutopilot& autopilot, uint16_t rate) {
   constexpr size_t n = sizeof(req_stream_ids) / sizeof(req_stream_ids[0]);
 
   for (size_t i = 0; i < n; ++i) {
-    mavlink_msg_request_data_stream_pack(mavio::system_id, mavio::component_id,
-                                         &mt_msg, autopilot.get_system_id(),
-                                         mavio::ardupilot_component_id,
-                                         req_stream_ids[i], rate, 1);
+    mavlink_msg_request_data_stream_pack(
+        mavio::gcs_system_id, mavio::gcs_component_id, &mt_msg,
+        autopilot.get_system_id(), mavio::ardupilot_component_id,
+        req_stream_ids[i], rate, 1);
     autopilot.send_message(mt_msg);
 
     sleep(autopilot_send_interval);

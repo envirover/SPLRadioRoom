@@ -110,10 +110,10 @@ bool MAVLinkAutopilot::request_autopilot_version(
   }
 
   for (int i = 0; i < send_retries; i++) {
-    mavlink_msg_command_long_pack(system_id, component_id, &msg_command_long,
-                                  sys_id, ardupilot_component_id,
-                                  MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES, i,
-                                  1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    mavlink_msg_command_long_pack(
+        gcs_system_id, gcs_component_id, &msg_command_long, sys_id,
+        ardupilot_component_id, MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES, i, 1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     if (serial.send_message(msg_command_long)) {
       for (int j = 0; j < receive_retries; j++) {
         if (serial.receive_message(msg)) {

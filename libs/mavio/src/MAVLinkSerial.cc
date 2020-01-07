@@ -82,7 +82,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg) {
       MAVLinkLogger::log(LOG_DEBUG, "MAV >>", msg);
       return true;
     }
-
+  
     c = serial.read();
   }
 

@@ -26,7 +26,10 @@
 #include "MAVLinkAutopilot.h"
 #include "MAVLinkISBDChannel.h"
 #include "MAVLinkTCPChannel.h"
+#include "MAVReport.h"
 #include "timelib.h"
+
+namespace radioroom {
 
 constexpr size_t max_mission_count = 1024;
 
@@ -102,25 +105,18 @@ class MAVLinkHandler {
    */
   void request_data_streams();
 
-  /*
-   * Integrates the specified message into the report message of HIGH_LATENCY
-   * type.
-   *
-   * Returns true if the message was integrated.
-   */
-  bool update_report_msg(const mavlink_message_t& msg);
-
   mavio::MAVLinkAutopilot autopilot;
   mavio::MAVLinkISBDChannel isbd_channel;
   mavio::MAVLinkTCPChannel tcp_channel;
   timelib::Stopwatch heartbeat_timer;
   timelib::Stopwatch primary_report_timer;
   timelib::Stopwatch secondary_report_timer;
-  mavlink_high_latency_t report;
-  uint16_t report_mask;
+  MAVReport report;
   mavlink_message_t mission_count_msg;
   mavlink_message_t missions[max_mission_count];
   size_t missions_received;
 };
+
+}
 
 #endif  // SRC_MAVLINKHANDLER_H_

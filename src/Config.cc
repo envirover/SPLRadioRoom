@@ -23,6 +23,10 @@
 #include "Config.h"
 #include "INIReader.h"
 
+namespace radioroom {
+
+Config config;
+
 constexpr char default_autopilot_serial[] = "/dev/ttyusb0";
 constexpr int autopilot_serial_baud_rate = 57600;
 
@@ -55,8 +59,6 @@ constexpr char tcp_config_section[] = "tcp";
 constexpr char tcp_enabled_property[] = "enabled";
 constexpr char tcp_host_property[] = "host";
 constexpr char tcp_port_property[] = "port";
-
-Config config;
 
 Config::Config()
     : autopilot_serial(default_autopilot_serial),
@@ -182,4 +184,6 @@ double Config::get_tcp_report_period() const { return tcp_report_period; }
 
 void Config::set_tcp_report_period(double period) {
   tcp_report_period = period;
-}
+};
+
+}  // namespace radioroom

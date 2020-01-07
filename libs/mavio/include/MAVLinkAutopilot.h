@@ -35,8 +35,8 @@
 
 namespace mavio {
 
-constexpr uint8_t system_id = 255;   // GCS system Id
-constexpr uint8_t component_id = 1;  // GCS component Id
+constexpr uint8_t gcs_system_id = 255;   // GCS system Id
+constexpr uint8_t gcs_component_id = 1;  // GCS component Id
 constexpr uint8_t ardupilot_component_id = 0;
 
 /**

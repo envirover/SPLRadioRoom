@@ -24,6 +24,8 @@
 
 #include <string>
 
+namespace radioroom {
+
 constexpr char default_config_file[] = "/etc/radioroom.conf";
 
 /**
@@ -102,5 +104,9 @@ class Config {
   int tcp_port;
   unsigned long tcp_report_period;
 };
+
+extern Config config;
+
+}  // namespace radioroom
 
 #endif  // SRC_CONFIG_H_

@@ -34,6 +34,7 @@
 #include "timelib.h"
 
 using mavio::log;
+using radioroom::MAVLinkHandler;
 using std::cout;
 using std::endl;
 
@@ -42,8 +43,6 @@ constexpr char log_identity[] = "radioroom";
 const std::chrono::milliseconds msg_handler_loop_period(100);
 
 std::atomic<bool> running(false);
-
-extern Config config;
 
 void print_help() {
   cout << "Usage: radioroom [options]" << endl;
@@ -77,7 +76,7 @@ void handle_signal(int sig) {
 
 int main(int argc, char** argv) {
   MAVLinkHandler msg_handler;
-  std::string config_file = default_config_file;
+  std::string config_file = radioroom::default_config_file;
 
   int c;
   while ((c = getopt(argc, argv, "c:hvV")) != -1) {
@@ -89,7 +88,7 @@ int main(int argc, char** argv) {
         print_help();
         return EXIT_SUCCESS;
       case 'v':
-        config.set_debug_mode(true);
+        radioroom::config.set_debug_mode(true);
         break;
       case 'V':
         print_version();
@@ -107,12 +106,13 @@ int main(int argc, char** argv) {
     }
   }
 
-  mavio::openlog(log_identity, config.get_debug_mode() ? LOG_UPTO(LOG_DEBUG)
-                                                       : LOG_UPTO(LOG_INFO));
+  mavio::openlog(log_identity, radioroom::config.get_debug_mode()
+                                   ? LOG_UPTO(LOG_DEBUG)
+                                   : LOG_UPTO(LOG_INFO));
 
   log(LOG_INFO, "Starting %s.%s...", RADIO_ROOM_VERSION, BUILD_NUM);
 
-  if (config.init(config_file) < 0) {
+  if (radioroom::config.init(config_file) < 0) {
     log(LOG_ERR, "Can't load configuration file '%s'", config_file.data());
   }
 

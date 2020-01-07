@@ -34,6 +34,9 @@ using std::vector;
 using mavio::log;
 using mavio::MAVLinkChannel;
 using mavio::Serial;
+using radioroom::Config;
+
+namespace radioroom {
 
 constexpr int max_send_retries = 5;
 constexpr uint16_t data_stream_rate = 2;  // Hz
@@ -41,26 +44,7 @@ constexpr uint16_t data_stream_rate = 2;  // Hz
 const std::chrono::milliseconds autopilot_send_interval(10);
 const std::chrono::milliseconds heartbeat_period(1000);
 
-// Masks of MAVLink messages used to compose single HIGH_LATENCY message
-constexpr uint16_t mavlink_msg_mask_heartbeat = 0x0001;
-constexpr uint16_t mavlink_msg_mask_sys_status = 0x0002;
-constexpr uint16_t mavlink_msg_mask_gps_raw_int = 0x0004;
-constexpr uint16_t mavlink_msg_mask_attitude = 0x0008;
-constexpr uint16_t mavlink_msg_mask_global_position_int = 0x0010;
-constexpr uint16_t mavlink_msg_mask_mission_current = 0x0020;
-constexpr uint16_t mavlink_msg_mask_nav_controller_output = 0x0040;
-constexpr uint16_t mavlink_msg_mask_vfr_hud = 0x0080;
-constexpr uint16_t mavlink_msg_mask_battery2 = 0x0100;  // optional
-
-constexpr uint16_t mavlink_msg_mask_high_latency = 0x00FF;
-
 constexpr char hl_report_period_param[] = "HL_REPORT_PERIOD";
-
-extern Config config;
-
-inline int16_t rad_to_centidegrees(float rad) {
-  return rad * 18000.0 / 3.14159265358979323846;
-}
 
 MAVLinkHandler::MAVLinkHandler()
     : autopilot(),
@@ -69,7 +53,6 @@ MAVLinkHandler::MAVLinkHandler()
       heartbeat_timer(),
       primary_report_timer(),
       secondary_report_timer(),
-      report_mask(0),
       missions_received(0) {}
 
 /**
@@ -240,7 +223,7 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
       break;
     }
     default: {
-      update_report_msg(msg);
+      report.update(msg);
       break;
     }
   }  // switch
@@ -352,15 +335,14 @@ bool MAVLinkHandler::send_report() {
   if (primary_report_timer.elapsed_time() >= report_period) {
     primary_report_timer.reset();
 
-    if ((report_mask & mavlink_msg_mask_high_latency) !=
-        mavlink_msg_mask_high_latency) {
-      log(LOG_WARNING, "Report message is incomplete. Mask = %x.", report_mask);
-    }
+    // if ((report_mask & mavlink_msg_mask_high_latency) !=
+    //     mavlink_msg_mask_high_latency) {
+    //   log(LOG_WARNING, "Report message is incomplete. Mask = %x.",
+    //   report_mask);
+    // }
 
     mavlink_message_t report_msg;
-    mavlink_msg_high_latency_encode(autopilot.get_system_id(),
-                                    mavio::ardupilot_component_id, &report_msg,
-                                    &report);
+    report.get_message(report_msg);
 
     // Select the channel to send report
     if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
@@ -419,7 +401,7 @@ bool MAVLinkHandler::send_heartbeat() {
 
     if (tcp_healthy || isbd_healthy) {
       mavlink_message_t heartbeat_msg;
-      mavlink_msg_heartbeat_pack(mavio::system_id, mavio::component_id,
+      mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id,
                                  &heartbeat_msg, MAV_TYPE_GCS,
                                  MAV_AUTOPILOT_INVALID, 0, 0, 0);
       return autopilot.send_message(heartbeat_msg);
@@ -435,7 +417,7 @@ void MAVLinkHandler::request_data_streams() {
   /*
    * Send a heartbeat first
    */
-  mavlink_msg_heartbeat_pack(mavio::system_id, mavio::component_id, &mt_msg,
+  mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id, &mt_msg,
                              MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
   autopilot.send_message(mt_msg);
 
@@ -457,7 +439,7 @@ void MAVLinkHandler::request_data_streams() {
 
   for (size_t i = 0; i < req_stream_count; ++i) {
     mavlink_msg_request_data_stream_pack(
-        mavio::system_id, mavio::component_id, &mt_msg,
+        mavio::gcs_system_id, mavio::gcs_component_id, &mt_msg,
         autopilot.get_system_id(), mavio::ardupilot_component_id,
         req_stream_ids[i], data_stream_rate, 1);
 
@@ -467,75 +449,4 @@ void MAVLinkHandler::request_data_streams() {
   }
 }
 
-/**
- * Integrates data from the specified MAVLink message into the HIGH_LATENCY
- * message.
- */
-bool MAVLinkHandler::update_report_msg(const mavlink_message_t& msg) {
-  switch (msg.msgid) {
-    case MAVLINK_MSG_ID_HEARTBEAT:  // 0
-      report.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
-      report.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
-      report_mask |= mavlink_msg_mask_heartbeat;
-      return true;
-    case MAVLINK_MSG_ID_SYS_STATUS:  // 1
-      report.battery_remaining =
-          mavlink_msg_sys_status_get_battery_remaining(&msg);
-      report.temperature =
-          mavlink_msg_sys_status_get_voltage_battery(&msg) / 1000;
-      report_mask |= mavlink_msg_mask_sys_status;
-      return true;
-    case MAVLINK_MSG_ID_GPS_RAW_INT:  // 24
-      // report_msg.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
-      // report_msg.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
-      // report_msg.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) /
-      // 1000;
-      report.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
-      report.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
-      report.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
-      report_mask |= mavlink_msg_mask_gps_raw_int;
-      return true;
-    case MAVLINK_MSG_ID_ATTITUDE:  // 30
-      report.heading =
-          (rad_to_centidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 36000) %
-          36000;
-      report.roll = rad_to_centidegrees(mavlink_msg_attitude_get_roll(&msg));
-      report.pitch = rad_to_centidegrees(mavlink_msg_attitude_get_pitch(&msg));
-      report_mask |= mavlink_msg_mask_attitude;
-      return true;
-    case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:  // 33
-      report.latitude = mavlink_msg_global_position_int_get_lat(&msg);
-      report.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-      report.altitude_amsl =
-          mavlink_msg_global_position_int_get_alt(&msg) / 1000;
-      report.altitude_sp =
-          mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
-      report_mask |= mavlink_msg_mask_global_position_int;
-      return true;
-    case MAVLINK_MSG_ID_MISSION_CURRENT:  // 42
-      report.wp_num = mavlink_msg_mission_current_get_seq(&msg);
-      report_mask |= mavlink_msg_mask_mission_current;
-      return true;
-    case MAVLINK_MSG_ID_NAV_CONTROLLER_OUTPUT:  // 62
-      report.wp_distance = mavlink_msg_nav_controller_output_get_wp_dist(&msg);
-      report.heading_sp =
-          mavlink_msg_nav_controller_output_get_nav_bearing(&msg) * 100;
-      report_mask |= mavlink_msg_mask_nav_controller_output;
-      return true;
-    case MAVLINK_MSG_ID_VFR_HUD:  // 74
-      report.airspeed = mavlink_msg_vfr_hud_get_airspeed(&msg);
-      report.groundspeed = mavlink_msg_vfr_hud_get_groundspeed(&msg);
-      // high_latency.heading = mavlink_msg_vfr_hud_get_heading(&msg) * 100;
-      report.climb_rate = mavlink_msg_vfr_hud_get_climb(&msg);
-      report.throttle = mavlink_msg_vfr_hud_get_throttle(&msg);
-      report_mask |= mavlink_msg_mask_vfr_hud;
-      return true;
-    case MAVLINK_MSG_ID_BATTERY2:  // 147
-      uint16_t batt2_voltage = mavlink_msg_battery2_get_voltage(&msg);
-      report.temperature_air = batt2_voltage / 1000;
-      report_mask |= mavlink_msg_mask_battery2;
-      return true;
-  }
-
-  return false;
-}
+}  // namespace radioroom
