@@ -1,5 +1,5 @@
 /*
- MAVLinkAutopilotTest.h
+ MAVLinkAutopilotTest.cc
 
  MAVIO MAVLink I/O library
 
@@ -61,6 +61,12 @@ int main(int argc, char** argv) {
   int speed = autopilot_serial_baud_rate;
   std::vector<std::string> devices;
   Serial::get_serial_devices(devices);
+
+  cout << "Serial devices:" << endl;
+
+  for (std::string dev : devices) {
+    cout << dev << endl;
+  }
 
   if (argc > 1) {
     path = argv[1];

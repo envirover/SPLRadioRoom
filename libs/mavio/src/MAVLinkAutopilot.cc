@@ -197,29 +197,31 @@ bool MAVLinkAutopilot::connect(const string& path, int speed,
 
   if (devices.size() > 0) {
     mavio::log(LOG_NOTICE,
-               "Attempting to detect autopilot at the available serial "
-               "devices...");
-    for (size_t i = 0; i < devices.size(); i++) {
-      if (devices[i] == path) continue;
+               "Attempting to detect autopilot at the serial devices...");
 
-      if (serial.init(devices[i], speed) == 0) {
-        system_id = detect_autopilot(devices[i].data());
-        if (system_id) {
+    for (const std::string device : devices) {
+      if (device == path)
+        continue;
+
+      if (serial.init(device, speed)) {
+        system_id = detect_autopilot(device);
+
+        if (system_id)
           return true;
-        }
+
+        mavio::log(LOG_NOTICE, "Autopilot not detected at serial device '%s'.",
+                   device.data());
 
         serial.close();
       } else {
-        mavio::log(LOG_DEBUG, "Failed to open serial device '%s'.",
-                   devices[i].data());
+        mavio::log(LOG_NOTICE, "Failed to open serial device '%s'.",
+                   device.data());
       }
     }
+
+    mavio::log(LOG_ERR,
+               "Autopilot was not detected on any of the serial devices.");
   }
-
-  serial.init(path, speed);
-
-  mavio::log(LOG_ERR,
-             "Autopilot was not detected on any of the serial devices.");
 
   return false;
 }
@@ -227,6 +229,9 @@ bool MAVLinkAutopilot::connect(const string& path, int speed,
 uint8_t MAVLinkAutopilot::detect_autopilot(const string device) {
   mavlink_autopilot_version_t autopilot_version;
   uint8_t autopilot, mav_type, sys_id;
+
+  mavio::log(LOG_NOTICE, "Detecting autopilot at serial device '%s'...",
+             device.data());
 
   if (!request_autopilot_version(autopilot, mav_type, sys_id,
                                  autopilot_version)) {
@@ -242,8 +247,7 @@ uint8_t MAVLinkAutopilot::detect_autopilot(const string device) {
              device.data());
   mavio::log(
       LOG_NOTICE,
-      "MAV type: %d, system id: %d, autopilot class: %d, firmware version: "
-      "%s",
+      "MAV type: %d, system id: %d, autopilot class: %d, firmware version: %s",
       mav_type, sys_id, autopilot, buff);
 
   return sys_id;

@@ -39,7 +39,7 @@ bool MAVLinkSerial::init(const string& path, int speed) {
     return true;
   }
 
-  mavio::log(LOG_WARNING, "Failed to open serial device '%s'.", path.data());
+  // mavio::log(LOG_WARNING, "Failed to open serial device '%s'.", path.data());
 
   return false;
 }
@@ -59,7 +59,8 @@ bool MAVLinkSerial::send_message(const mavlink_message_t& msg) {
   uint16_t n = serial.write(buf, len);
 
   if (n == len) {
-    MAVLinkLogger::log(LOG_INFO, "MAV <<", msg);
+    MAVLinkLogger::log(msg.msgid == MAVLINK_MSG_ID_HEARTBEAT ?
+                       LOG_DEBUG: LOG_INFO, "MAV <<", msg);
   } else {
     MAVLinkLogger::log(LOG_WARNING, "MAV << FAILED", msg);
   }
@@ -70,9 +71,6 @@ bool MAVLinkSerial::send_message(const mavlink_message_t& msg) {
 bool MAVLinkSerial::receive_message(mavlink_message_t& msg) {
   mavlink_status_t mavlink_status;
 
-  // Receive data from stream
-  // serial.listen();
-
   int c = serial.read();
 
   while (c >= 0) {
@@ -82,7 +80,7 @@ bool MAVLinkSerial::receive_message(mavlink_message_t& msg) {
       MAVLinkLogger::log(LOG_DEBUG, "MAV >>", msg);
       return true;
     }
-  
+
     c = serial.read();
   }
 
