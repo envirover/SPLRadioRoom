@@ -22,6 +22,8 @@ MAVIO MAVLink I/O library.
 
 #include "MAVLinkTCPChannel.h"
 
+#include "timelib.h"
+
 namespace mavio {
 
 using timelib::sleep;
@@ -37,7 +39,9 @@ MAVLinkTCPChannel::MAVLinkTCPChannel()
       receive_thread(),
       socket(),
       send_queue(max_tcp_channnel_queue_size),
-      receive_queue(max_tcp_channnel_queue_size) {}
+      receive_queue(max_tcp_channnel_queue_size),
+      send_time(0),
+      receive_time(0) {}
 
 MAVLinkTCPChannel::~MAVLinkTCPChannel() { close(); }
 
@@ -81,11 +85,11 @@ bool MAVLinkTCPChannel::receive_message(mavlink_message_t& msg) {
 bool MAVLinkTCPChannel::message_available() { return !receive_queue.empty(); }
 
 std::chrono::milliseconds MAVLinkTCPChannel::last_send_time() {
-  return send_queue.last_push_time();
+  return send_time;
 }
 
 std::chrono::milliseconds MAVLinkTCPChannel::last_receive_time() {
-  return receive_queue.last_push_time();
+  return receive_time;
 }
 
 void MAVLinkTCPChannel::send_task() {
@@ -93,7 +97,9 @@ void MAVLinkTCPChannel::send_task() {
     mavlink_message_t msg;
 
     if (send_queue.pop(msg)) {
-      socket.send_message(msg);
+      if (socket.send_message(msg)) {
+        send_time = timelib::time_since_epoch();
+      }
     }
 
     sleep(tcp_channel_send_interval);
@@ -105,6 +111,7 @@ void MAVLinkTCPChannel::receive_task() {
     mavlink_message_t msg;
 
     if (socket.receive_message(msg)) {
+      receive_time = timelib::time_since_epoch();
       receive_queue.push(msg);
     }
   }

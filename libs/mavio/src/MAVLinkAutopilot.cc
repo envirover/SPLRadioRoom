@@ -48,7 +48,9 @@ MAVLinkAutopilot::MAVLinkAutopilot()
       serial(),
       send_queue(max_autopilot_queue_size),
       receive_queue(max_autopilot_queue_size),
-      system_id(0) {}
+      system_id(0),
+      send_time(0),
+      receive_time(0) {}
 
 bool MAVLinkAutopilot::init(const string& path, int speed,
                             const vector<string>& devices) {
@@ -169,11 +171,11 @@ bool MAVLinkAutopilot::receive_message(mavlink_message_t& msg) {
 bool MAVLinkAutopilot::message_available() { return !receive_queue.empty(); }
 
 std::chrono::milliseconds MAVLinkAutopilot::last_send_time() {
-  return send_queue.last_push_time();
+  return send_time;
 }
 
 std::chrono::milliseconds MAVLinkAutopilot::last_receive_time() {
-  return receive_queue.last_push_time();
+  return receive_time;
 }
 
 bool MAVLinkAutopilot::connect(const string& path, int speed,
@@ -258,7 +260,9 @@ void MAVLinkAutopilot::send_task() {
     mavlink_message_t msg;
 
     if (send_queue.pop(msg)) {
-      serial.send_message(msg);
+      if (serial.send_message(msg)) {
+        send_time = timelib::time_since_epoch();
+      }
     }
 
     timelib::sleep(autopilot_send_interval);
@@ -270,6 +274,7 @@ void MAVLinkAutopilot::receive_task() {
     mavlink_message_t msg;
 
     if (serial.receive_message(msg)) {
+      receive_time = timelib::time_since_epoch();
       receive_queue.push(msg);
     }
   }

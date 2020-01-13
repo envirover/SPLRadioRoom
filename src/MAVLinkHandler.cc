@@ -389,14 +389,14 @@ bool MAVLinkHandler::send_heartbeat() {
 
     // Channel is healthy if it is enabled and succesfully sent report or
     // another MO message within its report period times 2.
+    std::chrono::milliseconds time = timelib::time_since_epoch();
+
     bool tcp_healthy =
-        config.get_tcp_enabled() &&
-        (timelib::time_since_epoch() - tcp_channel.last_send_time()) <=
+        config.get_tcp_enabled() && (time - tcp_channel.last_send_time()) <=
             2 * timelib::sec2ms(config.get_tcp_report_period());
 
     bool isbd_healthy =
-        config.get_isbd_enabled() &&
-        (timelib::time_since_epoch() - isbd_channel.last_send_time()) <=
+        config.get_isbd_enabled() && (time - isbd_channel.last_send_time()) <=
             2 * timelib::sec2ms(config.get_isbd_report_period());
 
     if (tcp_healthy || isbd_healthy) {

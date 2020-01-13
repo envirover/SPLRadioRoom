@@ -67,9 +67,7 @@ int main() {
     get_test_message(i, &msg);
     queue.push(msg);
 
-    cout << "i : " << static_cast<int>(i) << ", full : " << queue.full()
-         << ", last_push_time : "
-         << static_cast<int>(queue.last_push_time().count()) << endl;
+    cout << "i : " << static_cast<int>(i) << ", full : " << queue.full() << endl;
   }
 
   assert(queue.size() == 10);

@@ -105,6 +105,8 @@ class MAVLinkISBDChannel : public MAVLinkChannel {
   CircularBuffer<mavlink_message_t> send_queue;
   // Queue that buffers messages received from the socket
   CircularBuffer<mavlink_message_t> receive_queue;
+  std::chrono::milliseconds send_time;  // Last send epoch time
+  std::chrono::milliseconds receive_time;  // Last receive epoch time
 };
 
 }  // namespace mavio

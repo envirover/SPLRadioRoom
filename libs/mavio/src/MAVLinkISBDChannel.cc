@@ -32,7 +32,7 @@ using timelib::sleep;
 
 constexpr size_t max_isbd_channel_queue_size = 10;
 
-const std::chrono::milliseconds isbd_channel_poll_interval(10); 
+const std::chrono::milliseconds isbd_channel_poll_interval(10);
 
 MAVLinkISBDChannel::MAVLinkISBDChannel()
     : MAVLinkChannel("isbd"),
@@ -40,7 +40,9 @@ MAVLinkISBDChannel::MAVLinkISBDChannel()
       running(false),
       send_receive_thread(),
       send_queue(max_isbd_channel_queue_size),
-      receive_queue(max_isbd_channel_queue_size) {}
+      receive_queue(max_isbd_channel_queue_size),
+      send_time(0),
+      receive_time(0) {}
 
 MAVLinkISBDChannel::~MAVLinkISBDChannel() {}
 
@@ -85,11 +87,11 @@ bool MAVLinkISBDChannel::receive_message(mavlink_message_t& msg) {
 bool MAVLinkISBDChannel::message_available() { return !receive_queue.empty(); }
 
 std::chrono::milliseconds MAVLinkISBDChannel::last_send_time() {
-  return send_queue.last_push_time();
+  return send_time;
 }
 
 std::chrono::milliseconds MAVLinkISBDChannel::last_receive_time() {
-  return receive_queue.last_push_time();
+  return receive_time;
 }
 
 /**
@@ -108,7 +110,9 @@ void MAVLinkISBDChannel::send_receive_task() {
 
       bool received = false;
       if (isbd.send_receive_message(mo_msg, mt_msg, received)) {
+        send_time = timelib::time_since_epoch();
         if (received) {
+          receive_time = send_time;
           receive_queue.push(mt_msg);
         }
       }

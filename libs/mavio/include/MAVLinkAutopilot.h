@@ -164,6 +164,8 @@ class MAVLinkAutopilot : public MAVLinkChannel {
   // Queue that buffers messages received from autopilot
   CircularBuffer<mavlink_message_t> receive_queue;
   uint8_t system_id;  // Autopilot system Id
+  std::chrono::milliseconds send_time;  // Last send epoch time
+  std::chrono::milliseconds receive_time;  // Last receive epoch time
 };
 
 }  // namespace mavio
