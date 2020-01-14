@@ -201,8 +201,8 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
     case MAVLINK_MSG_ID_MISSION_REQUEST: {
       uint16_t seq = mavlink_msg_mission_request_get_seq(&msg);
 
-      if (0 < seq && seq <= missions_received) {
-        autopilot.send_message(missions[seq - 1]);
+      if (seq < missions_received) {
+        autopilot.send_message(missions[seq]);
       } else {
         log(LOG_ERR, "Mission request seq=%d is out of bounds.", seq);
       }
@@ -245,9 +245,9 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
       uint16_t mission_count = mavlink_msg_mission_count_get_count(&msg);
       if (mission_count <= max_mission_count) {
         mission_count_msg = msg;
-        // Set seq of all mission items to 0 to flag non-initialized items
+        // Set msgid of all mission items to 0 to flag non-initialized items
         for (size_t i = 0; i < mission_count; i++) {
-          missions[i].seq = 0;
+          missions[i].msgid = 0;
         }
       } else {  // Too many mission items - reject the mission
         mavlink_mission_ack_t mission_ack;
@@ -269,12 +269,12 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
       uint16_t mission_count =
           mavlink_msg_mission_count_get_count(&mission_count_msg);
       uint16_t seq = mavlink_msg_mission_item_get_seq(&msg);
-      if (0 < seq && seq <= mission_count) {
-        if (missions[seq - 1].seq == 0) {  // new item
+      if (seq < mission_count) {
+        if (missions[seq].msgid == 0) {  // new item
           missions_received++;
         }
 
-        missions[seq - 1] = msg;
+        missions[seq] = msg;
 
         if (missions_received == mission_count) {
           // All mission items received
@@ -308,10 +308,10 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
         channel.send_message(param_value_msg);
 
         log(LOG_INFO, "Report period changed to %f seconds.", value);
-        break;
       } else {
         autopilot.send_message(msg);
       }
+      break;
     }
     default: {
       autopilot.send_message(msg);

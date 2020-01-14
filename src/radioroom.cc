@@ -40,7 +40,7 @@ using std::endl;
 
 constexpr char log_identity[] = "radioroom";
 
-const std::chrono::milliseconds msg_handler_loop_period(100);
+const std::chrono::milliseconds msg_handler_loop_period(10);
 
 std::atomic<bool> running(false);
 
