@@ -48,7 +48,7 @@ MAVLinkISBDChannel::~MAVLinkISBDChannel() {}
 
 bool MAVLinkISBDChannel::init(std::string path, int speed,
                               const vector<string>& devices) {
-  bool ret = !isbd.init(path, speed, devices);
+  bool ret = isbd.init(path, speed, devices);
 
   if (!running) {
     running = true;

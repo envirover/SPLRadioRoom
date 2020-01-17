@@ -42,9 +42,9 @@ class MAVLinkISBD {
 
   /**
    * Initializes connection to ISBD transceiver on the specified serial
-   * device. If auto_detect_serial is true the method automatically detects
+   * device. The method automatically detects
    * the serial device if the transceiver is available on any of the serial
-   * devices in the system.
+   * devices.
    *
    * Returns true if connection was successful.
    */

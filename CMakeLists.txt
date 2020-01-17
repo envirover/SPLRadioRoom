@@ -43,10 +43,12 @@ add_executable(aptest tests/MAVLinkAutopilotTest.cc)
 add_executable(tltest tests/TimeLibTest.cc)
 add_executable(cbtest tests/CircularBufferTest.cc)
 add_executable(tcptest tests/MAVLinkTCPChannelTest.cc)
+add_executable(isbdtest tests/MAVLinkISBDChannelTest.cc)
 
 target_link_libraries(aptest mavio)
 target_link_libraries(cbtest mavio)
 target_link_libraries(tcptest mavio)
+target_link_libraries(isbdtest mavio)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 

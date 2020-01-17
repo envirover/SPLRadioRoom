@@ -48,7 +48,7 @@ const std::chrono::milliseconds isbd_default_csq_interval(10000);
 const std::chrono::milliseconds isbd_default_csq_interval_usb(20000);
 const std::chrono::milliseconds isbd_default_sbdix_interval(30000);
 const std::chrono::milliseconds isbd_default_sbdix_interval_usb(30000);
-const std::chrono::milliseconds isbd_default_sendreceive_time(30000);
+const std::chrono::milliseconds isbd_default_sendreceive_time(60000);
 const std::chrono::milliseconds isbd_startup_max_time(240000);
 const std::chrono::milliseconds smart_wait_sleep(1);
 

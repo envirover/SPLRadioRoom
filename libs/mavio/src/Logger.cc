@@ -34,6 +34,7 @@
 namespace mavio {
 
 std::atomic_int log_mask(LOG_UPTO(LOG_INFO));
+std::atomic_bool log_to_stdout(true);
 
 const char* priority2str(int priority) {
   switch (priority) {
@@ -65,12 +66,14 @@ void openlog(const char* identity, int mask) {
 #else
   ::openlog(identity, LOG_CONS | LOG_NDELAY, LOG_USER);
   ::setlogmask(mask);
+  log_to_stdout = false;
 #endif
 }
 
 void closelog() {
 #ifndef __CYGWIN__
   ::closelog();
+  log_to_stdout = true;
 #endif
 }
 
@@ -84,7 +87,17 @@ void vlog(int priority, const char* format, va_list args) {
     printf("\n");
   }
 #else
-  ::vsyslog(priority, format, args);
+  if (log_to_stdout) {
+    if (log_mask & priority) {
+      char str[64];
+      timelib::timestamp(str, sizeof(str));
+      printf("%s %s ", str, priority2str(priority));
+      vprintf(format, args);
+      printf("\n");
+    }
+  } else {
+    ::vsyslog(priority, format, args);
+  }
 #endif
 }
 
