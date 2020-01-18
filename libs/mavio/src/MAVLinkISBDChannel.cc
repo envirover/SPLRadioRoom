@@ -42,7 +42,8 @@ MAVLinkISBDChannel::MAVLinkISBDChannel()
       send_queue(max_isbd_channel_queue_size),
       receive_queue(max_isbd_channel_queue_size),
       send_time(0),
-      receive_time(0) {}
+      receive_time(0),
+      signal_quality(0) {}
 
 MAVLinkISBDChannel::~MAVLinkISBDChannel() {}
 
@@ -94,6 +95,10 @@ std::chrono::milliseconds MAVLinkISBDChannel::last_receive_time() {
   return receive_time;
 }
 
+bool MAVLinkISBDChannel::get_signal_quality(int& quality) {
+  quality = signal_quality;
+}
+
 /**
  * If there are messages in send_queue or ring alert flag of  ISBD transceiver
  * is up, pop send_queue, run send-receive session, and push received messages
@@ -101,6 +106,13 @@ std::chrono::milliseconds MAVLinkISBDChannel::last_receive_time() {
  */
 void MAVLinkISBDChannel::send_receive_task() {
   while (running) {
+    int quality = 0;
+    if (isbd.get_signal_quality(quality)) {
+      signal_quality = quality;
+    } else {
+      signal_quality = 0;
+    }
+
     if (!send_queue.empty() || isbd.message_available()) {
       mavlink_message_t mo_msg, mt_msg;
       if (!send_queue.pop(mo_msg)) {

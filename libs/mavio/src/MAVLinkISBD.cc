@@ -80,6 +80,10 @@ bool MAVLinkISBD::detect_transceiver(string device) {
   return false;
 }
 
+bool MAVLinkISBD::get_signal_quality(int& quality) {
+  return isbd.getSignalQuality(quality) == ISBD_SUCCESS;
+}
+
 bool MAVLinkISBD::init(string path, int speed, const vector<string>& devices) {
   mavio::log(LOG_INFO, "Connecting to ISBD transceiver (%s %d)...", path.data(),
              speed);

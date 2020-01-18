@@ -91,6 +91,13 @@ class MAVLinkISBDChannel : public MAVLinkChannel {
    */
   std::chrono::milliseconds last_receive_time();
 
+    /**
+   * Queries ISBD signal quality.
+   * 
+   * Returns true if the operation succeeded. 
+   */
+  bool get_signal_quality(int& quality);
+
  private:
   /**
    * While running is true, executes send-receive ISBD sessions.
@@ -107,6 +114,7 @@ class MAVLinkISBDChannel : public MAVLinkChannel {
   CircularBuffer<mavlink_message_t> receive_queue;
   std::chrono::milliseconds send_time;  // Last send epoch time
   std::chrono::milliseconds receive_time;  // Last receive epoch time
+  std::atomic<int> signal_quality;
 };
 
 }  // namespace mavio

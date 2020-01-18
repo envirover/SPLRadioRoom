@@ -89,6 +89,13 @@ class MAVLinkISBD {
    */
   bool detect_transceiver(std::string device);
 
+  /**
+   * Queries ISBD signal quality.
+   * 
+   * Returns true if the operation succeeded. 
+   */
+  bool get_signal_quality(int& quality);
+
  private:
   Serial stream;
   IridiumSBD isbd;
