@@ -66,8 +66,7 @@ bool MAVReport::update(const mavlink_message_t& msg) {
     case MAVLINK_MSG_ID_GPS_RAW_INT:  // 24
       // report_msg.latitude = mavlink_msg_gps_raw_int_get_lat(&msg);
       // report_msg.longitude = mavlink_msg_gps_raw_int_get_lon(&msg);
-      // report_msg.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) /
-      // 1000;
+      report.altitude_amsl = mavlink_msg_gps_raw_int_get_alt(&msg) / 1000;
       report.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100;
       report.gps_fix_type = mavlink_msg_gps_raw_int_get_fix_type(&msg);
       report.gps_nsat = mavlink_msg_gps_raw_int_get_satellites_visible(&msg);
@@ -84,8 +83,6 @@ bool MAVReport::update(const mavlink_message_t& msg) {
     case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:  // 33
       report.latitude = mavlink_msg_global_position_int_get_lat(&msg);
       report.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-      report.altitude_amsl =
-          mavlink_msg_global_position_int_get_alt(&msg) / 1000;
       report.altitude_sp =
           mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
       mask |= mavlink_msg_mask_global_position_int;
