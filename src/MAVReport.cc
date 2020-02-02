@@ -83,7 +83,8 @@ bool MAVReport::update(const mavlink_message_t& msg) {
     case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:  // 33
       report.latitude = mavlink_msg_global_position_int_get_lat(&msg);
       report.longitude = mavlink_msg_global_position_int_get_lon(&msg);
-      high_latency.altitude_amsl = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
+      report.altitude_amsl =
+          mavlink_msg_global_position_int_get_alt(&msg) / 1000;
       report.altitude_sp =
           mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
       mask |= mavlink_msg_mask_global_position_int;
