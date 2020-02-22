@@ -25,16 +25,20 @@
 
 # Executables
 *.exe
+*.exe.stackdump
 *.out
 *.app
 /.metadata/
 /.settings/
 /RadioRoom/bin/*
-/build/*
 /bin/*
+/debug/*
 /Default/
 /RemoteSystemsTempFiles/
 /CMakeFiles/
 CMakeCache.txt
+CMakeSettings.json
 .cproject
 /.vscode
+/.vs
+/out
