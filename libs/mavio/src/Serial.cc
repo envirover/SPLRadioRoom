@@ -47,7 +47,7 @@ constexpr suseconds_t serial_read_timeout = 250000;  // microseconds
 
 constexpr char serial_by_id_dir[] = "/dev/serial/by-id/";
 constexpr char serial_by_path_dir[] = "/dev/serial/by-path/";
-constexpr char standard_serials[] = "/dev/ttyS0,/dev/ttyAMA0";
+constexpr char standard_serials[] = "";  // "/dev/ttyS0,/dev/ttyAMA0";
 
 speed_t baud_rate_to_speed_t(int baud_rate) {
   switch (baud_rate) {

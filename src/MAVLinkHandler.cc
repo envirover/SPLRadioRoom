@@ -193,8 +193,17 @@ MAVLinkChannel& MAVLinkHandler::active_channel() {
 void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
                                        MAVLinkChannel& channel) {
   switch (msg.msgid) {
-    case MAVLINK_MSG_ID_COMMAND_ACK:
+    case MAVLINK_MSG_ID_COMMAND_ACK: {
+      channel.send_message(msg);
+      break;
+    }
     case MAVLINK_MSG_ID_PARAM_VALUE: {
+      char param_id[17];
+      mavlink_msg_param_value_get_param_id(&msg, param_id);
+      if (strncmp(param_id, "STAT_RUNTIME", 16) == 0) {
+        break;
+      }
+
       channel.send_message(msg);
       break;
     }
