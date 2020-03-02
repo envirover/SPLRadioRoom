@@ -97,12 +97,12 @@ class Config {
   bool isbd_enabled;
   std::string isbd_serial;
   int isbd_serial_speed;
-  unsigned long isbd_report_period;
+  double isbd_report_period;
 
   bool tcp_enabled;
   std::string tcp_host;
   int tcp_port;
-  unsigned long tcp_report_period;
+  double tcp_report_period;
 };
 
 extern Config config;
