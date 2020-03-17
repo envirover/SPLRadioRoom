@@ -28,9 +28,10 @@ namespace mavio {
 
 using timelib::sleep;
 
-constexpr size_t max_tcp_channnel_queue_size = 10;
+constexpr size_t max_tcp_channnel_queue_size = 1024;
 
 const std::chrono::milliseconds tcp_channel_send_interval(10);
+const std::chrono::milliseconds tcp_channel_receive_interval(10);
 
 MAVLinkTCPChannel::MAVLinkTCPChannel()
     : MAVLinkChannel("tcp"),
@@ -114,6 +115,8 @@ void MAVLinkTCPChannel::receive_task() {
       receive_time = timelib::time_since_epoch();
       receive_queue.push(msg);
     }
+
+    sleep(tcp_channel_receive_interval);
   }
 }
 

@@ -30,7 +30,7 @@ using std::string;
 using std::vector;
 using timelib::sleep;
 
-constexpr size_t max_isbd_channel_queue_size = 10;
+constexpr size_t max_isbd_channel_queue_size = 1024;
 
 const std::chrono::milliseconds isbd_channel_poll_interval(10);
 

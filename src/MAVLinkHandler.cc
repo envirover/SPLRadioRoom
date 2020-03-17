@@ -38,11 +38,12 @@ using radioroom::Config;
 
 namespace radioroom {
 
-constexpr int max_send_retries = 5;
+constexpr int autopilot_send_retries = 5;
 constexpr uint16_t data_stream_rate = 2;  // Hz
 
 const std::chrono::milliseconds autopilot_send_interval(10);
 const std::chrono::milliseconds heartbeat_period(1000);
+const std::chrono::milliseconds autopilot_send_retry_timeout(250);
 
 constexpr char hl_report_period_param[] = "HL_REPORT_PERIOD";
 
@@ -53,7 +54,11 @@ MAVLinkHandler::MAVLinkHandler()
       heartbeat_timer(),
       primary_report_timer(),
       secondary_report_timer(),
-      missions_received(0) {}
+      missions_received(0),
+      retry_timer(),
+      retry_msg(),
+      retry_timeout(0),
+      retry_count(0) {}
 
 /**
  * Initializes autopilot and comm channels.
@@ -162,6 +167,8 @@ void MAVLinkHandler::loop() {
   send_report();
 
   send_heartbeat();
+
+  check_retry_send_timer();
 }
 
 MAVLinkChannel& MAVLinkHandler::active_channel() {
@@ -212,6 +219,9 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
 
       if (seq < missions_received) {
         autopilot.send_message(missions[seq]);
+        set_retry_send_timer(missions[seq],
+                             autopilot_send_retry_timeout,
+                             autopilot_send_retries);
       } else {
         log(LOG_ERR, "Mission request seq=%d is out of bounds.", seq);
       }
@@ -219,6 +229,8 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
       break;
     }
     case MAVLINK_MSG_ID_MISSION_ACK: {
+      cancel_retry_send_timer(MAVLINK_MSG_ID_MISSION_ITEM);
+
       uint8_t mission_result = mavlink_msg_mission_ack_get_type(&msg);
 
       if (mission_result == MAV_MISSION_ACCEPTED) {
@@ -285,10 +297,15 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
 
         missions[seq] = msg;
 
+        log(LOG_INFO, "%d mission items received.", missions_received);
+
         if (missions_received == mission_count) {
           // All mission items received
           log(LOG_INFO, "Sending mission items to autopilot...");
           autopilot.send_message(mission_count_msg);
+          set_retry_send_timer(mission_count_msg,
+                               autopilot_send_retry_timeout,
+                               autopilot_send_retries);
         }
       } else {
         log(LOG_WARNING, "Ignored mission item from rejected mission.");
@@ -400,12 +417,13 @@ bool MAVLinkHandler::send_heartbeat() {
     // another MO message within its report period times 2.
     std::chrono::milliseconds time = timelib::time_since_epoch();
 
-    bool tcp_healthy =
-        config.get_tcp_enabled() && (time - tcp_channel.last_send_time()) <=
-            2 * timelib::sec2ms(config.get_tcp_report_period());
+    bool tcp_healthy = config.get_tcp_enabled() &&
+                       (time - tcp_channel.last_send_time()) <=
+                           2 * timelib::sec2ms(config.get_tcp_report_period());
 
     bool isbd_healthy =
-        config.get_isbd_enabled() && (time - isbd_channel.last_send_time()) <=
+        config.get_isbd_enabled() &&
+        (time - isbd_channel.last_send_time()) <=
             2 * timelib::sec2ms(config.get_isbd_report_period());
 
     if (tcp_healthy || isbd_healthy) {
@@ -426,8 +444,9 @@ void MAVLinkHandler::request_data_streams() {
   /*
    * Send a heartbeat first
    */
-  mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id, &mt_msg,
-                             MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0, 0);
+  mavlink_msg_heartbeat_pack(mavio::gcs_system_id, mavio::gcs_component_id,
+                             &mt_msg, MAV_TYPE_GCS, MAV_AUTOPILOT_INVALID, 0, 0,
+                             0);
   autopilot.send_message(mt_msg);
 
   /*
@@ -455,6 +474,29 @@ void MAVLinkHandler::request_data_streams() {
     autopilot.send_message(mt_msg);
 
     timelib::sleep(autopilot_send_interval);
+  }
+}
+
+void MAVLinkHandler::set_retry_send_timer(const mavlink_message_t& msg,
+                                       const std::chrono::milliseconds& timeout,
+                                       int retries) {
+  retry_timer.reset();
+  retry_msg = msg;
+  retry_timeout = timeout;
+  retry_count = retries;
+}
+
+void MAVLinkHandler::cancel_retry_send_timer(int msgid) {
+  if (retry_msg.msgid == msgid) {
+    retry_count = 0;
+  }
+}
+
+void MAVLinkHandler::check_retry_send_timer() {
+  if (retry_count > 0 && retry_timer.elapsed_time() >= retry_timeout) {
+    autopilot.send_message(retry_msg);
+    retry_count--;
+    retry_timer.reset();
   }
 }
 

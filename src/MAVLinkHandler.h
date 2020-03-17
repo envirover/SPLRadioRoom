@@ -105,6 +105,26 @@ class MAVLinkHandler {
    */
   void request_data_streams();
 
+  /*
+   * Sets send retry timer in milliseconds for the specified message.
+   */
+  void set_retry_send_timer(const mavlink_message_t& msg, 
+                         const std::chrono::milliseconds& timeout,
+                         int retries);
+
+  /*
+   * Cancels send retry timer for the specified message id.
+   */
+  void cancel_retry_send_timer(int msgid);
+
+  /*
+   * Retries sending message specifif in set_retry_send_timer() call if
+   * the retry timeout elapses and the retry counter iz nonzero.
+   *
+   * Decrements the retries counter.
+   */
+  void check_retry_send_timer();
+
   mavio::MAVLinkAutopilot autopilot;
   mavio::MAVLinkISBDChannel isbd_channel;
   mavio::MAVLinkTCPChannel tcp_channel;
@@ -115,8 +135,13 @@ class MAVLinkHandler {
   mavlink_message_t mission_count_msg;
   mavlink_message_t missions[max_mission_count];
   size_t missions_received;
+
+  timelib::Stopwatch retry_timer;
+  mavlink_message_t retry_msg;
+  std::chrono::milliseconds retry_timeout;
+  int retry_count;
 };
 
-}
+}  // namespace radioroom
 
 #endif  // SRC_MAVLINKHANDLER_H_
