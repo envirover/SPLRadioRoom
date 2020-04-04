@@ -23,8 +23,9 @@
 #ifndef LIBS_MAVIO_INCLUDE_MAVLINKTCP_H_
 #define LIBS_MAVIO_INCLUDE_MAVLINKTCP_H_
 
-#include <string>
 #include "MAVLinkLib.h"
+#include <netinet/in.h>
+#include <string>
 
 namespace mavio {
 
@@ -69,20 +70,14 @@ class MAVLinkTCP {
    */
   bool receive_message(mavlink_message_t& msg);
 
-  /**
-   * Checks if data is available in the socket input buffer.
-   *
-   * Returns true if data is available.
-   */
-  bool message_available();
-
  private:
-  std::string address;    // UV Hub IP address
-  uint16_t port;          // UV Hub port
-  int socket_fd;          // Socket file descriptor
-  unsigned long timeout;  // number of milliseconds to wait for the next char
-                          // before aborting timed read
-  clock_t start_millis;   // used for timeout measurement
+  /**
+   * Connects to the TCP/IP socket specified by the init() call.
+   */
+  bool connect();
+
+  struct sockaddr_in serv_addr;  // Socket address
+  int socket_fd;                 // Socket file descriptor
 };
 
 }  // namespace mavio

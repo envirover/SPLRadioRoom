@@ -1,9 +1,9 @@
 /*
- MAVLinkTcpClient.cc
+ MAVLinkTCP.cc
 
  MAVIO MAVLink I/O library.
 
- (C) Copyright 2019 Envirover.
+ (C) Copyright 2020 Envirover.
 
  This library is free software; you can redistribute it and/or
  modify it under the terms of the GNU Lesser General Public
@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
@@ -36,10 +37,10 @@
 
 namespace mavio {
 
-constexpr int poll_timeout = 100;  // milliseconds
+// TCP keepalive options values
+constexpr int so_keepalive_value  = 1;   // enabled
 
-MAVLinkTCP::MAVLinkTCP()
-    : address(""), port(0), socket_fd(0), timeout(1000), start_millis(0) {}
+MAVLinkTCP::MAVLinkTCP() : socket_fd(0) {}
 
 MAVLinkTCP::~MAVLinkTCP() { close(); }
 
@@ -48,9 +49,6 @@ bool MAVLinkTCP::init(const std::string address, uint16_t port) {
     return false;
   }
 
-  this->address = address;
-  this->port = port;
-
   struct hostent* server = ::gethostbyname(address.c_str());
 
   if (server == NULL) {
@@ -58,17 +56,7 @@ bool MAVLinkTCP::init(const std::string address, uint16_t port) {
     return false;
   }
 
-  socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-
-  if (socket_fd < 0) {
-    mavio::log(LOG_ERR, "Socket creation failed.");
-    socket_fd = 0;
-    return false;
-  }
-
-  struct sockaddr_in serv_addr;
-
-  memset((char*)&serv_addr, 0, sizeof(serv_addr));
+  memset(&serv_addr, 0, sizeof(serv_addr));
 
   serv_addr.sin_family = AF_INET;
 
@@ -76,25 +64,41 @@ bool MAVLinkTCP::init(const std::string address, uint16_t port) {
 
   serv_addr.sin_port = htons(port);
 
-  if (::connect(socket_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <
-      0) {
+  return connect();
+}
+
+bool MAVLinkTCP::connect() {
+  if (socket_fd > 0) {
     ::close(socket_fd);
+  }
+
+  socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);
+
+  if (socket_fd < 0) {
+    mavio::log(LOG_ERR, "Socket creation failed. %s", strerror(errno));
     socket_fd = 0;
-    mavio::log(LOG_ERR, "Connection to 'tcp://%s:%d' failed.", address.c_str(),
-               port);
     return false;
   }
 
-  struct timeval tv;
-  tv.tv_sec = 1;   /* 1 sec timeout */
-  tv.tv_usec = 0;  // Not init'ing this can cause strange errors
-  if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv,
-                 sizeof(tv))) {
-    mavio::log(LOG_ERR, "Failed to set socket receive timeout. (errno = %d)",
-               errno);
+  if (::setsockopt(socket_fd, SOL_SOCKET, SO_KEEPALIVE, &so_keepalive_value,
+                   sizeof(so_keepalive_value))) {
+    mavio::log(LOG_ERR, "Failed to enable TCP socket keepalive. %s",
+               strerror(errno));
+    return false;
   }
 
-  mavio::log(LOG_NOTICE, "Connected to 'tcp://%s:%d'.", address.c_str(), port);
+  char sin_addr_str[INET_ADDRSTRLEN];
+  ::inet_ntop(AF_INET, &(serv_addr.sin_addr), sin_addr_str, INET_ADDRSTRLEN);
+
+  if (::connect(socket_fd, reinterpret_cast<sockaddr*>(&serv_addr),
+                sizeof(serv_addr)) < 0) {
+    mavio::log(LOG_ERR, "Connection to 'tcp://%s:%d' failed. %s",
+               sin_addr_str,  ntohs(serv_addr.sin_port), strerror(errno));
+    return false;
+  }
+
+  mavio::log(LOG_NOTICE, "Connected to 'tcp://%s:%d'.", sin_addr_str,
+             ntohs(serv_addr.sin_port));
 
   return true;
 }
@@ -107,12 +111,12 @@ void MAVLinkTCP::close() {
 }
 
 bool MAVLinkTCP::send_message(const mavlink_message_t& msg) {
-  if (msg.len == 0 && msg.msgid == 0) {
-    return true;
+  if (socket_fd == 0) {
+    return false;
   }
 
-  if (socket_fd == 0) {
-    init(address, port);
+  if (msg.len == 0 && msg.msgid == 0) {
+    return true;
   }
 
   uint8_t buf[MAVLINK_MAX_PACKET_LEN];
@@ -124,13 +128,17 @@ bool MAVLinkTCP::send_message(const mavlink_message_t& msg) {
 
   if (n == len) {
     MAVLinkLogger::log(LOG_INFO, "TCP <<", msg);
-  } else {
-    MAVLinkLogger::log(LOG_WARNING, "TCP << FAILED", msg);
-    close();
-    init(address, port);
+    return true;
   }
 
-  return n == len;
+  mavio::log(LOG_ERR, "TCP socket send failed. %s", strerror(errno));
+
+  MAVLinkLogger::log(LOG_WARNING, "TCP << FAILED", msg);
+
+  // Re-connect to the socket.
+  connect();
+
+  return false;
 }
 
 bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
@@ -138,12 +146,8 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     return false;
   }
 
-  if (!message_available()) {
-    return false;
-  }
-
   uint8_t stx;
-  int rc = ::recv(socket_fd, &stx, 1, 0);
+  int rc = ::recv(socket_fd, &stx, 1, MSG_WAITALL);
 
   if (rc > 0) {
     if (stx != MAVLINK_STX) {
@@ -151,7 +155,7 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     }
 
     uint8_t payload_length;
-    rc = ::recv(socket_fd, &payload_length, 1, 0);
+    rc = ::recv(socket_fd, &payload_length, 1, MSG_WAITALL);
 
     if (rc > 0) {
       uint8_t buffer[263];
@@ -175,38 +179,19 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     }
   }
 
-  if (rc < 0) {
-    mavio::log(LOG_ERR,
-               "Failed to receive MAVLink message from socket (errno = %d).",
-               errno);
+  if (rc > 0) {
+    mavio::log(LOG_DEBUG,
+               "Failed to receive MAVLink message from socket. %s",
+               strerror(errno));
   } else if (rc == 0) {
-    MAVLinkLogger::log(LOG_WARNING,
-                       "TCP >> FAILED (The stream socket peer has performed an "
-                       "orderly shutdown)",
-                       msg);
-    close();
-    init(address, port);
+    mavio::log(LOG_DEBUG,
+               "TCP >> FAILED (The stream socket peer has performed an "
+               "orderly shutdown)");
   } else {
-    mavio::log(LOG_ERR, "Failed to parse MAVLink message.");
+    mavio::log(LOG_WARNING, "Failed to parse MAVLink message.");
   }
 
   return false;
-}
-
-bool MAVLinkTCP::message_available() {
-  if (socket_fd == 0) {
-    return false;
-  }
-
-  struct pollfd fds[1];
-  int nfds = 1;
-
-  memset(fds, 0, sizeof(fds));
-
-  fds[0].fd = socket_fd;
-  fds[0].events = POLLIN;
-
-  return ::poll(fds, nfds, poll_timeout) > 0;
 }
 
 }  // namespace mavio
