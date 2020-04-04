@@ -97,6 +97,7 @@ std::chrono::milliseconds MAVLinkISBDChannel::last_receive_time() {
 
 bool MAVLinkISBDChannel::get_signal_quality(int& quality) {
   quality = signal_quality;
+  return true;
 }
 
 /**
