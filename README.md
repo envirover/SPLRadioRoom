@@ -37,10 +37,10 @@ Though +5V TELEM pin on Pixhawk is rated for up to 2A peak power draw, it is rec
 
 To install UV Radio Room on Raspberry Pi:
 
-1. Copy radioroom-2.3.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
-2. Install radioroom-2.3.0-raspbian.deb package.
+1. Copy radioroom-2.4.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
+2. Install radioroom-2.4.0-raspbian.deb package.
 
-   ``$ sudo dpkg -i radioroom-2.3.0-raspbian.deb``
+   ``$ sudo dpkg -i radioroom-2.4.0-raspbian.deb``
 
 3. Configure the reporting period and the serial device paths for autopilot in /etc/radioroom.conf.
 4. If ISBD transceiver is used, in [isbd] section set enabled=true and specify the serial device paths of the ISBD transceiver in /etc/radioroom.conf.
@@ -77,13 +77,13 @@ pi@raspberrypi:~ $ sudo systemctl status radioroom.service
            └─254 /usr/sbin/radioroom
 
 Nov 07 07:27:56 raspberrypi systemd[1]: Starting UV Radio Room Service...
-Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.3.0...
+Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.4.0...
 Nov 07 07:27:57 raspberrypi radioroom[254]: Connecting to autopilot (/dev/ttyUSB0 57600)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: Autopilot detected at serial device '/dev/ttyUSB0'.
 Nov 07 07:27:58 raspberrypi radioroom[254]: MAV type: 12, system id: 1, autopilot class: 3, firmware version: 3.5.0/255
 Nov 07 07:27:58 raspberrypi radioroom[254]: Connecting to ISBD transceiver (/dev/ttyUSB1 19200)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: IRIDIUM 9600 Family SBD Transceiver (IMEA 123456789012345) detected at serial device '/dev/ttyUSB1'.
-Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.3.0 started.
+Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.4.0 started.
 ```
 
 Log file of radioroom service is available at /var/log/radioroom.log.
