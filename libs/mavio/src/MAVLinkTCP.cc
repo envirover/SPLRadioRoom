@@ -188,7 +188,8 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
                "TCP >> FAILED (The stream socket peer has performed an "
                "orderly shutdown)");
   } else {
-    mavio::log(LOG_WARNING, "Failed to parse MAVLink message.");
+    mavio::log(LOG_WARNING, "Failed to parse MAVLink message. %s",
+               strerror(errno)););
   }
 
   return false;
