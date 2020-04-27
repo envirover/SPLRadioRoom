@@ -189,7 +189,7 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
                "orderly shutdown)");
   } else {
     mavio::log(LOG_WARNING, "Failed to parse MAVLink message. %s",
-               strerror(errno)););
+               strerror(errno));
   }
 
   return false;
