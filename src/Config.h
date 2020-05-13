@@ -87,6 +87,27 @@ class Config {
   double get_tcp_report_period() const;
   void set_tcp_report_period(double period);
 
+  std::string get_on_armed() const;
+  void set_on_armed(const std::string cmd);
+
+  std::string get_on_disarmed() const;
+  void set_on_disarmed(const std::string cmd);
+
+  std::string get_on_video_start_capture() const;
+  void set_on_video_start_capture(const std::string cmd);
+
+  std::string get_on_video_stop_capture() const;
+  void set_on_video_stop_capture(const std::string cmd);
+
+  std::string get_on_image_start_capture() const;
+  void set_on_image_start_capture(const std::string cmd);
+
+  std::string get_on_image_stop_capture() const;
+  void set_on_image_stop_capture(const std::string cmd);
+
+  std::string get_on_do_digicam_control() const;
+  void set_on_do_digicam_control(const std::string cmd);
+
  private:
   std::string autopilot_serial;
   int autopilot_serial_speed;
@@ -103,6 +124,14 @@ class Config {
   std::string tcp_host;
   int tcp_port;
   double tcp_report_period;
+
+  std::string on_armed;
+  std::string on_disarmed;
+  std::string on_video_start_capture;
+  std::string on_video_stop_capture;
+  std::string on_image_start_capture;
+  std::string on_image_stop_capture;
+  std::string on_do_digicam_control;
 };
 
 extern Config config;

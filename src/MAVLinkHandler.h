@@ -24,6 +24,7 @@
 #define SRC_MAVLINKHANDLER_H_
 
 #include "MAVLinkAutopilot.h"
+#include "CameraHandler.h"
 #include "MAVLinkISBDChannel.h"
 #include "MAVLinkTCPChannel.h"
 #include "MAVReport.h"
@@ -126,6 +127,7 @@ class MAVLinkHandler {
   void check_retry_send_timer();
 
   mavio::MAVLinkAutopilot autopilot;
+  CameraHandler camera_handler;
   mavio::MAVLinkISBDChannel isbd_channel;
   mavio::MAVLinkTCPChannel tcp_channel;
   timelib::Stopwatch heartbeat_timer;

@@ -49,6 +49,7 @@ constexpr char hl_report_period_param[] = "HL_REPORT_PERIOD";
 
 MAVLinkHandler::MAVLinkHandler()
     : autopilot(),
+      camera_handler(),
       isbd_channel(),
       tcp_channel(),
       heartbeat_timer(),
@@ -126,6 +127,10 @@ bool MAVLinkHandler::init() {
     }
   }
 
+  if (camera_handler.init()) {
+    log(LOG_INFO, "Camera handler initialized.");
+  }
+
   log(LOG_INFO, "UV Radio Room initialization succeeded.");
   return true;
 }
@@ -137,6 +142,7 @@ void MAVLinkHandler::close() {
   tcp_channel.close();
   isbd_channel.close();
   autopilot.close();
+  camera_handler.close();
 }
 
 /**
@@ -148,6 +154,15 @@ void MAVLinkHandler::loop() {
   mavlink_message_t msg;
 
   if (autopilot.receive_message(msg)) {
+    handle_mo_message(msg, active_channel());
+
+    if (msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
+      // Handle commands acknowleged by autopilot.
+      camera_handler.send_message(msg);
+    }
+  }
+
+  if (camera_handler.receive_message(msg)) {
     handle_mo_message(msg, active_channel());
   }
 
@@ -339,6 +354,13 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
       }
       break;
     }
+    case MAVLINK_MSG_ID_COMMAND_LONG:
+      // Send the command to camera handler
+      if (!camera_handler.send_message(msg)) {
+        // Send the command to autopilot if it was not handled by camera handler
+        autopilot.send_message(msg);
+      }
+      break;
     default: {
       autopilot.send_message(msg);
       break;
