@@ -21,6 +21,9 @@
 */
 
 #include "CameraHandler.h"
+
+#include <regex>
+
 #include "Config.h"
 #include "MAVLinkLogger.h"
 #include "timelib.h"
@@ -31,6 +34,17 @@ constexpr size_t max_handler_queue_size = 1;
 constexpr size_t max_receive_queue_size = 1024;
 
 const std::chrono::milliseconds executor_sleep_interval(10);
+
+std::string replace(std::string str, const std::string& from,
+                    const std::string& to) {
+  size_t start_pos = 0;
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    start_pos +=
+        to.length();  // Handles case where 'to' is a substring of 'from'
+  }
+  return str;
+}
 
 CameraHandler::CmdExecutor::CmdExecutor(
     const std::string name, mavio::CircularBuffer<mavlink_message_t>& ack_queue)
@@ -93,10 +107,43 @@ void CameraHandler::CmdExecutor::task() {
   }
 }
 
+void CameraHandler::CmdExecutor::replace_parameters(
+    const mavlink_message_t& msg, std::string& cmd) const {
+  if (msg.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+    cmd = replace(cmd, "{{param1}}",
+                  std::to_string(mavlink_msg_command_long_get_param1(&msg)));
+    cmd = replace(cmd, "{{param2}}",
+                  std::to_string(mavlink_msg_command_long_get_param2(&msg)));
+    cmd = replace(cmd, "{{param3}}",
+                  std::to_string(mavlink_msg_command_long_get_param3(&msg)));
+    cmd = replace(cmd, "{{param4}}",
+                  std::to_string(mavlink_msg_command_long_get_param4(&msg)));
+    cmd = replace(cmd, "{{param5}}",
+                  std::to_string(mavlink_msg_command_long_get_param5(&msg)));
+    cmd = replace(cmd, "{{param6}}",
+                  std::to_string(mavlink_msg_command_long_get_param6(&msg)));
+    cmd = replace(cmd, "{{param7}}",
+                  std::to_string(mavlink_msg_command_long_get_param7(&msg)));
+  } else if (msg.msgid == MAVLINK_MSG_ID_COMMAND_INT) {
+    cmd = replace(cmd, "{{param1}}",
+                  std::to_string(mavlink_msg_command_int_get_param1(&msg)));
+    cmd = replace(cmd, "{{param2}}",
+                  std::to_string(mavlink_msg_command_int_get_param2(&msg)));
+    cmd = replace(cmd, "{{param3}}",
+                  std::to_string(mavlink_msg_command_int_get_param3(&msg)));
+    cmd = replace(cmd, "{{param4}}",
+                  std::to_string(mavlink_msg_command_int_get_param4(&msg)));
+  }
+}
+
 void CameraHandler::CmdExecutor::execute_cmd(const mavlink_message_t& msg) {
   mavio::log(LOG_INFO, "Handler '%s' execution started.", name.c_str());
 
-  int ret = ::system(command.c_str());
+  std::string cmd = command;
+
+  replace_parameters(msg, cmd);
+
+  int ret = ::system(cmd.c_str());
 
   mavlink_command_ack_t command_ack;
 

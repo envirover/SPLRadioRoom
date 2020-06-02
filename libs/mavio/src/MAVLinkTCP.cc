@@ -22,10 +22,10 @@
 
 #include "MAVLinkTCP.h"
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/poll.h>
@@ -38,7 +38,9 @@
 namespace mavio {
 
 // TCP keepalive options values
-constexpr int so_keepalive_value  = 1;   // enabled
+constexpr int so_keepalive_value = 1;  // enabled
+
+constexpr int so_read_timeout = 1;  // seconds
 
 MAVLinkTCP::MAVLinkTCP() : socket_fd(0) {}
 
@@ -87,13 +89,23 @@ bool MAVLinkTCP::connect() {
     return false;
   }
 
+  struct timeval so_timeout;
+  so_timeout.tv_sec = so_read_timeout;
+  so_timeout.tv_usec = 0;
+  if (::setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &so_timeout,
+                   sizeof(so_timeout))) {
+    mavio::log(LOG_ERR, "Failed to set TCP socket read timeout. %s",
+               strerror(errno));
+    return false;
+  }
+
   char sin_addr_str[INET_ADDRSTRLEN];
   ::inet_ntop(AF_INET, &(serv_addr.sin_addr), sin_addr_str, INET_ADDRSTRLEN);
 
   if (::connect(socket_fd, reinterpret_cast<sockaddr*>(&serv_addr),
                 sizeof(serv_addr)) < 0) {
-    mavio::log(LOG_ERR, "Connection to 'tcp://%s:%d' failed. %s",
-               sin_addr_str,  ntohs(serv_addr.sin_port), strerror(errno));
+    mavio::log(LOG_ERR, "Connection to 'tcp://%s:%d' failed. %s", sin_addr_str,
+               ntohs(serv_addr.sin_port), strerror(errno));
     return false;
   }
 
@@ -149,6 +161,11 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
   uint8_t stx;
   int rc = ::recv(socket_fd, &stx, 1, MSG_WAITALL);
 
+  if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+    // Read timeout
+    return false;
+  }
+
   if (rc > 0) {
     if (stx != MAVLINK_STX) {
       return false;
@@ -160,6 +177,11 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     if (rc > 0) {
       uint8_t buffer[263];
       rc = ::recv(socket_fd, buffer, payload_length + 6, MSG_WAITALL);
+
+      if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        // Read timeout
+        return false;
+      }
 
       if (rc > 0) {
         mavlink_status_t mavlink_status;
@@ -180,8 +202,7 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
   }
 
   if (rc > 0) {
-    mavio::log(LOG_DEBUG,
-               "Failed to receive MAVLink message from socket. %s",
+    mavio::log(LOG_DEBUG, "Failed to receive MAVLink message from socket. %s",
                strerror(errno));
   } else if (rc == 0) {
     mavio::log(LOG_DEBUG,

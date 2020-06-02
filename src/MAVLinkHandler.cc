@@ -56,6 +56,7 @@ MAVLinkHandler::MAVLinkHandler()
       primary_report_timer(),
       secondary_report_timer(),
       missions_received(0),
+      reached_item_seq(0),
       retry_timer(),
       retry_msg(),
       retry_timeout(0),
@@ -139,9 +140,16 @@ bool MAVLinkHandler::init() {
  * Closes all opened connections.
  */
 void MAVLinkHandler::close() {
+  log(LOG_INFO, "Closing TCP channel...");
   tcp_channel.close();
+
+  log(LOG_INFO, "Closing ISBD channel...");
   isbd_channel.close();
+
+  log(LOG_INFO, "Closing autopilot connection...");
   autopilot.close();
+
+  log(LOG_INFO, "Closing camera handler...");
   camera_handler.close();
 }
 
@@ -156,9 +164,56 @@ void MAVLinkHandler::loop() {
   if (autopilot.receive_message(msg)) {
     handle_mo_message(msg, active_channel());
 
-    if (msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
-      // Handle commands acknowleged by autopilot.
-      camera_handler.send_message(msg);
+    switch (msg.msgid) {
+      case MAVLINK_MSG_ID_COMMAND_ACK: {
+        // Handle commands acknowleged by autopilot.
+        camera_handler.send_message(msg);
+        break;
+      }
+      case MAVLINK_MSG_ID_MISSION_ITEM_REACHED: {
+        // Request mission item for the reached seq.
+        reached_item_seq = mavlink_msg_mission_item_reached_get_seq(&msg);
+        mavlink_mission_request_int_t mission_request_int;
+        mission_request_int.seq = reached_item_seq;
+
+        mavlink_message_t mission_request_int_msg;
+        mavlink_msg_mission_request_int_encode(
+            autopilot.get_system_id(), mavio::ardupilot_component_id,
+            &mission_request_int_msg, &mission_request_int);
+
+        autopilot.send_message(mission_request_int_msg);
+        set_retry_send_timer(mission_request_int_msg,
+                             autopilot_send_retry_timeout,
+                             autopilot_send_retries);
+        break;
+      }
+      case MAVLINK_MSG_ID_MISSION_ITEM_INT:
+        uint16_t item_seq = mavlink_msg_mission_item_int_get_seq(&msg);
+
+        if (item_seq == reached_item_seq) {
+          cancel_retry_send_timer(MAVLINK_MSG_ID_MISSION_REQUEST);
+
+          // Forward command from the reached mission item to the camera handler
+          mavlink_command_long_t command_long;
+          command_long.command = mavlink_msg_mission_item_int_get_command(&msg);
+          command_long.param1 = mavlink_msg_mission_item_int_get_param1(&msg);
+          command_long.param2 = mavlink_msg_mission_item_int_get_param2(&msg);
+          command_long.param3 = mavlink_msg_mission_item_int_get_param3(&msg);
+          command_long.param4 = mavlink_msg_mission_item_int_get_param4(&msg);
+          command_long.param5 = mavlink_msg_mission_item_int_get_x(&msg);
+          command_long.param6 = mavlink_msg_mission_item_int_get_y(&msg);
+          command_long.param7 = mavlink_msg_mission_item_int_get_z(&msg);
+
+          mavlink_message_t command_long_msg;
+          mavlink_msg_command_long_encode(autopilot.get_system_id(),
+                                          mavio::ardupilot_component_id,
+                                          &command_long_msg, &command_long);
+
+          camera_handler.send_message(command_long_msg);
+
+          reached_item_seq = 0;
+        }
+        break;
     }
   }
 
@@ -234,8 +289,7 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
 
       if (seq < missions_received) {
         autopilot.send_message(missions[seq]);
-        set_retry_send_timer(missions[seq],
-                             autopilot_send_retry_timeout,
+        set_retry_send_timer(missions[seq], autopilot_send_retry_timeout,
                              autopilot_send_retries);
       } else {
         log(LOG_ERR, "Mission request seq=%d is out of bounds.", seq);
@@ -318,8 +372,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
           // All mission items received
           log(LOG_INFO, "Sending mission items to autopilot...");
           autopilot.send_message(mission_count_msg);
-          set_retry_send_timer(mission_count_msg,
-                               autopilot_send_retry_timeout,
+          set_retry_send_timer(mission_count_msg, autopilot_send_retry_timeout,
                                autopilot_send_retries);
         }
       } else {
@@ -499,9 +552,9 @@ void MAVLinkHandler::request_data_streams() {
   }
 }
 
-void MAVLinkHandler::set_retry_send_timer(const mavlink_message_t& msg,
-                                       const std::chrono::milliseconds& timeout,
-                                       int retries) {
+void MAVLinkHandler::set_retry_send_timer(
+    const mavlink_message_t& msg, const std::chrono::milliseconds& timeout,
+    int retries) {
   retry_timer.reset();
   retry_msg = msg;
   retry_timeout = timeout;

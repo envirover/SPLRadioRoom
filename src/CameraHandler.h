@@ -40,7 +40,7 @@ namespace radioroom {
  */
 class CameraHandler : public mavio::MAVLinkChannel {
   /**
-   * Executes system command in a dedicated thread on MAVLink command messages. 
+   * Executes system command in a dedicated thread on MAVLink command messages.
    */
   class CmdExecutor {
    public:
@@ -59,13 +59,16 @@ class CameraHandler : public mavio::MAVLinkChannel {
 
     /**
      * Submits MAVLink command message for execution.
-     * 
+     *
      * returns true if the command will be handled by the executor.
      */
     bool submit(const mavlink_message_t& msg);
 
    private:
     void task();
+
+    void replace_parameters(const mavlink_message_t& msg,
+                            std::string& cmd) const;
 
     void execute_cmd(const mavlink_message_t& msg);
 
