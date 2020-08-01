@@ -10,7 +10,7 @@ set(CPACK_GENERATOR "DEB")
 # set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "armhf")
 set(CPACK_PACKAGE_NAME "radioroom")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Pavel Bobov")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Iridium SBD telemetry for MAVLink autopilots")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Telemetry for MAVLink autopilots")
 set(CPACK_PACKAGE_VENDOR "Envirover")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
@@ -51,7 +51,13 @@ target_link_libraries(tcptest mavio)
 target_link_libraries(isbdtest mavio)
 
 install(TARGETS radioroom DESTINATION "/usr/sbin")
-install(DIRECTORY "${PROJECT_SOURCE_DIR}/etc/" DESTINATION "/etc" 
+
+# Install files common for all systems
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/pack/common/etc/" DESTINATION "/etc" 
+        FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
+
+# Install system-specific files
+install(DIRECTORY "${PROJECT_SOURCE_DIR}/pack/${CMAKE_SYSTEM_NAME}/etc/" DESTINATION "/etc" 
         FILE_PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ)
 
 include(CPack)

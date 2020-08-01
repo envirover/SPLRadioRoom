@@ -33,6 +33,7 @@
 /RadioRoom/bin/*
 /bin/*
 /debug/*
+/build/*
 /Default/
 /RemoteSystemsTempFiles/
 /CMakeFiles/
