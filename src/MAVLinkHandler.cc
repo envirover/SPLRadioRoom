@@ -55,6 +55,7 @@ MAVLinkHandler::MAVLinkHandler()
       primary_report_timer(),
       secondary_report_timer(),
       missions_received(0),
+      param_set_param_id(""),
       retry_timer(),
       retry_msg(),
       retry_timeout(0),
@@ -207,11 +208,13 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
     case MAVLINK_MSG_ID_PARAM_VALUE: {
       char param_id[17];
       mavlink_msg_param_value_get_param_id(&msg, param_id);
-      if (strncmp(param_id, "STAT_RUNTIME", 16) == 0) {
-        break;
+
+      // Filter out unsolicited PARAM_VALUE messages.
+      // Only send messages that acknowledge received PARAM_SET messages.
+      if (strncmp(param_id, param_set_param_id.c_str(), 16) == 0) {
+        channel.send_message(msg);
       }
 
-      channel.send_message(msg);
       break;
     }
     case MAVLINK_MSG_ID_MISSION_REQUEST: {
@@ -315,6 +318,7 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
     case MAVLINK_MSG_ID_PARAM_SET: {
       char param_id[17];
       mavlink_msg_param_set_get_param_id(&msg, param_id);
+      param_set_param_id = param_id;
 
       if (strncmp(param_id, hl_report_period_param, 16) == 0) {
         float value = mavlink_msg_param_set_get_param_value(&msg);
