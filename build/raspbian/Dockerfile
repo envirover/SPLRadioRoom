@@ -16,4 +16,5 @@ WORKDIR /build/workspace
 CMD mkdir ./bin; cd ./bin; \
     cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="/build/toolchain/toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ..; \
     make; \
-    cpack -G DEB 
+    cpack -G DEB
+     
