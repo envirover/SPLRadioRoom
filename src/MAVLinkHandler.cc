@@ -213,6 +213,7 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
       // Only send messages that acknowledge received PARAM_SET messages.
       if (strncmp(param_id, param_set_param_id.c_str(), 16) == 0) {
         channel.send_message(msg);
+        param_set_param_id = "";
       }
 
       break;
