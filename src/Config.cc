@@ -60,6 +60,13 @@ constexpr char tcp_enabled_property[] = "enabled";
 constexpr char tcp_host_property[] = "host";
 constexpr char tcp_port_property[] = "port";
 
+constexpr char camera_handler_config_section[] = "camera_handler";
+constexpr char on_video_start_capture_property[] = "on_video_start_capture";
+constexpr char on_video_stop_capture_property[] = "on_video_stop_capture";
+constexpr char on_image_start_capture_property[] = "on_image_start_capture";
+constexpr char on_image_stop_capture_property[] = "on_image_stop_capture";
+constexpr char on_do_digicam_control_property[] = "on_do_digicam_control";
+
 Config::Config()
     : autopilot_serial(default_autopilot_serial),
       autopilot_serial_speed(autopilot_serial_baud_rate),
@@ -125,6 +132,22 @@ int Config::init(const std::string& config_file) {
 
   set_tcp_report_period(conf.GetReal(tcp_config_section, report_period_property,
                                      default_tcp_report_period));
+
+  set_on_video_start_capture(conf.Get(camera_handler_config_section,
+                                      on_video_start_capture_property, ""));
+
+  set_on_video_stop_capture(conf.Get(camera_handler_config_section,
+                                     on_video_stop_capture_property, ""));
+
+  set_on_image_start_capture(conf.Get(camera_handler_config_section,
+                                      on_image_start_capture_property, ""));
+
+  set_on_image_stop_capture(conf.Get(camera_handler_config_section,
+                                     on_image_stop_capture_property, ""));
+
+  set_on_do_digicam_control(conf.Get(camera_handler_config_section,
+                                     on_do_digicam_control_property, ""));
+
   return 0;
 }
 
@@ -184,6 +207,46 @@ double Config::get_tcp_report_period() const { return tcp_report_period; }
 
 void Config::set_tcp_report_period(double period) {
   tcp_report_period = period;
-};
+}
+
+std::string Config::get_on_video_start_capture() const {
+  return on_video_start_capture;
+}
+
+void Config::set_on_video_start_capture(const std::string cmd) {
+  on_video_start_capture = cmd;
+}
+
+std::string Config::get_on_video_stop_capture() const {
+  return on_video_stop_capture;
+}
+
+void Config::set_on_video_stop_capture(const std::string cmd) {
+  on_video_stop_capture = cmd;
+}
+
+std::string Config::get_on_image_start_capture() const {
+  return on_image_start_capture;
+}
+
+void Config::set_on_image_start_capture(const std::string cmd) {
+  on_image_start_capture = cmd;
+}
+
+std::string Config::get_on_image_stop_capture() const {
+  return on_image_stop_capture;
+}
+
+void Config::set_on_image_stop_capture(const std::string cmd) {
+  on_image_stop_capture = cmd;
+}
+
+std::string Config::get_on_do_digicam_control() const {
+  return on_do_digicam_control;
+}
+
+void Config::set_on_do_digicam_control(const std::string cmd) {
+  on_do_digicam_control = cmd;
+}
 
 }  // namespace radioroom

@@ -15,17 +15,18 @@ UV Radio Room system requires the following hardware and software:
 * Activated [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
 * Cellular or satellite Internet modem.
 
-## Wiring 
+## Wiring
 
 UV Radio Room uses serial devices to communicate with autopilot and ISBD transceiver. Cellular or satellite Internet modems cold be connected using USB, Ethernet, or WiFi connections.
 
 ![Wiring](https://s3-us-west-2.amazonaws.com/envirover/images/RadioRoomWiring3.jpg)
 
 See the instructions on connecting companion computer to Pixhawk running ArduPilot and PX4 autopilots:
-- [ArduPilot Connecting the Pixhawk and RPi](http://ardupilot.org/dev/docs/raspberry-pi-via-mavlink.html)
-- [PX4 Companion Computer for Pixhawk class](https://dev.px4.io/en/companion_computer/pixhawk_companion.html)
 
-The safest bet is to use USB to TTL UART serial converter to connect both autopilot and transceiver to the Raspberry Pi's USB ports. Another, less straightforward option is to connect autopilot to the Raspberry Pi serial port using GPIO pins. 
+* [ArduPilot Connecting the Pixhawk and RPi](http://ardupilot.org/dev/docs/raspberry-pi-via-mavlink.html)
+* [PX4 Companion Computer for Pixhawk class](https://dev.px4.io/en/companion_computer/pixhawk_companion.html)
+
+The safest bet is to use USB to TTL UART serial converter to connect both autopilot and transceiver to the Raspberry Pi's USB ports. Another, less straightforward option is to connect autopilot to the Raspberry Pi serial port using GPIO pins.
 
 It is recommended to connect RockBLOCK module using [FTDI USB to UART cable](https://www.rock7.com/shop-product-detail?productId=16) provided by Rock Seven Mobile. 3.3.V FTDI cables or chips from other vendors can also be used, but MaxPower field in the chip must be set to 500 mA to satisfy the power requirements of RockBLOCK (The default setting for MaxPower field is typically 100 mA). Alternatively, RockBLOCK could be powered by directly, and not through the FTDI chip.
 
@@ -37,10 +38,10 @@ Though +5V TELEM pin on Pixhawk is rated for up to 2A peak power draw, it is rec
 
 To install UV Radio Room on Raspberry Pi:
 
-1. Copy radioroom-2.3.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi. 
-2. Install radioroom-2.3.0-raspbian.deb package.
+1. Copy radioroom-2.4.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi.
+2. Install radioroom-2.4.0-raspbian.deb package.
 
-   ``$ sudo dpkg -i radioroom-2.3.0-raspbian.deb``
+   ``$ sudo dpkg -i radioroom-2.4.0-raspbian.deb``
 
 3. Configure the reporting period and the serial device paths for autopilot in /etc/radioroom.conf.
 4. If ISBD transceiver is used, in [isbd] section set enabled=true and specify the serial device paths of the ISBD transceiver in /etc/radioroom.conf.
@@ -51,8 +52,8 @@ To install UV Radio Room on Raspberry Pi:
    $ sudo systemctl enable radioroom.service
    $ sudo systemctl start radioroom.service
    ```
-   
-By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, UV Radio Room can auto-detect autopilot and ISBD if they are available on other serial and USB devices. To make the UV Radio Room startup faster and more reliable it is recommended to set the device paths correctly. 
+
+By default the serial device paths are set to /dev/ttyACM0 for autopilot and to /dev/ttyUSB0 for ISBD transceiver. If auto_detect_serials property is set to true, UV Radio Room can auto-detect autopilot and ISBD if they are available on other serial and USB devices. To make the UV Radio Room startup faster and more reliable it is recommended to set the device paths correctly.
 
 USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB devices it is recommended to use symlinks from /dev/serial/by-path or /dev/serial/by-path directories, that do not change with reboots. 
 
@@ -66,7 +67,7 @@ Run ``$ sudo systemctl status radioroom.service`` to check the status of radioro
 
 If radioroom is properly wired and configured, the output should look like this:
 
-```
+```bash
 pi@raspberrypi:~ $ sudo systemctl status radioroom.service
 ● radioroom.service - UV Radio Room Service
    Loaded: loaded (/etc/systemd/system/radioroom.service; enabled; vendor preset: enabled)
@@ -77,13 +78,13 @@ pi@raspberrypi:~ $ sudo systemctl status radioroom.service
            └─254 /usr/sbin/radioroom
 
 Nov 07 07:27:56 raspberrypi systemd[1]: Starting UV Radio Room Service...
-Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.3.0...
+Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.4.0...
 Nov 07 07:27:57 raspberrypi radioroom[254]: Connecting to autopilot (/dev/ttyUSB0 57600)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: Autopilot detected at serial device '/dev/ttyUSB0'.
 Nov 07 07:27:58 raspberrypi radioroom[254]: MAV type: 12, system id: 1, autopilot class: 3, firmware version: 3.5.0/255
 Nov 07 07:27:58 raspberrypi radioroom[254]: Connecting to ISBD transceiver (/dev/ttyUSB1 19200)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: IRIDIUM 9600 Family SBD Transceiver (IMEA 123456789012345) detected at serial device '/dev/ttyUSB1'.
-Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.3.0 started.
+Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.4.0 started.
 ```
 
 Log file of radioroom service is available at /var/log/radioroom.log.
@@ -92,9 +93,9 @@ Add ``-v`` option to the radioroom command line in /etc/systemd/system/radioroom
 
 ## Building
 
-To build radioroom on Raspberry Pi. 
+To build radioroom on Raspberry Pi.
 
-```
+```bash
 $ sudo apt-get install git cmake
 $ git clone https://github.com/envirover/SPLRadioRoom.git
 $ cd SPLRadioRoom
@@ -110,17 +111,17 @@ To cross-compile on Windows.
 1. Install git and clone SPLRadioRoom repo.
 
    ``$ git clone https://github.com/envirover/SPLRadioRoom.git``
-   
+
 2. Install [Windows toolchain for Raspberry Pi](http://gnutoolchains.com/raspberry/).
 3. Create 'bin' subdirectory inside SPLRadioRoom and change the current directory to it.
 4. Run cmake using ../toolchain-arm-windows.cmake toolchain file.
 
-   ``$ cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-windows.cmake" ..`` 
+   ``$ cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE:STRING="" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-windows.cmake" ..``
 5. Run make.
 
    ``$ make``
-   
-For cross-compilation on Linux raspbian toolchain for Linux is required. toolchain-arm-linux.cmake should be specified as CMake toolchain file. 
+
+For cross-compilation on Linux raspbian toolchain for Linux is required. toolchain-arm-linux.cmake should be specified as CMake toolchain file.
 
 ## Issues
 
@@ -130,8 +131,8 @@ Find a bug or want to request a new feature?  Please let us know by submitting a
 
 Envirover welcomes contributions from anyone and everyone. Please see our [guidelines for contributing](https://github.com/envirover/SPLRadioRoom/blob/master/CONTRIBUTING.md).
 
-Licensing
----------
+## Licensing
+
 ```
 Copyright (C) 2018 Envirover
 
