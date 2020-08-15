@@ -179,8 +179,6 @@ void CameraHandler::CmdExecutor::execute_cmd(const mavlink_message_t& msg) {
 CameraHandler::CameraHandler()
     : MAVLinkChannel("handler"),
       running(false),
-      on_armed_executor("on_armed", receive_queue),
-      on_disarmed_executor("on_disarmed", receive_queue),
       on_video_start_capture_executor("on_video_start_capture", receive_queue),
       on_video_stop_capture_executor("on_video_stop_capture", receive_queue),
       on_image_start_capture_executor("on_image_start_capture", receive_queue),
@@ -192,8 +190,6 @@ bool CameraHandler::init() {
   if (!running) {
     running = true;
 
-    on_armed_executor.init(config.get_on_armed());
-    on_disarmed_executor.init(config.get_on_disarmed());
     on_video_start_capture_executor.init(config.get_on_video_start_capture());
     on_video_stop_capture_executor.init(config.get_on_video_stop_capture());
     on_image_start_capture_executor.init(config.get_on_image_start_capture());
@@ -208,8 +204,6 @@ void CameraHandler::close() {
   if (running) {
     running = false;
 
-    on_armed_executor.close();
-    on_disarmed_executor.close();
     on_video_start_capture_executor.close();
     on_video_start_capture_executor.close();
     on_image_start_capture_executor.close();
@@ -221,29 +215,9 @@ void CameraHandler::close() {
 bool CameraHandler::send_message(const mavlink_message_t& msg) {
   uint16_t command;
 
-  // Handle arm/disarm command only if it was accepted by the autopilot.
   if (msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
     command = mavlink_msg_command_ack_get_command(&msg);
     uint8_t result = mavlink_msg_command_ack_get_result(&msg);
-
-    if (command == MAV_CMD_COMPONENT_ARM_DISARM &&
-        result == MAV_RESULT_ACCEPTED) {
-      float arm;
-
-      if (arm_disarm_cmd.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
-        arm = mavlink_msg_command_long_get_param1(&arm_disarm_cmd);
-      } else {
-        arm = mavlink_msg_command_int_get_param1(&arm_disarm_cmd);
-      }
-
-      if (arm == 0.0) {
-        on_disarmed_executor.submit(arm_disarm_cmd);
-      } else {
-        on_armed_executor.submit(arm_disarm_cmd);
-      }
-
-      return true;
-    }
 
     return false;
   }
@@ -257,9 +231,6 @@ bool CameraHandler::send_message(const mavlink_message_t& msg) {
   }
 
   switch (command) {
-    case MAV_CMD_COMPONENT_ARM_DISARM:
-      arm_disarm_cmd = msg;
-      return false;
     case MAV_CMD_VIDEO_START_CAPTURE:
       return on_video_start_capture_executor.submit(msg);
     case MAV_CMD_VIDEO_STOP_CAPTURE:

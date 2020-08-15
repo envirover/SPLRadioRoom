@@ -61,8 +61,6 @@ constexpr char tcp_host_property[] = "host";
 constexpr char tcp_port_property[] = "port";
 
 constexpr char camera_handler_config_section[] = "camera_handler";
-constexpr char on_armed_property[] = "on_armed";
-constexpr char on_disarmed_property[] = "on_disarmed";
 constexpr char on_video_start_capture_property[] = "on_video_start_capture";
 constexpr char on_video_stop_capture_property[] = "on_video_stop_capture";
 constexpr char on_image_start_capture_property[] = "on_image_start_capture";
@@ -134,12 +132,6 @@ int Config::init(const std::string& config_file) {
 
   set_tcp_report_period(conf.GetReal(tcp_config_section, report_period_property,
                                      default_tcp_report_period));
-
-  set_on_armed(
-      conf.Get(camera_handler_config_section, on_disarmed_property, ""));
-
-  set_on_disarmed(
-      conf.Get(camera_handler_config_section, on_disarmed_property, ""));
 
   set_on_video_start_capture(conf.Get(camera_handler_config_section,
                                       on_video_start_capture_property, ""));
@@ -216,14 +208,6 @@ double Config::get_tcp_report_period() const { return tcp_report_period; }
 void Config::set_tcp_report_period(double period) {
   tcp_report_period = period;
 }
-
-std::string Config::get_on_armed() const { return on_armed; }
-
-void Config::set_on_armed(const std::string cmd) { on_armed = cmd; }
-
-std::string Config::get_on_disarmed() const { return on_disarmed; }
-
-void Config::set_on_disarmed(const std::string cmd) { on_disarmed = cmd; }
 
 std::string Config::get_on_video_start_capture() const {
   return on_video_start_capture;

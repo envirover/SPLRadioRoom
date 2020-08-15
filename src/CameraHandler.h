@@ -132,8 +132,6 @@ class CameraHandler : public mavio::MAVLinkChannel {
   std::atomic<bool> running;
 
   // Command executors
-  CmdExecutor on_armed_executor;
-  CmdExecutor on_disarmed_executor;
   CmdExecutor on_video_start_capture_executor;
   CmdExecutor on_video_stop_capture_executor;
   CmdExecutor on_image_start_capture_executor;
