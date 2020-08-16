@@ -15,19 +15,24 @@ before_script:
 # switch to the src directory
 - cd /home/travis/build/envirover/SPLRadioRoom
 script:
-- mkdir -p bin/raspbian
-- cd bin/raspbian
-- cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../../toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ../..
+# Build for Raspbian  
+- mkdir bin
+- cd bin
+- cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ..
 - make
 - cpack -G DEB 
 - export RASPBIAN_PKG_FILE=$(ls *.deb)
-- cd ../..
-- mkdir -p bin/jetson
-- cd bin/jetson
-- cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../../toolchain-jetson.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ../..
+- cp $RASPBIAN_PKG_FILE /home/travis/build/
+- cd ..
+- rm -r bin
+# Build for Jetson
+- mkdir bin
+- cd bin
+- cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../toolchain-jetson.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ..
 - make
 - cpack -G DEB 
 - export JETSON_PKG_FILE=$(ls *.deb)
+- cp $RASPBIAN_PKG_FILE /home/travis/build/
 - cd ..
 before_deploy:
 - echo "Deploying $RASPBIAN_PKG_FILE and $JETSON_PKG_FILE to GitHub releases"
@@ -39,8 +44,8 @@ deploy:
     secure: jkOfxa7qoH3O50aJ12GFk4KBnwLHBAZvKG4Ka5x214ZEq1EV00ywuz1isN0qF+M2S1NJi0d/E58f4ndT1LQLgxcz3mcDcmo9v1EWFYEzfTL4o/BtV0IsrRy/pLg1t04QKHiy20kl8ViET293vBBla1yd72E04zlE6MjZMugifFdUoamHJkgMuY679JxE6o4KcXLxAwS3/lsrpCcdPEVj5DSuGUpyyGxKcoZW+cTTVc3zjBbjnLG9Hnle3zgIhC8hKHiCqy8uXtlgQN9m1E+P/Xn6LGAtO7Fa4Mlon9q1wbRXb+SRqG0sM8LmegORDHrFIvvuod0gCoIy1mbghnScAe9McUFeyVHQZ9ri7Xsb/G7fmpTAlPsf6EaKLm4m2gjXLec+W+thCPrtWUaoAdiq05d/ThP9mlOVbQ4A0O31oDSJJXctkb1OKgYrisBYY9dty4IKbVYkLA/+/QOi1EUAq9bspp77cUdhVx+MbrP3t982k/Ql8r3otmkIx4sbG404fnqxNauu5oe6zFgvratzOesYaL9p2dkkxCmzbY08pC1Uwn79GpTNMjvhNKVp6xi4AKR6+qDoMzXVZckpDrQnK/5yt4Fp4/5PRjGQhaayOx2vOLzZccOyiJLRZPgq3KAnSZRd4DnhzYFVPCuj91DLDo1jTsmgOj6rxjn1PHwguT8=
   file_glob: true
   file: 
-  - "raspbian/${RASPBIAN_PKG_FILE}"
-  - "jetson/${JETSON_PKG_FILE}"
+  - "/home/travis/build/${RASPBIAN_PKG_FILE}"
+  - "/home/travis/build/${JETSON_PKG_FILE}"
   on:
     repo: envirover/SPLRadioRoom
   skip_cleanup: true
