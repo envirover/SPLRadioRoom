@@ -4,13 +4,13 @@ before_script:
 - mkdir -p /home/travis/build/toolchain/raspbian
 - cd /home/travis/build/toolchain/raspbian
 - wget https://s3.amazonaws.com/RTI/Community/ports/toolchains/raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
-- tar xvf raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
+- tar xf raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
 - export PATH=/home/travis/build/toolchain/raspbian/raspbian-toolchain-gcc-4.7.2-linux64/bin:$PATH
 # Install Jetson toolchain
 - mkdir -p /home/travis/build/toolchain/jetson
 - cd /home/travis/build/toolchain/jetson
 - wget https://envirover.s3-us-west-2.amazonaws.com/build/toolchains/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
-- tar xvf gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
+- tar xf gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
 - export PATH=/home/travis/build/toolchain/jetson/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu/bin:$PATH
 # switch to the src directory
 - cd /home/travis/build/envirover/SPLRadioRoom
@@ -32,7 +32,7 @@ script:
 - make
 - cpack -G DEB 
 - export JETSON_PKG_FILE=$(ls *.deb)
-- cp $RASPBIAN_PKG_FILE /home/travis/build/
+- cp $JETSON_PKG_FILE /home/travis/build/
 - cd ..
 before_deploy:
 - echo "Deploying $RASPBIAN_PKG_FILE and $JETSON_PKG_FILE to GitHub releases"
