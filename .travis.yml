@@ -1,13 +1,13 @@
 language: cpp
 before_script:
 # Install Raspbian toolchain
-- mkdir /home/travis/build/toolchain/raspbian
+- mkdir -p /home/travis/build/toolchain/raspbian
 - cd /home/travis/build/toolchain/raspbian
 - wget https://s3.amazonaws.com/RTI/Community/ports/toolchains/raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
 - tar xvzf raspbian-toolchain-gcc-4.7.2-linux64.tar.gz
 - export PATH=/home/travis/build/toolchain/raspbian/raspbian-toolchain-gcc-4.7.2-linux64/bin:$PATH
 # Install Jetson toolchain
-- mkdir /home/travis/build/toolchain/jetson
+- mkdir -p /home/travis/build/toolchain/jetson
 - cd /home/travis/build/toolchain/jetson
 - wget https://envirover.s3-us-west-2.amazonaws.com/build/toolchains/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
 - tar xvzf gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
@@ -15,13 +15,14 @@ before_script:
 # switch to the src directory
 - cd /home/travis/build/envirover/SPLRadioRoom
 script:
-- mkdir bin/raspbian
+- mkdir -p bin/raspbian
 - cd bin/raspbian
 - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../../toolchain-arm-linux.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ../..
 - make
 - cpack -G DEB 
 - export RASPBIAN_PKG_FILE=$(ls *.deb)
-- mkdir bin/jetson
+- cd ../..
+- mkdir -p bin/jetson
 - cd bin/jetson
 - cmake -G "Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE:FILEPATH="../../toolchain-jetson.cmake" -DBUILD_NUM=$TRAVIS_BUILD_NUMBER ../..
 - make
