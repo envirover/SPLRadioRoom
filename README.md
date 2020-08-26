@@ -36,10 +36,10 @@ Though +5V TELEM pin on Pixhawk is rated for up to 2A peak power draw, it is rec
 
 ## Installing
 
-To install UV Radio Room on Raspberry Pi:
+To install UV Radio Room on Raspberry Pi or NVIDIA Jetson:
 
-1. Copy radioroom-2.4.0-raspbian.deb from https://github.com/envirover/SPLRadioRoom/releases to the Raspberry Pi.
-2. Install radioroom-2.4.0-raspbian.deb package.
+1. Copy radioroom-2.4.0-raspbian.deb or radioroom-2.4.0-jetson.deb from https://github.com/envirover/SPLRadioRoom/releases to the machine.
+2. Install radioroom-2.4.0-raspbian.deb package or radioroom-2.4.0-jetson.deb.
 
    ``$ sudo dpkg -i radioroom-2.4.0-raspbian.deb``
 
@@ -59,7 +59,13 @@ USB device paths /dev/ttyUSB0, /dev/ttyUSB1, ... can swap after reboot. For USB 
 
 UV Radio Room periodically reports the vehicle's position, attitude, velocity, and other data using HIGH_LATENCY MAVLink message. The message size is 48 bytes. Each report consumes 1 RockBLOCK credit. The reporting period default value is 60 seconds. It can be changed by setting report_period configuration property in /etc/radioroom.conf.
 
-Raspberry Pi requires an orderly shutdown procedure, otherwise the SD card may become corrupted and the system will no longer boot. To prevent the SD card corruption during power cuts it is recommended to [configure Raspbian to work in a read-only mode](https://learn.adafruit.com/read-only-raspberry-pi/). Alternatively, UPS and a shutdown circuit could be used to orderly shutdown Raspberry Pi after power cuts.
+### Configuring Camera Handlers
+
+UV Radio Room camera handlers execute custom Linux shell commands on MAVLink commands such as DO_DIGICAM_CONTROL, IMAGE_START_CAPTURE, IMAGE_STOP_CAPTURE, VIDEO_START_CAPTURE, and VIDEO_STOP_CAPTURE.
+
+The camera handlers are defined in [camera_handler] section in /etc/radioroom.conf file and executed when correspondent commands are received from one of the UV Radio Room's channel or when the autopilot confirms reaching of a mission item with a correspondent command.
+
+The Linux shell commands may include {{param1}}, ..., {{param8}} variables that during the command execution will be replaced by values of the correspondent MAVLink command parameters.
   
 ## Troubleshooting
 
