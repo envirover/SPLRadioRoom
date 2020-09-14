@@ -56,8 +56,8 @@ MAVLinkHandler::MAVLinkHandler()
       primary_report_timer(),
       secondary_report_timer(),
       missions_received(0),
-      reached_item_seq(0),
       param_set_param_id(""),
+      wp_num(0),
       retry_timer(),
       retry_msg(),
       retry_timeout(0),
@@ -171,28 +171,69 @@ void MAVLinkHandler::loop() {
         camera_handler.send_message(msg);
         break;
       }
-      case MAVLINK_MSG_ID_MISSION_ITEM_REACHED: {
-        // Request mission item for the reached seq.
-        reached_item_seq = mavlink_msg_mission_item_reached_get_seq(&msg);
-        mavlink_mission_request_int_t mission_request_int;
-        mission_request_int.seq = reached_item_seq;
+        // case MAVLINK_MSG_ID_MISSION_ITEM_REACHED: {
+        //   // Request mission item for the reached seq.
+        //   reached_item_seq = mavlink_msg_mission_item_reached_get_seq(&msg);
 
-        mavlink_message_t mission_request_int_msg;
-        mavlink_msg_mission_request_int_encode(
-            autopilot.get_system_id(), mavio::ardupilot_component_id,
-            &mission_request_int_msg, &mission_request_int);
+        //   log(LOG_INFO,
+        //       "Mission item reached (seq=%d). Requesting the item from "
+        //       "autopilot...",
+        //       reached_item_seq);
 
-        autopilot.send_message(mission_request_int_msg);
-        set_retry_send_timer(mission_request_int_msg,
-                             autopilot_send_retry_timeout,
-                             autopilot_send_retries);
+        //   mavlink_mission_request_int_t mission_request_int;
+        //   mission_request_int.seq = reached_item_seq;
+
+        //   mavlink_message_t mission_request_int_msg;
+        //   mavlink_msg_mission_request_int_encode(
+        //       mavio::gcs_system_id, mavio::gcs_component_id,
+        //       &mission_request_int_msg, &mission_request_int);
+
+        //   autopilot.send_message(mission_request_int_msg);
+        //   set_retry_send_timer(mission_request_int_msg,
+        //                        autopilot_send_retry_timeout,
+        //                        autopilot_send_retries);
+        //   break;
+        // }
+      case MAVLINK_MSG_ID_MISSION_CURRENT: {
+        uint16_t current_wp_num = mavlink_msg_mission_current_get_seq(&msg);
+
+        if (current_wp_num > wp_num) {
+          log(LOG_INFO,
+              "Current mission item changed to %d. Requesting the reached "
+              "items from the autopilot...",
+              current_wp_num);
+
+          mavlink_mission_request_int_t mission_request_int;
+          mission_request_int.seq = ++wp_num;
+
+          mavlink_message_t mission_request_int_msg;
+          mavlink_msg_mission_request_int_encode(
+              mavio::gcs_system_id, mavio::gcs_component_id,
+              &mission_request_int_msg, &mission_request_int);
+
+          autopilot.send_message(mission_request_int_msg);
+          set_retry_send_timer(mission_request_int_msg,
+                               autopilot_send_retry_timeout,
+                               autopilot_send_retries);
+        } else if (current_wp_num < wp_num) {
+          log(LOG_INFO,
+              "Current mission was reset to %d.",
+              current_wp_num);
+          wp_num = current_wp_num;
+        }
+
+        report.update(msg);
         break;
       }
       case MAVLINK_MSG_ID_MISSION_ITEM_INT:
         uint16_t item_seq = mavlink_msg_mission_item_int_get_seq(&msg);
 
-        if (item_seq == reached_item_seq) {
-          cancel_retry_send_timer(MAVLINK_MSG_ID_MISSION_REQUEST);
+        if (item_seq == wp_num) {
+          cancel_retry_send_timer(MAVLINK_MSG_ID_MISSION_REQUEST_INT);
+
+          log(LOG_INFO,
+              "Received the reached mission item (seq=%d) from autopilot.",
+              item_seq);
 
           // Forward command from the reached mission item to the camera handler
           mavlink_command_long_t command_long;
@@ -211,8 +252,6 @@ void MAVLinkHandler::loop() {
                                           &command_long_msg, &command_long);
 
           camera_handler.send_message(command_long_msg);
-
-          reached_item_seq = 0;
         }
         break;
     }

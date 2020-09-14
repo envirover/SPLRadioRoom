@@ -83,9 +83,8 @@ void CameraHandler::CmdExecutor::close() {
 }
 
 bool CameraHandler::CmdExecutor::submit(const mavlink_message_t& msg) {
-  // Dismiss message if the executor is not initialized or the handler
-  // is already being executed.
-  if (running && !executing) {
+  // Dismiss message if the executor is not initialized.
+  if (running) {
     in_queue.push(msg);
     return true;
   }
@@ -214,13 +213,6 @@ void CameraHandler::close() {
 
 bool CameraHandler::send_message(const mavlink_message_t& msg) {
   uint16_t command;
-
-  if (msg.msgid == MAVLINK_MSG_ID_COMMAND_ACK) {
-    command = mavlink_msg_command_ack_get_command(&msg);
-    uint8_t result = mavlink_msg_command_ack_get_result(&msg);
-
-    return false;
-  }
 
   if (msg.msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
     command = mavlink_msg_command_long_get_command(&msg);

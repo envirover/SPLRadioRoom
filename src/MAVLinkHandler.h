@@ -137,8 +137,8 @@ class MAVLinkHandler {
   mavlink_message_t mission_count_msg;
   mavlink_message_t missions[max_mission_count];
   size_t missions_received;
-  uint16_t reached_item_seq;
   std::string param_set_param_id;
+  uint16_t wp_num;
 
   timelib::Stopwatch retry_timer;
   mavlink_message_t retry_msg;
