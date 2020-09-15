@@ -219,7 +219,7 @@ void MAVLinkHandler::loop() {
           log(LOG_INFO,
               "Current mission was reset to %d.",
               current_wp_num);
-          wp_num = current_wp_num;
+          wp_num = 0;
         }
 
         report.update(msg);
