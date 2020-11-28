@@ -119,16 +119,18 @@ speed_t baud_rate_to_speed_t(int baud_rate) {
   return B57600;
 }
 
-Serial::Serial() : tty_fd(-1), path() {}
+Serial::Serial() : tty_fd(-1), path(), last_error(0) {}
 
 Serial::~Serial() {}
 
 int Serial::open(const string& path, int baud_rate) {
+  last_error = 0;
   this->path = path;
 
   tty_fd = ::open(path.data(), O_RDWR | O_NOCTTY /*| O_NONBLOCK*/);
 
   if (tty_fd < 0) {
+    last_error = errno;
     mavio::log(LOG_ERR, "Failed to open file '%s' (errno = %d).", path.data(),
                errno);
     return -1;
@@ -177,6 +179,8 @@ int Serial::read() {
 }
 
 int Serial::read(void* buffer, size_t size) {
+  last_error = 0;
+
   if (tty_fd < 0) {
     return -1;
   }
@@ -193,6 +197,7 @@ int Serial::read(void* buffer, size_t size) {
   int rv = ::select(tty_fd + 1, &set, NULL, NULL, &timeout);
 
   if (rv < 0) {
+    last_error = errno;
     return -1; /* an error accured */
   }
 
@@ -200,23 +205,39 @@ int Serial::read(void* buffer, size_t size) {
     return 0; /* a timeout occured */
   }
 
-  return ::read(tty_fd, buffer, size);
+  int ret = ::read(tty_fd, buffer, size);
+  last_error = errno;
+  return ret;
 }
 
 int Serial::write(int c) { return write(&c, 1); }
 
 int Serial::write(const void* buffer, size_t n) {
+  last_error = 0;
+
   if (tty_fd < 0) {
     return -1;
   }
 
   int ret = ::write(tty_fd, buffer, n);
 
-  if (ret < 0) return ret;
+  if (ret < 0) {
+    last_error = errno;
+    return ret;
+  }
 
-  if (::tcflush(tty_fd, TCIOFLUSH) < 0) return -1;
+  ret = ::tcflush(tty_fd, TCIOFLUSH);
+
+  if (ret < 0) {
+    last_error = errno;
+    return ret;
+  }
 
   return ret;
+}
+
+int Serial::get_last_error() {
+  return last_error;
 }
 
 int Serial::get_serial_devices(vector<string>& devices) {
