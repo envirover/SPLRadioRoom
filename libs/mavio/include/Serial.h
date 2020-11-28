@@ -93,6 +93,11 @@ class Serial {
   int write(const void* buffer, size_t n);
 
   /**
+   * Returns the last I/O error code (errno).
+   */
+  int get_last_error();
+
+  /**
    * Retrieves the list of serial devices from '/dev/serial/by-path' folder.
    * If 'dev/serial/by-path' folder is not available, the method uses static
    * list of standard serial devices.
@@ -107,6 +112,7 @@ class Serial {
   int tty_fd;
   termios old_tio;
   std::string path;
+  int last_error;
 };
 
 }  //  namespace mavio
