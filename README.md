@@ -1,4 +1,4 @@
-![SPL System Architecture](https://s3-us-west-2.amazonaws.com/envirover/images/SPL-2.1.jpg)
+![SPL System Architecture](https://s3-us-west-2.amazonaws.com/envirover/images/SPL-2.4.jpg)
 
 [![Build Status](https://travis-ci.org/envirover/SPLRadioRoom.svg?branch=master)](https://travis-ci.org/envirover/SPLRadioRoom)
 [![Join the chat at https://gitter.im/SPLRadioRoom/Lobby](https://badges.gitter.im/SPLRadioRoom/Lobby.svg)](https://gitter.im/SPLRadioRoom/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
