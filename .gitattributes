@@ -1,5 +1,3 @@
-etc/* eol=lf
+pack/* eol=lf
 * text=auto
 libs/* linguist-vendored
-arduino/MAVLinkTest/mavlink/* linguist-vendored
-arduino/SPLRadioRoom/mavlink/* linguist-vendored
