@@ -216,6 +216,7 @@ int Serial::write(const void* buffer, size_t n) {
   last_error = 0;
 
   if (tty_fd < 0) {
+    last_error = -1;
     return -1;
   }
 
@@ -226,11 +227,9 @@ int Serial::write(const void* buffer, size_t n) {
     return ret;
   }
 
-  ret = ::tcflush(tty_fd, TCIOFLUSH);
-
-  if (ret < 0) {
+  if (::tcflush(tty_fd, TCIOFLUSH) < 0) {
     last_error = errno;
-    return ret;
+    return -2;
   }
 
   return ret;
