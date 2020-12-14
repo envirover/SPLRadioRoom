@@ -48,11 +48,11 @@ MAVReport::MAVReport() : sysid(1), compid(0), mask(0) {}
  * message.
  */
 bool MAVReport::update(const mavlink_message_t& msg) {
-  sysid = msg.sysid;
   switch (msg.msgid) {
     case MAVLINK_MSG_ID_HEARTBEAT:  // 0
       report.base_mode = mavlink_msg_heartbeat_get_base_mode(&msg);
       report.custom_mode = mavlink_msg_heartbeat_get_custom_mode(&msg);
+      sysid = msg.sysid;
       compid = msg.compid;
       mask |= mavlink_msg_mask_heartbeat;
       return true;
