@@ -35,7 +35,7 @@
 /debug/*
 /Default/
 /RemoteSystemsTempFiles/
-/CMakeFiles/
+/build/CMakeFiles/
 CMakeCache.txt
 CMakeSettings.json
 .cproject
