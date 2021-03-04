@@ -91,6 +91,8 @@ bool MAVReport::update(const mavlink_message_t& msg) {
       report.latitude = mavlink_msg_global_position_int_get_lat(&msg);
       report.longitude = mavlink_msg_global_position_int_get_lon(&msg);
       report.altitude = mavlink_msg_global_position_int_get_alt(&msg) / 1000;
+      report.target_altitude =
+          mavlink_msg_global_position_int_get_relative_alt(&msg) / 1000;
       mask |= mavlink_msg_mask_global_position_int;
       return true;
     case MAVLINK_MSG_ID_MISSION_CURRENT:  // 42
@@ -102,8 +104,6 @@ bool MAVReport::update(const mavlink_message_t& msg) {
           mavlink_msg_nav_controller_output_get_wp_dist(&msg);
       report.target_heading =
           mavlink_msg_nav_controller_output_get_nav_bearing(&msg) / 2;
-      report.target_altitude =
-          mavlink_msg_nav_controller_output_get_alt_error(&msg);
       mask |= mavlink_msg_mask_nav_controller_output;
       return true;
     case MAVLINK_MSG_ID_VFR_HUD:  // 74
