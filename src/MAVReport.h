@@ -40,7 +40,15 @@ class MAVReport {
   void get_message(mavlink_message_t& msg) const;
 
  private:
-  mavlink_high_latency_t report;
+  // Constructs 2 byte HIGH_LATENCY2.custom_mode from HEARTBEAT.base_mode and
+  // HEARTBEAT.custom_mode.
+  uint16_t get_custom_mode(uint8_t base_mode, uint32_t custom_mode) const;
+
+  // Constructs HIGH_LATENCY2.failure_flags bitmap from
+  // SYS_STATUS.onboard_control_sensors_health
+  uint16_t get_failure_flags(uint32_t sensors_health) const;
+
+  mavlink_high_latency2_t report;
   uint8_t sysid;
   uint8_t compid;
   uint16_t mask;
