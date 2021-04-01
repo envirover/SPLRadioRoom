@@ -1545,6 +1545,30 @@ void MAVLinkLogger::log(int priority, const char* prefix,
                msg.wp_distance);
       break;
     }
+    case MAVLINK_MSG_ID_HIGH_LATENCY2: {
+      mavlink_high_latency2_t msg;
+      mavlink_msg_high_latency2_decode(&message, &msg);
+      snprintf(buff, sizeof(buff),
+               "%s HIGH_LATENCY2(%d), sysid=%d, compid=%d, seq=%d, "
+               "timestamp=%d, type=%d, autopilot=%d, custom_mode=%d, "
+               "heading=%d, target_heading=%d, throttle=%d, "
+               "latitude=%d, longitude=%d, altitude=%d, target_altitude_sp=%d, "
+               "airspeed=%d, airspeed_sp=%d, groundspeed=%d, climb_rate=%d, "
+               "windspeed=%d, wind_heading=%d, eph=%d, epv=%d, "
+               "battery=%d, temperature_air=%d, failure_flags=%d, "
+               "wp_num=%d, target_distance=%d, "
+               "custom0=%d, custom1=%d, custom2=%d",
+               prefix, message.msgid, message.sysid, message.compid, message.seq,
+               msg.timestamp, msg.type, msg.autopilot, msg.custom_mode,
+               msg.heading, msg.target_heading, msg.throttle,
+               msg.latitude, msg.longitude, msg.altitude, msg.target_altitude,
+               msg.airspeed, msg.airspeed_sp, msg.groundspeed, msg.climb_rate,
+               msg.windspeed, msg.wind_heading, msg.eph, msg.epv,
+               msg.battery, msg.temperature_air, msg.failure_flags,
+               msg.wp_num, msg.target_distance,
+               msg.custom0, msg.custom1, msg.custom2);
+      break;
+    }
     case MAVLINK_MSG_ID_VIBRATION: {
       mavlink_vibration_t msg;
       mavlink_msg_vibration_decode(&message, &msg);
