@@ -216,9 +216,7 @@ void MAVLinkHandler::loop() {
                                autopilot_send_retry_timeout,
                                autopilot_send_retries);
         } else if (current_wp_num < wp_num) {
-          log(LOG_INFO,
-              "Current mission was reset to %d.",
-              current_wp_num);
+          log(LOG_INFO, "Current mission was reset to %d.", current_wp_num);
           wp_num = 0;
         }
 
@@ -404,13 +402,13 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
           mavlink_msg_mission_count_get_count(&mission_count_msg);
       uint16_t seq = mavlink_msg_mission_item_get_seq(&msg);
       uint8_t current = mavlink_msg_mission_item_int_get_current(&msg);
-     
-      if (current==2){
+
+      if (current == 2) {
         autopilot.send_message(msg);
         log(LOG_INFO, "GOTO mission point, %i", current);
         break;
       }
-      
+
       if (seq < mission_count) {
         if (missions[seq].msgid == 0) {  // new item
           missions_received++;
@@ -496,14 +494,16 @@ bool MAVLinkHandler::send_report() {
     // }
 
     mavlink_message_t report_msg;
-    report.get_message(report_msg);
+    uint16_t msg_mask;
 
     // Select the channel to send report
     if (config.get_tcp_enabled() && !config.get_isbd_enabled()) {
+      report.get_message(tcp_channel.get_channel_id(), report_msg, msg_mask);
       return tcp_channel.send_message(report_msg);
     }
 
     if (!config.get_tcp_enabled() && config.get_isbd_enabled()) {
+      report.get_message(isbd_channel.get_channel_id(), report_msg, msg_mask);
       return isbd_channel.send_message(report_msg);
     }
 
@@ -527,10 +527,13 @@ bool MAVLinkHandler::send_report() {
       if (timelib::time_since_epoch() - primary_channel.last_send_time() >=
           secondary_report_period) {
         secondary_report_timer.reset();
+        report.get_message(secondary_channel.get_channel_id(), report_msg,
+                           msg_mask);
         return secondary_channel.send_message(report_msg);
       }
     }
 
+    report.get_message(primary_channel.get_channel_id(), report_msg, msg_mask);
     return primary_channel.send_message(report_msg);
   }
 

@@ -24,19 +24,6 @@
 
 namespace radioroom {
 
-// Masks of MAVLink messages used to compose single HIGH_LATENCY2 message
-constexpr uint16_t mavlink_msg_mask_heartbeat             = 0x0001;
-constexpr uint16_t mavlink_msg_mask_sys_status            = 0x0002;
-constexpr uint16_t mavlink_msg_mask_gps_raw_int           = 0x0004;
-constexpr uint16_t mavlink_msg_mask_attitude              = 0x0008;
-constexpr uint16_t mavlink_msg_mask_global_position_int   = 0x0010;
-constexpr uint16_t mavlink_msg_mask_mission_current       = 0x0020;
-constexpr uint16_t mavlink_msg_mask_nav_controller_output = 0x0040;
-constexpr uint16_t mavlink_msg_mask_vfr_hud               = 0x0080;
-constexpr uint16_t mavlink_msg_mask_battery2              = 0x0100;  // optional
-constexpr uint16_t mavlink_msg_mask_wind                  = 0x0200;  // optional
-constexpr uint16_t mavlink_msg_mask_scaled_pressure       = 0x0400;  // optional
-
 constexpr uint16_t mavlink_msg_mask_high_latency = 0x00FF;
 
 inline int16_t rad_to_centidegrees(float rad) {
@@ -127,7 +114,10 @@ bool MAVReport::update(const mavlink_message_t& msg) {
   return false;
 }
 
-void MAVReport::get_message(mavlink_message_t& msg) const {
+void MAVReport::get_message(uint8_t channel_id, mavlink_message_t& msg,
+                            uint16_t& msg_mask) {
+  report.custom2 = channel_id;
+  msg_mask = mask;
   mavlink_msg_high_latency2_encode(sysid, compid, &msg, &report);
 }
 

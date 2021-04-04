@@ -30,19 +30,25 @@
 
 namespace mavio {
 
+// Channel IDs
+constexpr uint8_t autopilot_channel_id      = 0;
+constexpr uint8_t tcp_channel_id            = 1;
+constexpr uint8_t isbd_channel_id           = 2;
+constexpr uint8_t camera_handler_channel_id = 3;
+
 /*
  * Interface for send/receive channels of MAVLink messages.
  */
 class MAVLinkChannel {
  public:
-  explicit MAVLinkChannel(std::string channel_id) : channel_id(channel_id) {}
+  explicit MAVLinkChannel(uint8_t channel_id) : channel_id(channel_id) {}
 
   virtual ~MAVLinkChannel() {}
 
   /**
    * Returns the channel ID.
    */
-  virtual std::string get_channel_id() const { return channel_id; }
+  virtual uint8_t get_channel_id() const { return channel_id; }
 
   /**
    * Closes the connection if it was open.
@@ -81,7 +87,7 @@ class MAVLinkChannel {
   virtual std::chrono::milliseconds last_receive_time() = 0;
 
  private:
-  std::string channel_id;
+  uint8_t channel_id;
 };
 
 }  // namespace mavio

@@ -176,7 +176,7 @@ void CameraHandler::CmdExecutor::execute_cmd(const mavlink_message_t& msg) {
 }
 
 CameraHandler::CameraHandler()
-    : MAVLinkChannel("handler"),
+    : MAVLinkChannel(mavio::camera_handler_channel_id),
       running(false),
       on_video_start_capture_executor("on_video_start_capture", receive_queue),
       on_video_stop_capture_executor("on_video_stop_capture", receive_queue),

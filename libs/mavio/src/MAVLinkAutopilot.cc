@@ -41,7 +41,7 @@ const std::chrono::milliseconds receive_retry_delay(10);
 constexpr size_t max_autopilot_queue_size = 1024;
 
 MAVLinkAutopilot::MAVLinkAutopilot()
-    : MAVLinkChannel("autopilot"),
+    : MAVLinkChannel(autopilot_channel_id),
       running(false),
       send_thread(),
       receive_thread(),
