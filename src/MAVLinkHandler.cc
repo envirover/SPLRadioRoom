@@ -405,12 +405,20 @@ void MAVLinkHandler::handle_mt_message(const mavlink_message_t& msg,
     case MAVLINK_MSG_ID_MISSION_ITEM: {
       uint16_t mission_count =
           mavlink_msg_mission_count_get_count(&mission_count_msg);
-      uint16_t seq = mavlink_msg_mission_item_get_seq(&msg);
-      uint8_t current = mavlink_msg_mission_item_int_get_current(&msg);
+
+      uint16_t seq = 0;
+      uint8_t current = 0;
+      if (msg.msgid == MAVLINK_MSG_ID_MISSION_ITEM) {
+        seq = mavlink_msg_mission_item_get_seq(&msg);
+        current = mavlink_msg_mission_item_get_current(&msg);
+      } else {
+        seq = mavlink_msg_mission_item_int_get_seq(&msg);
+        current = mavlink_msg_mission_item_int_get_current(&msg);
+      }
 
       if (current == 2) {
         autopilot.send_message(msg);
-        log(LOG_INFO, "GOTO mission point, %i", current);
+        log(LOG_INFO, "GOTO mission point %i.", current);
         break;
       }
 
