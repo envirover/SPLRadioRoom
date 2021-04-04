@@ -26,8 +26,9 @@ namespace radioroom {
 
 constexpr uint16_t mavlink_msg_mask_high_latency = 0x00FF;
 
-inline int16_t rad_to_centidegrees(float rad) {
-  return rad * 18000.0 / 3.14159265358979323846;
+// Convert radians to degrees
+inline int16_t rad_to_degrees(float rad) {
+  return (int16_t)(rad * 180.0 / 3.14159265358979323846 + 360.0)  % 360;
 }
 
 MAVReport::MAVReport() : sysid(1), compid(0), mask(0) {}
@@ -58,8 +59,8 @@ bool MAVReport::update(const mavlink_message_t& msg) {
       return true;
     case MAVLINK_MSG_ID_GPS_RAW_INT:  // 24
       report.groundspeed = mavlink_msg_gps_raw_int_get_vel(&msg) / 100 * 5;
-      report.eph = mavlink_msg_gps_raw_int_get_eph(&msg);
-      report.epv = mavlink_msg_gps_raw_int_get_epv(&msg);
+      // report.eph = mavlink_msg_gps_raw_int_get_eph(&msg);
+      // report.epv = mavlink_msg_gps_raw_int_get_epv(&msg);
       mask |= mavlink_msg_mask_gps_raw_int;
       return true;
     case  MAVLINK_MSG_ID_SCALED_PRESSURE:  // 29
@@ -68,9 +69,10 @@ bool MAVReport::update(const mavlink_message_t& msg) {
       mask |= mavlink_msg_mask_scaled_pressure;
       return true;
     case MAVLINK_MSG_ID_ATTITUDE:  // 30
-      report.heading =
-          ((rad_to_centidegrees(mavlink_msg_attitude_get_yaw(&msg)) + 36000) %
-          36000) / 2;
+      report.heading = rad_to_degrees(mavlink_msg_attitude_get_yaw(&msg)) / 2;
+      // Use eph and epv fields to report roll and pitch.
+      report.eph = rad_to_degrees(mavlink_msg_attitude_get_roll(&msg)) / 2;
+      report.epv = rad_to_degrees(mavlink_msg_attitude_get_pitch(&msg)) / 2;
       mask |= mavlink_msg_mask_attitude;
       return true;
     case MAVLINK_MSG_ID_GLOBAL_POSITION_INT:  // 33
