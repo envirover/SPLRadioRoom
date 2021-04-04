@@ -34,7 +34,7 @@ const std::chrono::milliseconds tcp_channel_send_interval(10);
 const std::chrono::milliseconds tcp_channel_receive_interval(10);
 
 MAVLinkTCPChannel::MAVLinkTCPChannel()
-    : MAVLinkChannel("tcp"),
+    : MAVLinkChannel(tcp_channel_id),
       running(false),
       send_thread(),
       receive_thread(),

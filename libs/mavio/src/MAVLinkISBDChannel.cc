@@ -35,7 +35,7 @@ constexpr size_t max_isbd_channel_queue_size = 1024;
 const std::chrono::milliseconds isbd_channel_poll_interval(10);
 
 MAVLinkISBDChannel::MAVLinkISBDChannel()
-    : MAVLinkChannel("isbd"),
+    : MAVLinkChannel(isbd_channel_id),
       isbd(),
       running(false),
       send_receive_thread(),
