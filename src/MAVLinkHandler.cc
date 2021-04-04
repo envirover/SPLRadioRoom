@@ -220,7 +220,10 @@ void MAVLinkHandler::loop() {
           wp_num = 0;
         }
 
-        report.update(msg);
+        if (msg.sysid == autopilot.get_system_id()) {
+          report.update(msg);
+        }
+
         break;
       }
       case MAVLINK_MSG_ID_MISSION_ITEM_INT:
@@ -354,7 +357,9 @@ void MAVLinkHandler::handle_mo_message(const mavlink_message_t& msg,
       break;
     }
     default: {
-      report.update(msg);
+      if (msg.sysid == autopilot.get_system_id()) {
+        report.update(msg);
+      }
       break;
     }
   }  // switch
