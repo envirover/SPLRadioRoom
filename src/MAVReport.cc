@@ -92,7 +92,7 @@ bool MAVReport::update(const mavlink_message_t& msg) {
       report.target_distance =
           mavlink_msg_nav_controller_output_get_wp_dist(&msg);
       report.target_heading =
-          mavlink_msg_nav_controller_output_get_nav_bearing(&msg) / 2;
+          mavlink_msg_nav_controller_output_get_target_bearing(&msg) / 2;
       mask |= mavlink_msg_mask_nav_controller_output;
       return true;
     case MAVLINK_MSG_ID_VFR_HUD:  // 74
