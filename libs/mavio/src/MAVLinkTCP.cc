@@ -161,7 +161,7 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
   ssize_t rc;
   uint8_t chr = 0;
 
-  while (rc = ::recv(socket_fd, &chr, 1, MSG_WAITALL) > 0) {
+  while ((rc = ::recv(socket_fd, &chr, 1, MSG_WAITALL)) > 0) {
     mavlink_status_t mavlink_status;
 
     if (mavlink_parse_char(MAVLINK_COMM_0, chr, &msg, &mavlink_status)) {
@@ -170,7 +170,10 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     }
   }
 
-  if (rc < 0) {
+  if (rc == 0) {
+    mavio::log(LOG_INFO, "TCP >> FAILED (The socket peer has performed "
+                          "an orderly shutdown)");
+  } else {
     mavio::log(LOG_DEBUG, "TCP >> FAILED (Failed to receive message from "
                "the socket. %s)", strerror(errno));
   }
