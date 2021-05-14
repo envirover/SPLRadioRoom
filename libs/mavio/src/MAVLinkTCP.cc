@@ -158,82 +158,24 @@ bool MAVLinkTCP::receive_message(mavlink_message_t& msg) {
     return false;
   }
 
-  uint8_t stx;
-  int rc = ::recv(socket_fd, &stx, 1, MSG_WAITALL);
+  ssize_t rc;
+  uint8_t chr = 0;
 
-  if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-    // Read timeout
-    return false;
-  }
+  while ((rc = ::recv(socket_fd, &chr, 1, MSG_WAITALL)) > 0) {
+    mavlink_status_t mavlink_status;
 
-  if (rc > 0) {
-    if (stx != MAVLINK_STX && stx != MAVLINK_STX_MAVLINK1) {
-      return false;
-    }
-
-    int header_length = 6;
-
-    uint8_t payload_length;
-    rc = ::recv(socket_fd, &payload_length, 1, MSG_WAITALL);
-
-    if (rc > 0) {
-      uint8_t inc_flags = 0;
-
-      if (stx == MAVLINK_STX) {  // MAVLink 2
-        int rc = ::recv(socket_fd, &inc_flags, 1, MSG_WAITALL);
-
-        if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-          // Read timeout
-          return false;
-        }
-
-        header_length = MAVLINK_NUM_NON_PAYLOAD_BYTES - 3;
-
-        if (inc_flags & MAVLINK_IFLAG_SIGNED) {
-          header_length += MAVLINK_SIGNATURE_BLOCK_LEN;
-        }
-      }
-
-      uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
-      rc = ::recv(socket_fd, buffer, payload_length + header_length,
-                  MSG_WAITALL);
-
-      if (rc < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-        // Read timeout
-        return false;
-      }
-
-      if (rc > 0) {
-        mavlink_status_t mavlink_status;
-
-        mavlink_parse_char(MAVLINK_COMM_0, stx, &msg, &mavlink_status);
-        mavlink_parse_char(MAVLINK_COMM_0, payload_length, &msg,
-                           &mavlink_status);
-        if (stx == MAVLINK_STX) {  // MAVLink 2
-          mavlink_parse_char(MAVLINK_COMM_0, inc_flags, &msg, &mavlink_status);
-        }
-
-        for (int i = 0; i < rc; i++) {
-          if (mavlink_parse_char(MAVLINK_COMM_0, buffer[i], &msg,
-                                 &mavlink_status)) {
-            MAVLinkLogger::log(LOG_INFO, "TCP >>", msg);
-            return true;
-          }
-        }
-      }
+    if (mavlink_parse_char(MAVLINK_COMM_0, chr, &msg, &mavlink_status)) {
+      MAVLinkLogger::log(LOG_INFO, "TCP >>", msg);
+      return true;
     }
   }
 
-  if (rc > 0) {
-    mavio::log(LOG_DEBUG, "Failed to receive MAVLink message from socket. %s",
-               strerror(errno));
-  } else if (rc == 0) {
-    mavio::log(LOG_DEBUG,
-               "TCP >> FAILED (The stream socket peer has performed an "
-               "orderly shutdown)");
+  if (rc == 0) {
+    mavio::log(LOG_INFO, "TCP >> FAILED (The socket peer has performed "
+                          "an orderly shutdown)");
   } else {
-    mavio::log(LOG_WARNING, "Failed to parse MAVLink message. %s",
-               strerror(errno));
+    mavio::log(LOG_DEBUG, "TCP >> FAILED (Failed to receive message from "
+               "the socket. %s)", strerror(errno));
   }
 
   return false;
