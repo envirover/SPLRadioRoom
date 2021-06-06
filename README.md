@@ -15,6 +15,8 @@ UV Radio Room system requires the following hardware and software:
 * Activated [RockBLOCK Mk2](http://www.rock7mobile.com/products-rockblock) or [RockBLOCK 9603](http://www.rock7mobile.com/products-rockblock-9603) Iridium satellite communication module with FTDI USB to UART cable.
 * Cellular or satellite Internet modem.
 
+See [hardware/rpi-radioroom.md](hardware/rpi-radioroom.md) for UV Radio Room hardware parts and STL files for a 3D-printed enclosure.
+
 ## Wiring
 
 UV Radio Room uses serial devices to communicate with autopilot and ISBD transceiver. Cellular or satellite Internet modems cold be connected using USB, Ethernet, or WiFi connections.
@@ -38,10 +40,10 @@ Though +5V TELEM pin on Pixhawk is rated for up to 2A peak power draw, it is rec
 
 To install UV Radio Room on Raspberry Pi or NVIDIA Jetson:
 
-1. Copy radioroom-2.4.0-raspbian.deb or radioroom-2.4.0-jetson.deb from https://github.com/envirover/SPLRadioRoom/releases to the machine.
-2. Install radioroom-2.4.0-raspbian.deb package or radioroom-2.4.0-jetson.deb.
+1. Copy radioroom-2.5.0-raspbian.deb or radioroom-2.5.0-jetson.deb from https://github.com/envirover/SPLRadioRoom/releases to the machine.
+2. Install radioroom-2.5.0-raspbian.deb package or radioroom-2.5.0-jetson.deb.
 
-   ``$ sudo dpkg -i radioroom-2.4.0-raspbian.deb``
+   ``$ sudo dpkg -i radioroom-2.5.0-raspbian.deb``
 
 3. Configure the reporting period and the serial device paths for autopilot in /etc/radioroom.conf.
 4. If ISBD transceiver is used, in [isbd] section set enabled=true and specify the serial device paths of the ISBD transceiver in /etc/radioroom.conf.
@@ -84,13 +86,13 @@ pi@raspberrypi:~ $ sudo systemctl status radioroom.service
            └─254 /usr/sbin/radioroom
 
 Nov 07 07:27:56 raspberrypi systemd[1]: Starting UV Radio Room Service...
-Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.4.0...
+Nov 07 07:27:57 raspberrypi radioroom[254]: Starting UV Radio Room 2.5.0...
 Nov 07 07:27:57 raspberrypi radioroom[254]: Connecting to autopilot (/dev/ttyUSB0 57600)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: Autopilot detected at serial device '/dev/ttyUSB0'.
 Nov 07 07:27:58 raspberrypi radioroom[254]: MAV type: 12, system id: 1, autopilot class: 3, firmware version: 3.5.0/255
 Nov 07 07:27:58 raspberrypi radioroom[254]: Connecting to ISBD transceiver (/dev/ttyUSB1 19200)...
 Nov 07 07:27:58 raspberrypi radioroom[254]: IRIDIUM 9600 Family SBD Transceiver (IMEA 123456789012345) detected at serial device '/dev/ttyUSB1'.
-Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.4.0 started.
+Nov 07 07:27:58 raspberrypi radioroom[254]: UV Radio Room 2.5.0 started.
 ```
 
 Log file of radioroom service is available at /var/log/radioroom.log.
