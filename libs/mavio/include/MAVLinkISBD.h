@@ -97,6 +97,7 @@ class MAVLinkISBD {
   bool get_signal_quality(int& quality);
 
  private:
+
   Serial stream;
   IridiumSBD isbd;
 };

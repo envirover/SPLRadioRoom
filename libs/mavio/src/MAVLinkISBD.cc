@@ -31,6 +31,10 @@ namespace mavio {
 using std::string;
 using std::vector;
 
+// Custom serialization/deerialization helpers
+uint16_t message_to_send_buffer(uint8_t *buf, const mavlink_message_t *msg);
+bool parse_message(const uint8_t *buf, size_t buf_size, mavlink_message_t *msg);
+
 MAVLinkISBD::MAVLinkISBD() : stream(), isbd(stream) {}
 
 MAVLinkISBD::~MAVLinkISBD() {}
@@ -158,7 +162,7 @@ bool MAVLinkISBD::send_receive_message(const mavlink_message_t& mo_msg,
   uint16_t len = 0;
 
   if (mo_msg.len != 0 && mo_msg.msgid != 0) {
-    len = mavlink_msg_to_send_buffer(buf, &mo_msg);
+    len = message_to_send_buffer(buf, &mo_msg);
   }
 
   received = false;
@@ -179,25 +183,121 @@ bool MAVLinkISBD::send_receive_message(const mavlink_message_t& mo_msg,
   }
 
   if (buf_size > 0) {
-    mavlink_status_t mavlink_status;
-
-    for (size_t i = 0; i < buf_size; i++) {
-      if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &mt_msg,
-                             &mavlink_status)) {
-        received = true;
-
-        MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
-        break;
-      }
-    }
-
-    if (!received) {
+    if (parse_message(buf, buf_size, &mt_msg)) {
+      MAVLinkLogger::log(LOG_INFO, "SBD >>", mt_msg);
+    } else {
       mavio::log(LOG_WARNING,
                  "Failed to parse MAVLink message received from ISBD.");
     }
   }
 
   MAVLinkLogger::log(LOG_INFO, "SBD <<", mo_msg);
+
+  return true;
+}
+
+/**
+ * Custom serialization of MAVLink messages.
+ * 
+ * With standard mavlink_msg_to_send_buffer() function, HIGH_LATENCY2 takes 54
+ * bytes, which requires 2 RockBLOCK credits. With the custom serialization 
+ * sending HIGH_LATENCY2 takes 50 bytes.
+ * 
+ * For MAVLink 2.0 the serialization does not include compatibility, 
+ * incompatibility flags, and the checksum.
+ */
+uint16_t message_to_send_buffer(uint8_t* buf, const mavlink_message_t* msg) {
+  uint8_t header_len;
+  uint8_t length = msg->len;
+
+  buf[0] = msg->magic;
+  buf[1] = length;
+  buf[2] = msg->seq;
+  buf[3] = msg->sysid;
+  buf[4] = msg->compid;
+
+  if (msg->magic == MAVLINK_STX_MAVLINK1) {
+    header_len = MAVLINK_CORE_HEADER_MAVLINK1_LEN;
+    buf[5] = msg->msgid & 0xFF;
+    memcpy(buf + 6, _MAV_PAYLOAD(msg), msg->len);
+    uint8_t* ck = buf + header_len + 1 + (uint16_t)msg->len;
+    ck[0] = (uint8_t)(msg->checksum & 0xFF);
+    ck[1] = (uint8_t)(msg->checksum >> 8);
+    return header_len + 1 + (uint16_t)length + 2;
+  } else {  // MAVLink 2.0
+    length = _mav_trim_payload(_MAV_PAYLOAD(msg), length);
+    header_len = MAVLINK_CORE_HEADER_LEN - 2;
+    buf[5] = msg->msgid & 0xFF;
+    buf[6] = (msg->msgid >> 8) & 0xFF;
+    buf[7] = (msg->msgid >> 16) & 0xFF;
+    memcpy(buf + 8, _MAV_PAYLOAD(msg), length);
+    return header_len + 1 + (uint16_t)length;
+  }
+}
+
+/* 
+ * Custom deserialization of MAVLink messages.
+ */
+bool parse_message(const uint8_t* buf, size_t buf_size,
+                   mavlink_message_t* msg) {
+  if (buf == NULL || buf_size < 8 || msg == NULL)
+    return false;
+
+  const mavlink_msg_entry_t *msg_entry;
+
+  msg->magic = buf[0];
+  msg->compat_flags = 0;
+  msg->incompat_flags = 0;
+  msg->len = buf[1];
+  msg->seq = buf[2];
+  msg->sysid = buf[3];
+  msg->compid = buf[4];
+
+  switch (msg->magic) {
+    case MAVLINK_STX_MAVLINK1:
+
+      msg->msgid = buf[5];
+      memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf + 6, msg->len);
+
+      // Compute checksum
+      crc_init(&(msg->checksum));
+      crc_accumulate_buffer(&(msg->checksum), (const char *)(buf + 1),
+                            msg->len + 5);
+
+      msg_entry = mavlink_get_msg_entry(msg->msgid);
+
+      if (msg_entry == NULL) {
+        return false;
+      }
+
+      crc_accumulate(msg_entry->crc_extra, &(msg->checksum));
+
+      msg->ck[0] = (uint8_t)(msg->checksum & 0xFF);
+      msg->ck[1] = (uint8_t)(msg->checksum >> 8);
+      break;
+    case MAVLINK_STX:
+      msg->msgid = buf[5] + (buf[6] << 8) + (buf[7] << 16);
+      memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf + 8, msg->len);
+
+      // Compute checksum
+      crc_init(&(msg->checksum));
+      crc_accumulate(buf[1], &(msg->checksum));
+      crc_accumulate(0, &(msg->checksum));  // Compat flags
+      crc_accumulate(0, &(msg->checksum));  // Incompat flags
+      crc_accumulate_buffer(&(msg->checksum), (const char *)(buf + 2),
+                            buf_size - 2);
+
+      msg_entry = mavlink_get_msg_entry(msg->msgid);
+
+      if (msg_entry == NULL) {
+        return false;
+      }
+
+      crc_accumulate(msg_entry->crc_extra, &(msg->checksum));
+      break;
+    default:
+      return false;
+  }
 
   return true;
 }
